@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useUserStore } from '@/stores/auth'
 
 // Import the Layout and Views
 import MainLayout from '@/layouts/MainLayout.vue'
@@ -45,7 +45,7 @@ const router = createRouter({
 // The global guard now protects any route with meta.requiresAuth
 router.beforeEach((to, from, next) => {
   // We must initialize the store here to use it inside the guard
-  const auth = useAuthStore();
+  const auth = useUserStore();
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     // If route requires auth and user is not logged in, redirect to login

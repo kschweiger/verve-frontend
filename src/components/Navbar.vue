@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { useUserStore } from '@/stores/auth';
 
-const authStore = useAuthStore();
+const userStore = useUserStore();
 const router = useRouter();
 
 function handleLogout() {
-  authStore.logout(); // This clears the token from the store and localStorage
+  userStore.logout(); // This clears the token from the store and localStorage
   router.push({ name: 'login' }); // Redirect to the login page
 }
 </script>

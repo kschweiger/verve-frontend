@@ -2,10 +2,13 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
 // The name of the store, 'auth', is a unique key
-export const useAuthStore = defineStore('auth', () => {
+export const useUserStore = defineStore('user', () => {
   // --- STATE ---
   // Initialize the token from localStorage to persist login across page refreshes.
   const token = ref(localStorage.getItem('auth_token'));
+
+  const user_full_name = ref(localStorage.getItem('user_full_name'));
+  const user_name = ref(localStorage.getItem('user_name'));
 
   // --- GETTERS ---
   // A computed property to easily check if the user is authenticated.
@@ -22,6 +25,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Sets the user names in state and localStorage.
+   * @param {string} name username  of the user
+   * @param {string} fullName Full name of the user
+   */
+  function setUserInfo(name: string, fullName: string) {
+    localStorage.setItem('user_name', name);
+    localStorage.setItem('user_full_name', fullName);
+    user_name.value = name;
+    user_full_name.value = fullName;
+  }
+
+  /**
    * Clears the authentication token from state and localStorage.
    */
   function clearToken() {
@@ -29,6 +44,15 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null;
   }
 
+  /**
+   * Clears the usernames from state and localStorage.
+   */
+  function clearUserInfo() {
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_full_name');
+    user_name.value = null;
+    user_full_name.value = null;
+  }
   /**
    * Attempts to log in the user by calling the API.
    * @param {string} email The user's email.
@@ -51,24 +75,37 @@ export const useAuthStore = defineStore('auth', () => {
         body: body,
       });
 
-      if (!response.ok) {
-        // If the response is not 2xx, throw an error.
-        return false;
-      }
-
+      if (!response.ok) return false;
       const data = await response.json();
+      if (!data.access_token) return false;
 
-      // Check if the response contains the access_token
-      if (data.access_token) {
-        setToken(data.access_token);
-        return true;
-      } else {
+      // Token received, set it in the store immediately
+      setToken(data.access_token);
+
+      const response_user = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/users/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${data.access_token}`
+        },
+      }
+      );
+
+      if (!response_user.ok) {
+        clearToken(); // Roll back the token
         return false;
       }
+
+      const data_user = await response_user.json();
+
+      setUserInfo(data_user.name, data_user.full_name);
+      return true;
+
 
     } catch (error) {
       console.error('Login API call error:', error);
-      clearToken(); // Ensure any invalid token is cleared
+      clearToken();
+      clearUserInfo();
       return false;
     }
   }
@@ -78,11 +115,12 @@ export const useAuthStore = defineStore('auth', () => {
    */
   function logout() {
     clearToken();
+    clearUserInfo();
     // Here we can also add a redirect to the login page if needed.
     // For example: router.push({ name: 'login' });
   }
 
 
   // Expose the state, getters, and actions for components to use
-  return { token, isAuthenticated, login, logout, setToken }
+  return { token, user_full_name, user_name, isAuthenticated, login, logout, }
 })

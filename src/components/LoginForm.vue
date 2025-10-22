@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { useUserStore } from '@/stores/auth';
 
 // Get the router instance to redirect the user after login
 const router = useRouter();
 
 // Get the auth store instance
-const authStore = useAuthStore();
+const userStore = useUserStore();
 
 const email = ref('');
 const password = ref('');
@@ -17,7 +17,7 @@ async function handleLogin() {
   errorMessage.value = null; // Reset error message on new attempt
 
   // Call the login action from our Pinia store
-  const success = await authStore.login(email.value, password.value);
+  const success = await userStore.login(email.value, password.value);
 
   if (success) {
     // If login is successful, redirect to the dashboard
