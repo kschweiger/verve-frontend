@@ -1,46 +1,60 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import LoginView from '../views/LoginView.vue'
-import DashboardView from '../views/DashboardView.vue'
+
+// Import the Layout and Views
+import MainLayout from '@/layouts/MainLayout.vue'
+import LoginView from '@/views/LoginView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // This is the top-level route for non-authenticated users
     {
       path: '/login',
       name: 'login',
       component: LoginView
     },
-    {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: DashboardView,
-      meta: { requiresAuth: true } // Mark this route as needing authentication
-    },
-    // A catch-all route to redirect the root path
+
+    // This is a new "parent" route for all authenticated pages
     {
       path: '/',
-      redirect: to => {
-        const auth = useAuthStore();
-        return auth.isAuthenticated ? '/dashboard' : '/login';
-      }
+      component: MainLayout, // All children of this route will be rendered inside MainLayout
+      meta: { requiresAuth: true }, // Protect all child routes at once
+      children: [
+        {
+          path: '', // Default child route, redirects to dashboard
+          redirect: '/dashboard'
+        },
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: DashboardView
+        },
+        // We can add more authenticated routes here in the future
+        // {
+        //   path: 'activities',
+        //   name: 'activities',
+        //   component: () => import('../views/ActivityListView.vue')
+        // },
+      ]
     },
   ]
 })
 
-// Global Navigation Guard
+// The global guard now protects any route with meta.requiresAuth
 router.beforeEach((to, from, next) => {
+  // We must initialize the store here to use it inside the guard
   const auth = useAuthStore();
 
-  // Check if the route requires authentication
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    // If not authenticated, redirect to the login page
+    // If route requires auth and user is not logged in, redirect to login
     next({ name: 'login' });
   } else if (to.name === 'login' && auth.isAuthenticated) {
-    // If an authenticated user tries to visit the login page, redirect them to the dashboard
+    // If a logged-in user tries to access the login page, send them to the dashboard
     next({ name: 'dashboard' });
   } else {
-    // Otherwise, allow the navigation
+    // Otherwise, proceed
     next();
   }
 });
