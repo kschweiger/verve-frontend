@@ -31,6 +31,15 @@ const router = createRouter({
           name: 'dashboard',
           component: DashboardView
         },
+        {
+          // The ':id' is a dynamic parameter
+          path: 'activity/:id',
+          name: 'activity-detail',
+          // Use a dynamic import for the component for better performance
+          component: () => import('@/views/ActivityDetailView.vue'),
+          // This automatically passes the ':id' from the URL as a prop to the component
+          props: true
+        },
         // We can add more authenticated routes here in the future
         // {
         //   path: 'activities',
