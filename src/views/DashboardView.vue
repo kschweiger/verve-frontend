@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/auth';
 import LastActivitiesWidget from '@/components/widgets/LastActivitiesWidget.vue';
+import UploadActivityWidget from '@/components/widgets/UploadActivityWidget.vue';
 
 const userStore = useUserStore();
-console.log(userStore);
 </script>
 
 <template>
@@ -23,6 +23,7 @@ console.log(userStore);
       -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Add your widgets here -->
+        <UploadActivityWidget />
         <LastActivitiesWidget />
 
         <!-- Placeholder for future widgets -->
