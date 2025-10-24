@@ -1,11 +1,34 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { useActivityStore } from '@/stores/activity';
+import { useActivityStore, type Activity } from '@/stores/activity';
+import { useTypeStore } from '@/stores/types';
 
 const activityStore = useActivityStore();
+const typeStore = useTypeStore();
 
-// The `onMounted` hook is a perfect place to trigger an initial data fetch
-// when the component is first added to the page.
+const getActivityTitle = (activity: Activity): string => {
+  // 1. Find the main type object.
+  const foundType = typeStore.activityTypes.find(t => t.id === activity.type_id);
+
+  // If no main type is found at all, return a generic fallback.
+  if (!foundType) {
+    return 'Activity';
+  }
+
+  // 2. Check if a sub-type ID exists and if the found type has sub-types to search.
+  if (activity.sub_type_id && foundType.sub_types) {
+    const foundSubType = foundType.sub_types.find(st => st.id === activity.sub_type_id);
+
+    // 3. If we found a matching sub-type, return the combined "Type: Subtype" string.
+    if (foundSubType) {
+      return `${foundType.name}: ${foundSubType.name}`;
+    }
+  }
+
+  // 4. If no sub_type_id was present, or if a matching sub_type wasn't found,
+  //    just return the main type's name as a fallback.
+  return foundType.name;
+};
 onMounted(() => {
   activityStore.fetchRecentActivities();
 });
@@ -29,32 +52,30 @@ onMounted(() => {
     <div v-else-if="activityStore.recentActivities.length > 0" class="space-y-4">
       <ul>
         <li v-for="activity in activityStore.recentActivities" :key="activity.id" class="border-b last:border-b-0 py-2">
-          <!--
-            Use <router-link> for internal navigation. This prevents a full page reload.
-            We bind the `:to` prop to an object to create a link to a named route with params.
-          -->
           <router-link :to="{ name: 'activity-detail', params: { id: activity.id } }" class="block group">
             <div class="flex justify-between items-center">
               <div>
+                <!-- 4. Display the type name using our helper function -->
                 <p class="font-semibold text-gray-700 group-hover:text-indigo-600">
-                  {{ new Date(activity.start).toLocaleDateString() }}
+                  {{ getActivityTitle(activity) }}
                 </p>
                 <p class="text-sm text-gray-500">
-                  Duration: {{ activity.duration }}
+                  {{ new Date(activity.start).toLocaleDateString() }}
                 </p>
               </div>
               <div class="text-right">
                 <p class="font-semibold text-gray-700">
-                  {{ activity.distance.toFixed(2) }} km
+                  {{ (activity.distance).toFixed(2) }} km
+                </p>
+                <p class="text-sm text-gray-500">
+                  {{ activity.duration }}
                 </p>
               </div>
             </div>
           </router-link>
         </li>
       </ul>
-    </div>
-
-    <!-- Success State (no activities) -->
+    </div> <!-- Success State (no activities) -->
     <div v-else>
       <p class="text-gray-500">No recent activities found. Go record one!</p>
     </div>
