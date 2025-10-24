@@ -40,12 +40,11 @@ const router = createRouter({
           // This automatically passes the ':id' from the URL as a prop to the component
           props: true
         },
-        // We can add more authenticated routes here in the future
-        // {
-        //   path: 'activities',
-        //   name: 'activities',
-        //   component: () => import('../views/ActivityListView.vue')
-        // },
+        {
+          path: 'activities',
+          name: 'activities',
+          component: () => import('@/views/ActivityListView.vue')
+        },
       ]
     },
   ]

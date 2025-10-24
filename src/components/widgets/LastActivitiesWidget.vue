@@ -16,13 +16,13 @@ onMounted(() => {
     <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Activities</h3>
 
     <!-- Loading State -->
-    <div v-if="activityStore.isLoading">
+    <div v-if="activityStore.isRecentLoading">
       <p class="text-gray-500">Loading activities...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="activityStore.error">
-      <p class="text-red-500">Error: {{ activityStore.error }}</p>
+    <div v-else-if="activityStore.recentError">
+      <p class="text-red-500">Error: {{ activityStore.recentError }}</p>
     </div>
 
     <!-- Success State (with activities) -->

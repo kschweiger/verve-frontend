@@ -4,35 +4,67 @@ import { useUserStore } from './auth'
 import { parseISODuration, formatDuration } from '@/utils/datetime'
 
 
-// Define a TypeScript interface for our Activity object for type safety
 export interface Activity {
-  id: string; // Assuming UUID is a string
-  start: string; // ISO date string
-  duration: string; // ISO 8601 duration format
+  id: string;
+  start: string;
+  duration: string;
   distance: number;
-  // Add any other properties you might need from the API response
-  // Computed fields
-  durationSeconds?: number;
+  durationSeconds: number;
+  elevationGain: number;
+  elevationLoss: number;
+  type_id: number;
+  sub_type_id: number | null;
+
 }
+
+export interface ActivityFilters {
+  year?: number | null;
+  month?: number | null;
+  type_id?: number | null;
+  sub_type_id?: number | null;
+}
+const ACTIVITIES_PER_PAGE = 5;
+
+const mapApiActivity = (apiActivity: any): Activity => {
+  return {
+    id: apiActivity.id,
+    start: apiActivity.start,
+    duration: formatDuration(parseISODuration(apiActivity.duration)),
+    distance: apiActivity.distance,
+    durationSeconds: parseISODuration(apiActivity.duration),
+    elevationGain: apiActivity.elevation_change_up,
+    elevationLoss: apiActivity.elevation_change_down,
+    type_id: apiActivity.type_id,
+    sub_type_id: apiActivity.sub_type_id,
+  };
+};
 
 export const useActivityStore = defineStore('activity', () => {
   // --- STATE ---
   const recentActivities = ref<Activity[]>([]);
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const isRecentLoading = ref(false);
+  const recentError = ref<string | null>(null);
+
+  const paginatedActivities = ref<Activity[]>([]);
+  const isListLoading = ref(false);
+  const listError = ref<string | null>(null);
+  const currentPage = ref(1);
+  const canLoadMore = ref(true);
+  const currentFilters = ref<ActivityFilters>({});
+
 
   // --- ACTIONS ---
   async function fetchRecentActivities() {
     // Don't re-fetch if we are already loading
-    if (isLoading.value) return;
+    if (isRecentLoading.value) return;
 
-    isLoading.value = true;
-    error.value = null;
+    isRecentLoading.value = true;
+    recentError.value = null;
 
     const userStore = useUserStore();
     if (!userStore.token) {
-      error.value = 'Authentication token not found.';
-      isLoading.value = false;
+      recentError.value = 'Authentication token not found.';
+      isRecentLoading.value = false;
       return;
     }
 
@@ -52,19 +84,68 @@ export const useActivityStore = defineStore('activity', () => {
       }
 
       const data = await response.json();
-      // Assuming the API returns an object like { data: [...], count: ... }
-      recentActivities.value = data.data.map((activity: any) => ({
-        id: activity.id,
-        start: activity.start,
-        duration: formatDuration(parseISODuration(activity.duration)),
-        distance: activity.distance,
-        durationSeconds: parseISODuration(activity.duration)
-      }));
+      recentActivities.value = data.data.map(mapApiActivity);
 
     } catch (e: any) {
-      error.value = e.message || 'An unknown error occurred.';
+      recentError.value = e.message || 'An unknown error occurred.';
     } finally {
-      isLoading.value = false;
+      isRecentLoading.value = false;
+    }
+  }
+
+  async function fetchActivities(filters: ActivityFilters, loadMore = false) {
+    isListLoading.value = true;
+    listError.value = null;
+
+    if (!loadMore) {
+      paginatedActivities.value = [];
+      currentPage.value = 1;
+      canLoadMore.value = true;
+      currentFilters.value = filters; // Store the new filters
+    }
+
+    const userStore = useUserStore();
+    if (!userStore.token) {
+      listError.value = 'Not authenticated.';
+      isListLoading.value = false;
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams();
+      params.append('limit', ACTIVITIES_PER_PAGE.toString());
+      params.append('offset', ((currentPage.value - 1) * ACTIVITIES_PER_PAGE).toString());
+
+      if (currentFilters.value.year) params.append('year', currentFilters.value.year.toString());
+      if (currentFilters.value.month) params.append('month', currentFilters.value.month.toString());
+      if (currentFilters.value.type_id) params.append('type_id', currentFilters.value.type_id.toString());
+      if (currentFilters.value.sub_type_id) params.append('sub_type_id', currentFilters.value.sub_type_id.toString());
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${userStore.token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch paginated activities.');
+
+      const data = await response.json();
+      const newActivities = data.data.map(mapApiActivity);
+
+      if (loadMore) {
+        paginatedActivities.value.push(...newActivities);
+      } else {
+        paginatedActivities.value = newActivities;
+      }
+
+      if (data.data.length < ACTIVITIES_PER_PAGE) {
+        canLoadMore.value = false;
+      }
+
+      currentPage.value++;
+
+    } catch (e: any) {
+      listError.value = e.message;
+    } finally {
+      isListLoading.value = false;
     }
   }
 
@@ -120,5 +201,22 @@ export const useActivityStore = defineStore('activity', () => {
   }
 
   // Expose state and actions
-  return { recentActivities, isLoading, error, fetchRecentActivities, uploadActivity }
+  return {
+    // Dashboard Widget
+    recentActivities,
+    isRecentLoading, // Use aliases to avoid name clashes
+    recentError,
+    fetchRecentActivities,
+
+    // Activities List View
+    paginatedActivities,
+    isListLoading,
+    listError,
+    canLoadMore,
+    currentFilters,
+    fetchActivities,
+
+    // Upload
+    uploadActivity
+  }
 })
