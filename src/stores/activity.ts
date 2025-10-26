@@ -122,6 +122,7 @@ export const useActivityStore = defineStore('activity', () => {
       if (currentFilters.value.sub_type_id) params.append('sub_type_id', currentFilters.value.sub_type_id.toString());
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?${params.toString()}`, {
+        method: 'GET',
         headers: { 'Authorization': `Bearer ${userStore.token}` }
       });
 
