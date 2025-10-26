@@ -17,6 +17,10 @@ const activity = ref<Activity | null>(null);
 const trackData = ref<TrackPoint[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
+const hoveredPointIndex = ref<number | null>(null);
+function handlePointHover(index: number | null) {
+  hoveredPointIndex.value = index;
+}
 
 // Fetch all necessary data when the component mounts
 
@@ -66,11 +70,11 @@ onMounted(async () => {
       <!-- 2. Leaflet Map -->
 
       <template v-if="trackData && trackData.length > 0">
-        <LeafletMap :track-data="trackData" />
+        <LeafletMap :track-data="trackData" :hovered-index="hoveredPointIndex" @point-hover="handlePointHover" />
 
         <div class="bg-white p-6 rounded-lg shadow-md">
           <h3 class="text-xl font-bold text-gray-800 mb-4">Elevation Profile</h3>
-          <ElevationChart :track-data="trackData" />
+          <ElevationChart :track-data="trackData" :hovered-index="hoveredPointIndex" @point-hover="handlePointHover" />
         </div>
       </template>
 
