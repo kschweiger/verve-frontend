@@ -2,7 +2,7 @@
 import { useUserStore } from '@/stores/auth';
 import LastActivitiesWidget from '@/components/widgets/LastActivitiesWidget.vue';
 import UploadActivityWidget from '@/components/widgets/UploadActivityWidget.vue';
-
+import YearlyStatsWidget from '@/components/widgets/YearlyStatsWidget.vue';
 const userStore = useUserStore();
 </script>
 
@@ -21,6 +21,10 @@ const userStore = useUserStore();
         - `lg:grid-cols-3`: On large screens and up, switch to 3 columns.
         - `gap-6`: Adds a nice space between grid items.
       -->
+      <div class="mb-6">
+        <YearlyStatsWidget />
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Add your widgets here -->
         <UploadActivityWidget />
