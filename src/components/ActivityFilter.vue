@@ -1,22 +1,37 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue';
-import { useActivityStore } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
+import type { ActivityFilters } from '@/stores/activity';
 
-const activityStore = useActivityStore();
 const typeStore = useTypeStore();
 
-// Local state for the filter inputs, initialized from the store's current filters
-const year = ref<number | null>(activityStore.currentFilters.year ?? null);
-const month = ref<number | null>(activityStore.currentFilters.month ?? null);
-const typeId = ref<number | null>(activityStore.currentFilters.type_id ?? null);
-const subTypeId = ref<number | null>(activityStore.currentFilters.sub_type_id ?? null);
+const props = defineProps<{
+  initialFilters?: ActivityFilters;
+}>();
+
+const emit = defineEmits<{
+  (e: 'filter-change', filters: ActivityFilters): void;
+}>();
+
+// If an initial value for a filter is provided via props, use it. Otherwise, default to null.
+const year = ref<number | null>(props.initialFilters?.year ?? null);
+const month = ref<number | null>(props.initialFilters?.month ?? null);
+const typeId = ref<number | null>(props.initialFilters?.type_id ?? null);
+const subTypeId = ref<number | null>(props.initialFilters?.sub_type_id ?? null);
+
 
 // --- Dependent Dropdown Logic (same as in the upload widget) ---
 const availableSubTypes = computed(() => {
   if (!typeId.value) return [];
   const foundType = typeStore.activityTypes.find(t => t.id === typeId.value);
   return foundType?.sub_types || [];
+});
+const availableYears = Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - i);
+
+watch(year, (newYear) => {
+  if (newYear === null) {
+    month.value = null;
+  }
 });
 
 watch(typeId, () => {
@@ -30,11 +45,11 @@ onMounted(() => {
 
 // --- Search Logic ---
 function applyFilters() {
-  activityStore.fetchActivities({
+  emit('filter-change', {
     year: year.value,
-    month: month.value,
+    month: year.value ? month.value : null,
     type_id: typeId.value,
-    sub_type_id: subTypeId.value,
+    sub_type_id: typeId.value ? subTypeId.value : null,
   });
 }
 
@@ -46,8 +61,6 @@ function clearFilters() {
   applyFilters(); // Re-fetch with no filters
 }
 
-// A simple array for the year dropdown
-const availableYears = Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - i);
 </script>
 
 <template>
@@ -70,7 +83,7 @@ const availableYears = Array.from({ length: 20 }, (_, i) => new Date().getFullYe
           class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 rounded-md disabled:bg-gray-200">
           <option :value="null">All Months</option>
           <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', { month: 'long' })
-            }}</option>
+          }}</option>
         </select>
       </div>
 

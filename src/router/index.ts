@@ -46,6 +46,11 @@ const router = createRouter({
           component: () => import('@/views/ActivityListView.vue')
         },
         {
+          path: 'heatmap',
+          name: 'heatmap',
+          component: () => import('@/views/HeatmapView.vue')
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue')

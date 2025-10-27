@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useActivityStore } from '@/stores/activity';
+import type { ActivityFilters } from '@/stores/activity';
 import ActivityFilter from '@/components/ActivityFilter.vue';
 import ActivityListItem from '@/components/ActivityListItem.vue';
 
 const activityStore = useActivityStore();
+const initialFilters = ref<ActivityFilters>({});
 
 function loadMoreActivities() {
   // The 'true' flag tells the action to append data, not replace it
@@ -33,8 +35,7 @@ onUnmounted(() => {
       <h1 class="text-3xl font-bold text-gray-900 mb-6">My Activities</h1>
 
       <!-- The Filter Component -->
-      <ActivityFilter />
-
+      <ActivityFilter :initial-filters="initialFilters" @filter-change="activityStore.fetchActivities($event, false)" />
       <!-- Error Display -->
       <div v-if="activityStore.listError" class="mt-6 p-4 bg-red-100 text-red-700 rounded-md">
         <p>Error loading activities: {{ activityStore.listError }}</p>

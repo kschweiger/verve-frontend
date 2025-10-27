@@ -48,6 +48,7 @@ const formatTime = (isoDate: string) => {
 </script>
 
 <template>
+
   <router-link :to="{ name: 'activity-detail', params: { id: activity.id } }"
     class="block p-4 transition duration-150 ease-in-out hover:bg-gray-50">
     <div class="grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
