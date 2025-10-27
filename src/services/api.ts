@@ -36,6 +36,9 @@ const mapApiActivity = (apiActivity: any): Activity => {
     elevationLoss: elevationLoss,
     type_id: apiActivity.type_id,
     sub_type_id: apiActivity.sub_type_id,
+    name: apiActivity.name,
+    avg_speed: apiActivity.avg_speed,
+    max_speed: apiActivity.max_speed,
     // Add other summary fields like avg_speed, avg_hr if they exist on this object
   };
 };

@@ -50,7 +50,13 @@ const formatTime = (isoDate: string) => {
 <template>
   <router-link :to="{ name: 'activity-detail', params: { id: activity.id } }"
     class="block p-4 transition duration-150 ease-in-out hover:bg-gray-50">
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 items-center">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 items-center">
+      <!-- Activity Name -->
+      <div>
+        <p class="font-semibold text-gray-800">{{ activity.name }}</p>
+        <!-- <p class="text-sm text-gray-500">Name</p> -->
+      </div>
+
       <!-- Date and Time -->
       <div class="col-span-2 md:col-span-1">
         <p class="font-semibold text-gray-800">{{ formatDate(activity.start) }}</p>
@@ -82,7 +88,7 @@ const formatTime = (isoDate: string) => {
       <!-- Distance -->
       <div class="text-right">
         <!-- Your distance is already in meters from the API, we need to convert to km -->
-        <p class="font-semibold text-gray-800">{{ (activity.distance / 1000).toFixed(2) }} km</p>
+        <p class="font-semibold text-gray-800">{{ (activity.distance).toFixed(2) }} km</p>
         <p class="text-sm text-gray-500">Distance</p>
       </div>
     </div>

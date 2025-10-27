@@ -14,6 +14,9 @@ export interface Activity {
   elevationLoss: number;
   type_id: number;
   sub_type_id: number | null;
+  name: string | null;
+  avg_speed: number | null;
+  max_speed: number | null;
 
 }
 
@@ -36,6 +39,9 @@ const mapApiActivity = (apiActivity: any): Activity => {
     elevationLoss: apiActivity.elevation_change_down,
     type_id: apiActivity.type_id,
     sub_type_id: apiActivity.sub_type_id,
+    name: apiActivity.name,
+    avg_speed: apiActivity.avg_speed,
+    max_speed: apiActivity.max_speed,
   };
 };
 

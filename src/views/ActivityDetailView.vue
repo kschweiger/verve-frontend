@@ -49,10 +49,12 @@ onMounted(async () => {
     <div v-else-if="activity" class="max-w-7xl mx-auto space-y-8">
       <!-- 1. Top Metrics Display -->
       <div class="bg-white p-6 rounded-lg shadow-md">
-        <h1 class="text-2xl font-bold text-gray-800">{{ new Date(activity.start).toLocaleString() }}</h1>
-        <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+        <h1 class="text-2xl font-bold text-gray-800">{{ activity.name }} - {{ new Date(activity.start).toLocaleString()
+          }}
+        </h1>
+        <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
           <div>
-            <p class="text-2xl font-bold">{{ (activity.distance / 1000).toFixed(2) }}</p>
+            <p class="text-2xl font-bold">{{ (activity.distance).toFixed(2) }}</p>
             <p class="text-sm text-gray-500">km</p>
           </div>
           <div>
@@ -62,6 +64,14 @@ onMounted(async () => {
           <div>
             <p class="text-2xl font-bold">{{ activity.elevationGain?.toFixed(0) ?? 'N/A' }}</p>
             <p class="text-sm text-gray-500">m Gain</p>
+          </div>
+          <div>
+            <p class="text-2xl font-bold">{{ activity.avg_speed?.toFixed(1) ?? 'N/A' }}</p>
+            <p class="text-sm text-gray-500">Average speed [km/h]</p>
+          </div>
+          <div>
+            <p class="text-2xl font-bold">{{ activity.max_speed?.toFixed(1) ?? 'N/A' }}</p>
+            <p class="text-sm text-gray-500">Mixumum speed [km/h]</p>
           </div>
           <!-- Add Avg Speed, HR, Power here as they become available -->
         </div>

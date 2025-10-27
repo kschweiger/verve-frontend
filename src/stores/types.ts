@@ -26,6 +26,7 @@ export const useTypeStore = defineStore('type', () => {
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/resolve/types`, {
+        method: 'GET',
       });
       if (!response.ok) throw new Error('Failed to fetch activity types.');
       const responseData = await response.json();

@@ -55,9 +55,9 @@ onMounted(() => {
           <router-link :to="{ name: 'activity-detail', params: { id: activity.id } }" class="block group">
             <div class="flex justify-between items-center">
               <div>
-                <!-- 4. Display the type name using our helper function -->
                 <p class="font-semibold text-gray-700 group-hover:text-indigo-600">
-                  {{ getActivityTitle(activity) }}
+                  <!-- {{ getActivityTitle(activity) }} -->
+                  {{ activity.name }}
                 </p>
                 <p class="text-sm text-gray-500">
                   {{ new Date(activity.start).toLocaleDateString() }}
