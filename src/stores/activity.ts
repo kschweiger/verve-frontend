@@ -26,6 +26,14 @@ export interface ActivityFilters {
   type_id?: number | null;
   sub_type_id?: number | null;
 }
+
+export interface ActivityUpdatePayload {
+  name?: string;
+  type_id?: number | null;
+  sub_type_id?: number | null;
+  // meta_data is also possible, but we'll stick to these for now
+}
+
 const ACTIVITIES_PER_PAGE = 5;
 
 const mapApiActivity = (apiActivity: any): Activity => {
@@ -206,7 +214,39 @@ export const useActivityStore = defineStore('activity', () => {
       return { success: false, message: e.message };
     }
   }
+  async function updateActivity(activityId: string, payload: ActivityUpdatePayload): Promise<boolean> {
+    const userStore = useUserStore();
+    if (!userStore.token) {
+      // In a real app, you might set an error state here
+      console.error('Not authenticated.');
+      return false;
+    }
 
+    try {
+      console.log(payload);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${userStore.token}`,
+          'Content-Type': 'application/json', // IMPORTANT for JSON payloads
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        // You could parse the error response from the backend here
+        throw new Error('Failed to update activity.');
+      }
+
+      // Optionally, you could update the specific activity in your paginated/recent lists here
+      // for a super slick UI, but for now, we'll let the detail view re-fetch.
+      return true; // Indicate success
+
+    } catch (e: any) {
+      console.error(e.message);
+      return false; // Indicate failure
+    }
+  }
   // Expose state and actions
   return {
     // Dashboard Widget
@@ -224,6 +264,9 @@ export const useActivityStore = defineStore('activity', () => {
     fetchActivities,
 
     // Upload
-    uploadActivity
+    uploadActivity,
+
+    // Update
+    updateActivity
   }
 })

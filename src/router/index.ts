@@ -41,6 +41,12 @@ const router = createRouter({
           props: true
         },
         {
+          path: 'activities/:id/edit',
+          name: 'activity-edit',
+          component: () => import('@/views/ActivityEditView.vue'),
+          props: true // Pass the 'id' as a prop
+        },
+        {
           path: 'activities',
           name: 'activities',
           component: () => import('@/views/ActivityListView.vue')
