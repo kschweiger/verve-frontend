@@ -3,6 +3,7 @@ import { useUserStore } from '@/stores/auth';
 import LastActivitiesWidget from '@/components/widgets/LastActivitiesWidget.vue';
 import UploadActivityWidget from '@/components/widgets/UploadActivityWidget.vue';
 import YearlyStatsWidget from '@/components/widgets/YearlyStatsWidget.vue';
+import WeeklyStatsWidget from '@/components/widgets/WeeklyStatsWidget.vue';
 const userStore = useUserStore();
 </script>
 
@@ -23,6 +24,9 @@ const userStore = useUserStore();
       -->
       <div class="mb-6">
         <YearlyStatsWidget />
+      </div>
+      <div class="mb-6">
+        <WeeklyStatsWidget /> <!-- <-- Add the new widget -->
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
