@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { onMounted, computed, ref } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 import { useTypeStore } from '@/stores/types'; // For looking up type names
+import ProfileEditForm from '@/components/forms/ProfileEditForm.vue';
+import PasswordChangeForm from '@/components/forms/PasswordChangeForm.vue';
+import AppSettingsForm from '@/components/forms/AppSettingsForm.vue';
 
 const settingsStore = useSettingsStore();
 const typeStore = useTypeStore();
+
+const isProfileEditing = ref(false);
+const isPasswordEditing = ref(false);
+const isAppSettingsEditing = ref(false);
+
 
 // Computed property to find the name of the default activity type
 const defaultTypeName = computed(() => {
@@ -31,6 +39,22 @@ onMounted(() => {
   // Also ensure activity types are available for name lookups
   typeStore.fetchActivityTypes();
 });
+
+async function handleProfileSave(payload) {
+  const success = await settingsStore.updateUserProfile(payload);
+  if (success) isProfileEditing.value = false;
+  // else, form can show an error
+}
+async function handlePasswordSave(payload) {
+  const result = await settingsStore.updatePassword(payload);
+  if (result.success) isPasswordEditing.value = false;
+  // else, form can show the error message
+}
+async function handleAppSettingsSave(payload) {
+  const success = await settingsStore.updateDefaultTypes(payload.typeId, payload.subTypeId);
+  if (success) isAppSettingsEditing.value = false;
+}
+
 </script>
 
 <template>
@@ -49,10 +73,11 @@ onMounted(() => {
           <div class="flex justify-between items-center border-b pb-4 mb-4">
             <h2 class="text-xl font-bold text-gray-800">User Profile</h2>
             <!-- Future Edit Button -->
-            <button disabled
-              class="px-4 py-2 border rounded-md text-sm font-medium text-gray-400 bg-gray-50 cursor-not-allowed">Edit
-              Profile</button>
+            <button v-if="!isProfileEditing" @click="isProfileEditing = true"
+              class="px-4 py-2 border rounded-md text-sm">Edit Profile</button>
           </div>
+          <ProfileEditForm v-if="isProfileEditing" :initial-profile="settingsStore.userProfile"
+            @save="handleProfileSave" @cancel="isProfileEditing = false" />
           <div v-if="settingsStore.userProfile" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p class="font-medium text-gray-500">Username</p>
@@ -73,14 +98,30 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Section 2: Application Settings -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="flex justify-between items-center border-b pb-4 mb-4">
+            <h2 class="text-xl font-bold">Security</h2>
+            <button v-if="!isPasswordEditing" @click="isPasswordEditing = true"
+              class="px-4 py-2 border rounded-md text-sm">Change Password</button>
+          </div>
+          <PasswordChangeForm v-if="isPasswordEditing" @save="handlePasswordSave" @cancel="isPasswordEditing = false" />
+          <div v-else>
+            <p class="font-medium text-gray-500">Password</p>
+            <p>••••••••</p>
+          </div>
+        </div>
+
+        <!-- Section 3: Application Settings -->
         <div class="bg-white p-6 rounded-lg shadow-md">
           <div class="flex justify-between items-center border-b pb-4 mb-4">
             <h2 class="text-xl font-bold text-gray-800">Application Settings</h2>
-            <button disabled
-              class="px-4 py-2 border rounded-md text-sm font-medium text-gray-400 bg-gray-50 cursor-not-allowed">Edit
-              Settings</button>
+
+            <button v-if="!isAppSettingsEditing" @click="isAppSettingsEditing = true"
+              class="px-4 py-2 border rounded-md text-sm">Edit Settings</button>
+
           </div>
+          <AppSettingsForm v-if="isAppSettingsEditing" :initial-settings="settingsStore.userSettings"
+            @save="handleAppSettingsSave" @cancel="isAppSettingsEditing = false" />
           <div v-if="settingsStore.userSettings" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p class="font-medium text-gray-500">Default Activity Type</p>

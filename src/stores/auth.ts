@@ -29,11 +29,25 @@ export const useUserStore = defineStore('user', () => {
    * @param {string} name username  of the user
    * @param {string} fullName Full name of the user
    */
-  function setUserInfo(name: string, fullName: string) {
-    localStorage.setItem('user_name', name);
-    localStorage.setItem('user_full_name', fullName);
-    user_name.value = name;
-    user_full_name.value = fullName;
+  function setUserInfo(info: { name?: string | null; fullName?: string | null }) {
+    if (typeof info.name !== 'undefined') {
+      if (info.name) {
+        localStorage.setItem('user_name', info.name);
+        user_name.value = info.name;
+      } else {
+        localStorage.removeItem('user_name');
+        user_name.value = null;
+      }
+    }
+    if (typeof info.fullName !== 'undefined') {
+      if (info.fullName) {
+        localStorage.setItem('user_full_name', info.fullName);
+        user_full_name.value = info.fullName;
+      } else {
+        localStorage.removeItem('user_full_name');
+        user_full_name.value = null;
+      }
+    }
   }
 
   /**
@@ -44,8 +58,9 @@ export const useUserStore = defineStore('user', () => {
     token.value = null;
   }
 
+
   /**
-   * Clears the usernames from state and localStorage.
+   * Clears all user-specific information (but not the token).
    */
   function clearUserInfo() {
     localStorage.removeItem('user_name');
@@ -53,6 +68,8 @@ export const useUserStore = defineStore('user', () => {
     user_name.value = null;
     user_full_name.value = null;
   }
+
+
   /**
    * Attempts to log in the user by calling the API.
    * @param {string} email The user's email.
@@ -98,7 +115,7 @@ export const useUserStore = defineStore('user', () => {
 
       const data_user = await response_user.json();
 
-      setUserInfo(data_user.name, data_user.full_name);
+      setUserInfo({ name: data_user.name, fullName: data_user.full_name });
       return true;
 
 
@@ -122,5 +139,9 @@ export const useUserStore = defineStore('user', () => {
 
 
   // Expose the state, getters, and actions for components to use
-  return { token, user_full_name, user_name, isAuthenticated, login, logout, }
+  return {
+    token, user_full_name, user_name, isAuthenticated, login, logout,
+    setToken,
+    setUserInfo,
+  }
 })
