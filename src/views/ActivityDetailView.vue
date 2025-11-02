@@ -99,17 +99,15 @@ onMounted(async () => {
           <ElevationChart :track-data="trackData" :hovered-index="hoveredPointIndex" @point-hover="handlePointHover" />
         </div>
       </template>
-
-
-      <div v-else-if="activity" class="max-w-7xl mx-auto space-y-8">
-        <ActivityEquipment :activity-id="id" />
-      </div>
-
-
       <!-- Show a message if there is no track data -->
       <div v-else class="text-center p-6 bg-white rounded-lg shadow-md text-gray-500">
         <p>No map or elevation data available for this activity.</p>
       </div>
+
+      <ActivityEquipment :activity-id="id" />
+
+
+
 
 
     </div>
