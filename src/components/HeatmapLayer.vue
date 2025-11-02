@@ -7,12 +7,15 @@ import type { HeatPoint } from '@/stores/heatmap';
 
 const props = defineProps<{
   points: HeatPoint[];
-  center: [number, number];
+  center?: [number, number] | null;
 }>();
 
 const mapContainer = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
 let heatLayer: L.Layer | null = null;
+
+const DEFAULT_CENTER: L.LatLngExpression = [48.13, 11.58]; // A fallback (e.g., Munich)
+const DEFAULT_ZOOM = 5;
 
 const updateHeatLayer = () => {
   if (!map) return;
@@ -32,7 +35,10 @@ const updateHeatLayer = () => {
 
 onMounted(() => {
   if (mapContainer.value) {
-    map = L.map(mapContainer.value).setView(props.center, 10); // Start with a wider view
+    const initialCenter = props.center ?? DEFAULT_CENTER;
+    const initialZoom = props.center ? 13 : DEFAULT_ZOOM;
+
+    map = L.map(mapContainer.value).setView(initialCenter, initialZoom);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useHeatmapStore } from '@/stores/heatmap';
 import type { ActivityFilters } from '@/stores/activity';
 import ActivityFilter from '@/components/ActivityFilter.vue';
@@ -10,6 +10,8 @@ const heatmapStore = useHeatmapStore();
 const initialFilters = ref<ActivityFilters>({
   year: new Date().getFullYear()
 });
+
+const hasData = computed(() => heatmapStore.heatmapPoints.length > 0);
 // Initial data load when the page is visited
 onMounted(() => {
   // If data is already loaded, don't re-fetch
@@ -41,7 +43,14 @@ onMounted(() => {
       </div>
 
       <!-- The Heatmap Component -->
-      <HeatmapLayer v-else :points="heatmapStore.heatmapPoints" :center="heatmapStore.heatmapCenter" />
+      <div v-else class="relative w-full h-[600px] bg-white rounded-lg shadow-md">
+        <!-- Only render the map component if there are points to display -->
+        <HeatmapLayer v-if="hasData" :points="heatmapStore.heatmapPoints" :center="heatmapStore.heatmapCenter" />
+        <!-- Show a message if there are no points -->
+        <div v-else class="flex items-center justify-center h-full text-gray-500">
+          <p>No activity data found for the selected filters.</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>

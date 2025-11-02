@@ -27,9 +27,6 @@ export const useHeatmapStore = defineStore('heatmap', () => {
       if (filters.type_id) params.append('activity_type_id', filters.type_id.toString());
       if (filters.sub_type_id) params.append('activity_sub_type_id', filters.sub_type_id.toString());
 
-      // NOTE: Your backend endpoint for /heatmap might need to be updated
-      // to accept 'year' and 'month' if it doesn't already.
-
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/heatmap/activities?${params.toString()}`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${userStore.token}` }
@@ -38,7 +35,7 @@ export const useHeatmapStore = defineStore('heatmap', () => {
       if (!response.ok) throw new Error('Failed to fetch heatmap data.');
 
       const data = await response.json();
-      // The API returns { "points": [...] }
+
       heatmapPoints.value = data.points;
       heatmapCenter.value = data.center;
 
