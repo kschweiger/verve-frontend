@@ -40,7 +40,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       return;
     }
     const data = await response.json();
-    allEquipment.value = data.equipment;
+    allEquipment.value = data.data;
   }
 
   async function createEquipment(payload: EquipmentCreatePayload) {
@@ -61,7 +61,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       return;
     }
     const data = await response.json();
-    activityEquipment.value = data.equipment;
+    activityEquipment.value = data.data;
   }
 
   async function addEquipmentToActivity(equipmentId: string, activityId: string) {
