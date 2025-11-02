@@ -10,8 +10,8 @@ export interface Activity {
   duration: string;
   distance: number;
   durationSeconds: number;
-  elevationGain: number;
-  elevationLoss: number;
+  elevationGain: number | null;
+  elevationLoss: number | null;
   type_id: number;
   sub_type_id: number | null;
   name: string | null;
@@ -37,19 +37,26 @@ export interface ActivityUpdatePayload {
 const ACTIVITIES_PER_PAGE = 5;
 
 const mapApiActivity = (apiActivity: any): Activity => {
+  const durationSeconds = parseISODuration(apiActivity.duration);
+
   return {
     id: apiActivity.id,
     start: apiActivity.start,
-    duration: formatDuration(parseISODuration(apiActivity.duration)),
+
+    // Core metrics are assumed to be present
+    duration: formatDuration(durationSeconds),
+    durationSeconds: durationSeconds,
     distance: apiActivity.distance,
-    durationSeconds: parseISODuration(apiActivity.duration),
-    elevationGain: apiActivity.elevation_change_up,
-    elevationLoss: apiActivity.elevation_change_down,
+
+    // Use nullish coalescing for safety on nullable fields
+    elevationGain: apiActivity.elevation_change_up ?? null,
+    elevationLoss: apiActivity.elevation_change_down ?? null,
+    name: apiActivity.name ?? null,
+    avg_speed: apiActivity.avg_speed ?? null,
+    max_speed: apiActivity.max_speed ?? null,
+
     type_id: apiActivity.type_id,
-    sub_type_id: apiActivity.sub_type_id,
-    name: apiActivity.name,
-    avg_speed: apiActivity.avg_speed,
-    max_speed: apiActivity.max_speed,
+    sub_type_id: apiActivity.sub_type_id ?? null,
   };
 };
 

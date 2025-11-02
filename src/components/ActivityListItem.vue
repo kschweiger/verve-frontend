@@ -82,7 +82,9 @@ const formatTime = (isoDate: string) => {
 
       <!-- Elevation -->
       <div class="text-right">
-        <p class="font-semibold text-gray-800">{{ activity.elevationGain.toFixed(0) }} m</p>
+        <p class="font-semibold text-gray-800">
+          {{ activity.elevationGain !== null ? activity.elevationGain.toFixed(0) + ' m' : 'N/A' }}
+        </p>
         <p class="text-sm text-gray-500">Elevation Gain</p>
       </div>
 

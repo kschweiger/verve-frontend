@@ -53,7 +53,7 @@ onMounted(async () => {
           <div>
             <!-- Add a name if it exists, otherwise show the date -->
             <h1 class="text-2xl font-bold text-gray-800">{{ activity.name || new Date(activity.start).toLocaleString()
-              }}</h1>
+            }}</h1>
             <p v-if="activity.name" class="text-sm text-gray-500">{{ new Date(activity.start).toLocaleString() }}</p>
           </div>
           <router-link :to="{ name: 'activity-edit', params: { id: activity.id } }"
