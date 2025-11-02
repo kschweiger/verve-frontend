@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import type { Activity } from '@/stores/activity';
 import { fetchActivitySummary, fetchActivityTrack, type TrackPoint } from '@/services/api';
-
+import ActivityEquipment from '@/components/ActivityEquipment.vue'; // <-- Import
 // Child Components we will create next
 import LeafletMap from '@/components/LeafletMap.vue';
 import ElevationChart from '@/components/ElevationChart.vue';
@@ -100,6 +100,10 @@ onMounted(async () => {
         </div>
       </template>
 
+
+      <div v-else-if="activity" class="max-w-7xl mx-auto space-y-8">
+        <ActivityEquipment :activity-id="id" />
+      </div>
 
 
       <!-- Show a message if there is no track data -->

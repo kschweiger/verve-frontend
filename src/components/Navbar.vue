@@ -25,6 +25,7 @@ function handleLogout() {
             <!-- We will create these routes later -->
             <router-link to="/activities" class="hover:text-gray-300">Activities</router-link>
             <router-link to="/heatmap" class="hover:text-gray-300">Heatmap</router-link>
+            <router-link to="/equipment" class="hover:text-gray-300">Gear</router-link>
             <router-link to="/settings" class="hover:text-gray-300">Settings</router-link>
           </div>
           <button @click="handleLogout"
