@@ -35,8 +35,15 @@ onMounted(() => {
           <p class="font-semibold">{{ item.name }}</p>
           <p class="text-sm text-gray-500">{{ item.brand }} {{ item.model }}</p>
         </div>
-        <button @click="equipmentStore.removeEquipmentFromActivity(item.id, activityId)"
-          class="text-red-500 hover:text-red-700">Remove</button>
+        <div class="flex items-center space-x-4">
+
+          <span class="text-xs font-mono bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+            {{ item.equipment_type }}
+          </span>
+          <button @click="equipmentStore.removeEquipmentFromActivity(item.id, activityId)"
+            class="text-red-500 hover:text-red-700">Remove</button>
+        </div>
+
       </div>
     </div>
     <p v-else class="text-sm text-gray-500 mb-4">No equipment assigned to this activity.</p>
