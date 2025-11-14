@@ -2,7 +2,8 @@
 import { ref, onMounted } from 'vue';
 import type { Activity } from '@/stores/activity';
 import { fetchActivitySummary, fetchActivityTrack, type TrackPoint } from '@/services/api';
-import ActivityEquipment from '@/components/ActivityEquipment.vue'; // <-- Import
+import ActivityEquipment from '@/components/ActivityEquipment.vue';
+import ActivityHighlights from '@/components/ActivityHighlights.vue';
 // Child Components we will create next
 import LeafletMap from '@/components/LeafletMap.vue';
 import ElevationChart from '@/components/ElevationChart.vue';
@@ -89,6 +90,7 @@ onMounted(async () => {
         </div>
       </div>
 
+      <ActivityHighlights :activity-id="id" />
       <!-- 2. Leaflet Map -->
 
       <template v-if="trackData && trackData.length > 0">
@@ -103,6 +105,7 @@ onMounted(async () => {
       <div v-else class="text-center p-6 bg-white rounded-lg shadow-md text-gray-500">
         <p>No map or elevation data available for this activity.</p>
       </div>
+
 
       <ActivityEquipment :activity-id="id" />
 

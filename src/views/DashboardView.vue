@@ -4,6 +4,7 @@ import LastActivitiesWidget from '@/components/widgets/LastActivitiesWidget.vue'
 import UploadActivityWidget from '@/components/widgets/UploadActivityWidget.vue';
 import YearlyStatsWidget from '@/components/widgets/YearlyStatsWidget.vue';
 import WeeklyStatsWidget from '@/components/widgets/WeeklyStatsWidget.vue';
+import HighlightsWidget from '@/components/widgets/HighlightsWidget.vue';
 const userStore = useUserStore();
 </script>
 
@@ -33,6 +34,7 @@ const userStore = useUserStore();
         <!-- Add your widgets here -->
         <UploadActivityWidget />
         <LastActivitiesWidget />
+        <HighlightsWidget /> <!-- <-- Add the new widget -->
 
         <!-- Placeholder for future widgets -->
         <div class="bg-white rounded-lg shadow-md p-6 h-48 flex items-center justify-center">
