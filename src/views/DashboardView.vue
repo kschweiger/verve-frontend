@@ -5,6 +5,7 @@ import UploadActivityWidget from '@/components/widgets/UploadActivityWidget.vue'
 import YearlyStatsWidget from '@/components/widgets/YearlyStatsWidget.vue';
 import WeeklyStatsWidget from '@/components/widgets/WeeklyStatsWidget.vue';
 import HighlightsWidget from '@/components/widgets/HighlightsWidget.vue';
+import CalendarWidget from '@/components/widgets/CalendarWidget.vue';
 const userStore = useUserStore();
 </script>
 
@@ -31,10 +32,10 @@ const userStore = useUserStore();
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Add your widgets here -->
+        <CalendarWidget />
         <UploadActivityWidget />
         <LastActivitiesWidget />
-        <HighlightsWidget /> <!-- <-- Add the new widget -->
+        <HighlightsWidget />
 
         <!-- Placeholder for future widgets -->
         <div class="bg-white rounded-lg shadow-md p-6 h-48 flex items-center justify-center">

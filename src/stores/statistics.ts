@@ -8,7 +8,31 @@ type StatsPerType = {
   [key: string]: number; // e.g., { "1": 4242.71, "2": 100.5 }
 };
 
-// --- UPDATED INTERFACE ---
+export interface StatsMetric {
+  count: number;
+  distance: number;
+  duration: number;
+  elevation_gain: number;
+}
+
+export interface CalendarDay {
+  date: string; // YYYY-MM-DD
+  is_in_month: boolean;
+  active_type_ids: number[]; // Critical for showing the bike icons
+  total: StatsMetric;
+}
+
+export interface CalendarWeek {
+  days: CalendarDay[];
+  week_summary: StatsMetric;
+}
+
+export interface CalendarResponse {
+  year: number;
+  month: number;
+  weeks: CalendarWeek[];
+}
+
 export interface YearStats {
   distance: {
     total: number;
@@ -27,8 +51,11 @@ export interface YearStats {
 export const useStatisticsStore = defineStore('statistics', () => {
   // --- STATE ---
   const yearlyStats = ref<YearStats | null>(null);
+  const calendarData = ref<CalendarResponse | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+
+  const userStore = useUserStore();
 
   // --- ACTION ---
   async function fetchYearlyStats(year: number | null) {
@@ -68,5 +95,27 @@ export const useStatisticsStore = defineStore('statistics', () => {
     }
   }
 
-  return { yearlyStats, isLoading, error, fetchYearlyStats };
+  async function fetchCalendar(year: number, month: number) {
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/statistics/calender?year=${year}&month=${month}`,
+        {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${userStore.token}` }
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to load calendar data.');
+
+      calendarData.value = await response.json();
+    } catch (e: any) {
+      error.value = e.message;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+  return { yearlyStats, calendarData, isLoading, error, fetchYearlyStats, fetchCalendar };
 });
