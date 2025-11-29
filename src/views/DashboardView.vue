@@ -6,6 +6,7 @@ import YearlyStatsWidget from '@/components/widgets/YearlyStatsWidget.vue';
 import WeeklyStatsWidget from '@/components/widgets/WeeklyStatsWidget.vue';
 import HighlightsWidget from '@/components/widgets/HighlightsWidget.vue';
 import CalendarWidget from '@/components/widgets/CalendarWidget.vue';
+import GoalsWidget from '@/components/widgets/GoalsWidget.vue';
 const userStore = useUserStore();
 </script>
 
@@ -36,7 +37,7 @@ const userStore = useUserStore();
         <UploadActivityWidget />
         <LastActivitiesWidget />
         <HighlightsWidget />
-
+        <GoalsWidget />
         <!-- Placeholder for future widgets -->
         <div class="bg-white rounded-lg shadow-md p-6 h-48 flex items-center justify-center">
           <p class="text-gray-400">Future Widget Spot</p>
