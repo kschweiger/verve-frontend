@@ -32,6 +32,10 @@ export interface GoalCreatePayload {
 
 export const useGoalStore = defineStore('goal', () => {
   const goals = ref<Goal[]>([]);
+
+  const yearlyGoals = ref<Goal[]>([]);
+  const monthlyGoals = ref<Goal[]>([]);
+
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -41,19 +45,41 @@ export const useGoalStore = defineStore('goal', () => {
     'Content-Type': 'application/json'
   });
 
+  async function _fetch(year: number, month?: number | null) {
+    const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/goal/`);
+    url.searchParams.append('year', year.toString());
+    if (month) url.searchParams.append('month', month.toString());
+
+    const response = await fetch(url.toString(), { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch goals');
+    const data = await response.json();
+    return data.data as Goal[];
+  }
+
   async function fetchGoals(year: number, month?: number | null) {
     isLoading.value = true;
-    goals.value = [];
     try {
-      const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/goal/`);
-      url.searchParams.append('year', year.toString());
-      if (month) url.searchParams.append('month', month.toString());
+      goals.value = await _fetch(year, month);
+    } catch (e: any) {
+      error.value = e.message;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
-      const response = await fetch(url.toString(), { headers: getHeaders() });
-      if (!response.ok) throw new Error('Failed to fetch goals');
+  // Used by Full View to load buckets in parallel
+  async function fetchAllGoalsForView(year: number, month: number) {
+    isLoading.value = true;
+    try {
+      const [yearly, monthly] = await Promise.all([
+        _fetch(year),        // Fetch strictly yearly (backend filters by year only)
+        _fetch(year, month)  // Fetch monthly
+      ]);
 
-      const data = await response.json();
-      goals.value = data.data; // API returns { data: [], count: n }
+      // Filter client-side just to be safe in case backend returns everything
+      yearlyGoals.value = yearly.filter(g => g.temporal_type === 'yearly');
+      monthlyGoals.value = monthly.filter(g => g.temporal_type === 'monthly');
+
     } catch (e: any) {
       error.value = e.message;
     } finally {
@@ -82,6 +108,24 @@ export const useGoalStore = defineStore('goal', () => {
     }
   }
 
+  async function updateGoal(id: string, attribute: 'name' | 'description' | 'target', value: string | number) {
+    try {
+      // API expects query params for this POST/UPDATE
+      const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/goal/${id}/update`);
+      url.searchParams.append('attribute', attribute);
+      url.searchParams.append('value', value.toString());
+
+      const response = await fetch(url.toString(), {
+        method: 'POST', // Changed to POST based on your latest OpenAPI spec
+        headers: getHeaders()
+      });
+      if (!response.ok) throw new Error('Failed to update goal');
+      return true;
+    } catch (e: any) {
+      console.error(e);
+      return false;
+    }
+  }
   async function deleteGoal(id: string) {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/goal/?id=${id}`, {
@@ -126,5 +170,8 @@ export const useGoalStore = defineStore('goal', () => {
       return false;
     }
   }
-  return { goals, isLoading, error, fetchGoals, createGoal, deleteGoal, modifyManualGoal };
+  return {
+    goals, yearlyGoals, monthlyGoals, isLoading, error,
+    fetchGoals, fetchAllGoalsForView, createGoal, updateGoal, deleteGoal, modifyManualGoal
+  };
 });
