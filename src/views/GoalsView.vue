@@ -2,12 +2,14 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useGoalStore, type Goal, type GoalCreatePayload } from '@/stores/goals';
 import { useTypeStore } from '@/stores/types';
+import { useEquipmentStore } from '@/stores/equipment';
 import GoalCard from '@/components/GoalCard.vue';
 import GoalCreateForm from '@/components/forms/GoalCreateForm.vue';
 import GoalEditModal from '@/components/forms/GoalEditModal.vue';
 
 const goalStore = useGoalStore();
 const typeStore = useTypeStore();
+const equipmentStore = useEquipmentStore();
 
 // Navigation
 const now = new Date();
@@ -28,6 +30,7 @@ const refreshData = () => goalStore.fetchAllGoalsForView(currentYear.value, curr
 
 onMounted(() => {
   typeStore.fetchActivityTypes();
+  equipmentStore.fetchAllEquipment();
   refreshData();
 });
 
@@ -126,7 +129,7 @@ const successRate = computed(() => {
           <div class="flex items-center mb-4">
             <h2 class="text-xl font-bold text-gray-800">Yearly Targets</h2>
             <span class="ml-3 px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">{{ currentYear
-              }}</span>
+            }}</span>
           </div>
 
           <div v-if="goalStore.yearlyGoals.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -143,7 +146,7 @@ const successRate = computed(() => {
           <div class="flex items-center mb-4">
             <h2 class="text-xl font-bold text-gray-800">Monthly Targets</h2>
             <span class="ml-3 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-bold">{{ monthName
-              }}</span>
+            }}</span>
           </div>
 
           <div v-if="goalStore.monthlyGoals.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

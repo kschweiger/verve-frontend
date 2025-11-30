@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { type Goal } from '@/stores/goals';
 import { useTypeStore } from '@/stores/types';
+import { useEquipmentStore } from '@/stores/equipment';
 
 const props = defineProps<{ goal: Goal }>();
 const emit = defineEmits(['edit', 'delete', 'clone', 'manual-update']);
 
 const typeStore = useTypeStore(); // Used to lookup activity names
+const equipmentStore = useEquipmentStore();
+
+const isEquipmentExpanded = ref(false);
 
 // --- Helpers ---
 const progressPercent = computed(() => Math.min(props.goal.progress * 100, 100));
@@ -21,54 +25,102 @@ const formatValue = (val: number, agg: string) => {
   return val.toString();
 };
 
-// Resolve Constraint Names (e.g., "Cycling")
-const constraintBadges = computed(() => {
-  const badges: string[] = [];
+interface Badge {
+  label: string;
+  type: 'general' | 'equipment';
+  clickable: boolean;
+}
+
+
+
+const constraintBadges = computed<Badge[]>(() => {
+  const badges: Badge[] = [];
   const c = props.goal.constraints;
   if (!c) return badges;
 
-  // Type Constraint
+  // 1. Type Constraint
   if (c.type_id) {
     const type = typeStore.activityTypes.find(t => t.id === c.type_id);
     if (type) {
       let label = type.name;
-      // SubType Constraint
       if (c.sub_type_id) {
         const sub = type.sub_types.find(st => st.id === c.sub_type_id);
         if (sub) label += ` (${sub.name})`;
       }
-      badges.push(label);
+      badges.push({ label, type: 'general', clickable: false });
     } else {
-      badges.push('Specific Activity Type');
+      badges.push({ label: 'Specific Activity Type', type: 'general', clickable: false });
     }
   }
 
-  // Equipment Constraint
+  // 2. Equipment Constraint
   if (c.equipment_ids && c.equipment_ids.length > 0) {
-    badges.push(`${c.equipment_ids.length} Equipment Item(s)`);
+    badges.push({
+      label: `${c.equipment_ids.length} Equipment Item(s)`,
+      type: 'equipment',
+      clickable: true
+    });
   }
 
   return badges;
 });
+
+// Helper to resolve the actual names of the equipment
+const resolvedEquipmentNames = computed(() => {
+  const ids = props.goal.constraints?.equipment_ids || [];
+  return ids.map((id: string) => {
+    const eq = equipmentStore.allEquipment.find(e => e.id === id);
+    return eq ? eq.name : 'Unknown Item'; // Fallback if store isn't loaded yet
+  });
+});
+
+const toggleEquipment = () => {
+  isEquipmentExpanded.value = !isEquipmentExpanded.value;
+};
 </script>
 
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow">
+  <div
+    class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col h-full">
     <div class="flex justify-between items-start mb-2">
       <!-- Title & Constraints -->
-      <div>
-        <h4 class="text-lg font-bold text-gray-800">{{ goal.name }}</h4>
+      <div class="flex-grow pr-2">
+        <h4 class="text-lg font-bold text-gray-800 break-words">{{ goal.name }}</h4>
+
+        <!-- BADGES ROW -->
         <div v-if="constraintBadges.length > 0" class="flex flex-wrap gap-2 mt-1">
-          <span v-for="badge in constraintBadges" :key="badge"
-            class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-            {{ badge }}
-          </span>
+          <button v-for="(badge, index) in constraintBadges" :key="index"
+            @click="badge.type === 'equipment' ? toggleEquipment() : null" :class="[
+              'px-2 py-0.5 rounded text-xs font-medium border transition-colors',
+              badge.clickable
+                ? 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200 cursor-pointer flex items-center gap-1'
+                : 'bg-gray-100 text-gray-700 border-gray-200 cursor-default'
+            ]">
+            {{ badge.label }}
+            <!-- Add a tiny chevron icon if clickable -->
+            <svg v-if="badge.clickable" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+              class="w-3 h-3 transition-transform" :class="isEquipmentExpanded ? 'rotate-180' : ''">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                clip-rule="evenodd" />
+            </svg>
+          </button>
         </div>
-        <p v-if="goal.description" class="text-sm text-gray-500 mt-1">{{ goal.description }}</p>
+
+        <!-- EXPANDED EQUIPMENT LIST -->
+        <div v-if="isEquipmentExpanded"
+          class="mt-2 p-2 bg-gray-50 rounded border border-gray-100 text-xs text-gray-600 animate-fadeIn">
+          <p class="font-semibold mb-1 text-gray-500 uppercase tracking-wider text-[10px]">Included Gear:</p>
+          <ul class="list-disc list-inside space-y-0.5">
+            <li v-for="name in resolvedEquipmentNames" :key="name">{{ name }}</li>
+          </ul>
+        </div>
+
+        <p v-if="goal.description" class="text-sm text-gray-500 mt-2 line-clamp-2">{{ goal.description }}</p>
       </div>
 
       <!-- Context Menu / Actions -->
-      <div class="flex items-center space-x-1">
+      <div class="flex items-center space-x-1 flex-shrink-0">
         <!-- Manual +/- Controls -->
         <div v-if="goal.type === 'manual'" class="flex items-center bg-gray-100 rounded-md mr-2">
           <button @click="$emit('manual-update', goal, false)"
@@ -104,8 +156,11 @@ const constraintBadges = computed(() => {
       </div>
     </div>
 
+    <!-- Spacer to push Progress bar to bottom if content is short -->
+    <div class="mt-auto"></div>
+
     <!-- Progress Stats -->
-    <div class="flex justify-between items-end mb-1 text-sm">
+    <div class="flex justify-between items-end mb-1 text-sm mt-3">
       <div class="font-bold text-gray-900 text-2xl">
         {{ (goal.progress * 100).toFixed(0) }}%
       </div>
@@ -120,7 +175,6 @@ const constraintBadges = computed(() => {
     <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
       <div class="h-full rounded-full transition-all duration-500 relative"
         :class="goal.reached ? 'bg-green-500' : 'bg-indigo-600'" :style="{ width: `${progressPercent}%` }">
-        <!-- Shimmer effect for active goals -->
         <div v-if="!goal.reached" class="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
       </div>
     </div>
@@ -136,5 +190,21 @@ const constraintBadges = computed(() => {
   100% {
     transform: translateX(100%);
   }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
 }
 </style>
