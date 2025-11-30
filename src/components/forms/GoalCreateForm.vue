@@ -18,10 +18,13 @@ const form = ref({
   temporal_type: 'monthly', // 'monthly' | 'yearly'
   year: new Date().getFullYear(),
   month: new Date().getMonth() + 1, // 1-12
-  is_all_months: false, // If true, month will be sent as null
-  type: 'activity', // 'activity' | 'manual'
+  is_all_months: false,
+  type: 'activity',
   aggregation: 'total_distance',
 });
+
+// --- Validation State ---
+const errors = ref<Record<string, string>>({});
 
 // --- Constraints State ---
 const useActivityConstraint = ref(false);
@@ -29,7 +32,7 @@ const selectedTypeId = ref<number | null>(null);
 const selectedSubTypeId = ref<number | null>(null);
 
 const useEquipmentConstraint = ref(false);
-const selectedEquipmentIds = ref<string[]>([]); // Multi-select support
+const selectedEquipmentIds = ref<string[]>([]);
 
 // --- Options ---
 const aggregations = [
@@ -37,7 +40,7 @@ const aggregations = [
   { value: 'total_distance', label: 'Total Distance (km)' },
   { value: 'avg_distance', label: 'Average Distance (km)' },
   { value: 'max_distance', label: 'Max Distance (km)' },
-  { value: 'duration', label: 'Duration (Seconds)' }, // Backend usually expects seconds or ISO
+  { value: 'duration', label: 'Duration (Seconds)' },
 ];
 
 const availableSubTypes = computed(() => {
@@ -51,9 +54,30 @@ onMounted(() => {
   equipmentStore.fetchAllEquipment();
 });
 
+// --- Validation Logic ---
+function validate() {
+  errors.value = {};
+  let isValid = true;
+
+  if (!form.value.name || form.value.name.trim() === '') {
+    errors.value.name = 'Goal name is required.';
+    isValid = false;
+  }
+
+  if (form.value.target <= 0) {
+    errors.value.target = 'Target must be greater than 0.';
+    isValid = false;
+  }
+
+  return isValid;
+}
+
 // --- Submission ---
 async function handleSubmit() {
-  // Build Constraints Dictionary
+  // 1. Run Validation
+  if (!validate()) return;
+
+  // 2. Build Constraints Dictionary
   const constraints: Record<string, any> = {};
 
   if (useActivityConstraint.value && selectedTypeId.value) {
@@ -96,13 +120,16 @@ async function handleSubmit() {
     <!-- Name & Description -->
     <div class="grid grid-cols-1 gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700">Goal Name</label>
-        <input v-model="form.name" type="text" required placeholder="e.g. Run 100km"
-          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+        <label class="block text-sm font-medium text-gray-700">Goal Name <span class="text-red-500">*</span></label>
+        <input v-model="form.name" type="text" placeholder="e.g. Run 100km"
+          class="mt-1 block w-full border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-400"
+          :class="errors.name ? 'border-red-500' : 'border-gray-300'" />
+        <p v-if="errors.name" class="text-red-500 text-xs mt-1">{{ errors.name }}</p>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-        <input v-model="form.description" type="text" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+        <input v-model="form.description" type="text" placeholder="Optional details..."
+          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm placeholder-gray-400" />
       </div>
     </div>
 
@@ -156,9 +183,11 @@ async function handleSubmit() {
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700">Target Value</label>
-      <input v-model="form.target" type="number" step="any" required
-        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+      <label class="block text-sm font-medium text-gray-700">Target Value <span class="text-red-500">*</span></label>
+      <input v-model="form.target" type="number" step="any"
+        class="mt-1 block w-full border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+        :class="errors.target ? 'border-red-500' : 'border-gray-300'" />
+      <p v-if="errors.target" class="text-red-500 text-xs mt-1">{{ errors.target }}</p>
       <p class="text-xs text-gray-500 mt-1">If using Duration, enter seconds (e.g., 3600 = 1 hour).</p>
     </div>
 
@@ -212,4 +241,4 @@ async function handleSubmit() {
         class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Goal</button>
     </div>
   </div>
-</template>
+</template>/template>
