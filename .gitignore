@@ -37,3 +37,4 @@ __screenshots__/
 
 .env.local
 .env.*.local
+digest.txt
