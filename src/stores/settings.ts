@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
+import router from '@/router';
 
 // --- INTERFACES to match your API responses ---
 export interface UserProfile {
@@ -123,7 +124,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
       // 3. Use the router (now available via `this.$router`) to navigate to the login page
       //    We pass a query parameter to show a success message on the login screen.
-      this.$router.push({
+      router.push({
         name: 'login',
         query: { status: 'password-updated' }
       });
