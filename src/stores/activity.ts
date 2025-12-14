@@ -3,6 +3,14 @@ import { defineStore } from 'pinia'
 import { useUserStore } from './auth'
 import { parseISODuration, formatDuration } from '@/utils/datetime'
 
+function toISODuration(hours: number, minutes: number, seconds: number): string {
+  let iso = 'PT';
+  if (hours > 0) iso += `${hours}H`;
+  if (minutes > 0) iso += `${minutes}M`;
+  if (seconds > 0 || iso === 'PT') iso += `${seconds}S`; // Always at least PT0S
+  return iso;
+}
+
 
 export interface Activity {
   id: string;
@@ -33,6 +41,19 @@ export interface ActivityUpdatePayload {
   sub_type_id?: number | null;
   // meta_data is also possible, but we'll stick to these for now
 }
+
+
+
+export interface ActivityCreatePayload {
+  name: string;
+  start: string; // ISO Date Time
+  type_id: number;
+  sub_type_id?: number | null;
+  distance: number;
+  duration: string; // ISO 8601 Duration
+  add_default_equipment: boolean;
+}
+
 
 const ACTIVITIES_PER_PAGE = 5;
 
@@ -254,6 +275,58 @@ export const useActivityStore = defineStore('activity', () => {
       return false; // Indicate failure
     }
   }
+
+  async function createManualActivity(payload: ActivityCreatePayload, file: File | null): Promise<{ success: boolean; message: string }> {
+    const userStore = useUserStore();
+    if (!userStore.token) return { success: false, message: 'Not authenticated.' };
+
+    try {
+      // Step 1: Create the Activity entity
+      const query = new URLSearchParams();
+      if (payload.add_default_equipment) query.append('add_default_equipment', 'true');
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?${query.toString()}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${userStore.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail?.[0]?.msg || 'Failed to create activity.');
+      }
+
+      const newActivity = await response.json();
+
+      // Step 2: Upload Track (Optional)
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const trackResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/track/?activity_id=${newActivity.id}`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${userStore.token}` },
+          body: formData
+        });
+
+        if (!trackResponse.ok) {
+          // Activity created, but track failed. We return success but with a warning message.
+          return { success: true, message: 'Activity created, but track upload failed.' };
+        }
+      }
+
+      // Refresh lists
+      fetchRecentActivities();
+
+      return { success: true, message: 'Activity created successfully!' };
+    } catch (e: any) {
+      return { success: false, message: e.message };
+    }
+  }
+
   // Expose state and actions
   return {
     // Dashboard Widget
@@ -270,6 +343,7 @@ export const useActivityStore = defineStore('activity', () => {
     currentFilters,
     fetchActivities,
 
+    createManualActivity,
     // Upload
     uploadActivity,
 
