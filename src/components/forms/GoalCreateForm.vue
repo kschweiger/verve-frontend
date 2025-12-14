@@ -10,15 +10,30 @@ const goalStore = useGoalStore();
 const typeStore = useTypeStore();
 const equipmentStore = useEquipmentStore();
 
+// --- Helper for current week ---
+function getCurrentWeekNumber() {
+  const date = new Date();
+  const startDate = new Date(date.getFullYear(), 0, 1);
+  const days = Math.floor((date.valueOf() - startDate.valueOf()) / (24 * 60 * 60 * 1000));
+  return Math.ceil((days + 1) / 7);
+}
+
 // --- Form State ---
 const form = ref({
   name: '',
   description: '',
   target: 0,
-  temporal_type: 'monthly', // 'monthly' | 'yearly'
+  temporal_type: 'monthly', // 'weekly' | 'monthly' | 'yearly'
+
+  // Timeframe vars
   year: new Date().getFullYear(),
-  month: new Date().getMonth() + 1, // 1-12
-  is_all_months: false,
+  month: new Date().getMonth() + 1,
+  week: getCurrentWeekNumber(),
+
+  // Scope toggles
+  is_all_months: false, // For Monthly type
+  weekly_scope: 'specific_week', // 'specific_week' | 'all_in_month' | 'all_in_year'
+
   type: 'activity',
   aggregation: 'total_distance',
 });
@@ -69,6 +84,14 @@ function validate() {
     isValid = false;
   }
 
+  // Week validation
+  if (form.value.temporal_type === 'weekly' && form.value.weekly_scope === 'specific_week') {
+    if (form.value.week < 1 || form.value.week > 53) {
+      errors.value.week = 'Week must be between 1 and 53';
+      isValid = false;
+    }
+  }
+
   return isValid;
 }
 
@@ -91,7 +114,40 @@ async function handleSubmit() {
     constraints['equipment_ids'] = selectedEquipmentIds.value;
   }
 
-  const payload: GoalCreatePayload = {
+  // 3. Determine Date Params based on Temporal Type & Scope
+  let finalMonth: number | null | undefined = null;
+  let finalWeek: number | null | undefined = null;
+
+  if (form.value.temporal_type === 'monthly') {
+    // Logic: Month is number, or null if "All Months"
+    finalMonth = form.value.is_all_months ? null : form.value.month;
+    finalWeek = null;
+  }
+  else if (form.value.temporal_type === 'weekly') {
+    switch (form.value.weekly_scope) {
+      case 'specific_week':
+        // Year + Week. (Month ignored/optional, but backend infers from week usually, so send null)
+        finalWeek = form.value.week;
+        finalMonth = null;
+        break;
+      case 'all_in_month':
+        // Year + Month. Week must be null to trigger "All weeks in month" logic
+        finalWeek = null;
+        finalMonth = form.value.month;
+        break;
+      case 'all_in_year':
+        // Year only. Week and Month null to trigger "All weeks in year" logic
+        finalWeek = null;
+        finalMonth = null;
+        break;
+    }
+  }
+  else if (form.value.temporal_type === 'yearly') {
+    finalMonth = null;
+    finalWeek = null;
+  }
+
+  const payload: GoalCreatePayload & { week?: number | null } = {
     name: form.value.name,
     description: form.value.description || undefined,
     target: form.value.target,
@@ -99,9 +155,8 @@ async function handleSubmit() {
     aggregation: form.value.aggregation,
     temporal_type: form.value.temporal_type,
     year: form.value.year,
-    month: (form.value.temporal_type === 'monthly' && !form.value.is_all_months)
-      ? form.value.month
-      : null,
+    month: finalMonth,
+    week: finalWeek, // Pass to backend
     constraints: Object.keys(constraints).length > 0 ? constraints : undefined
   };
 
@@ -133,35 +188,79 @@ async function handleSubmit() {
       </div>
     </div>
 
-    <!-- Timeframe -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Timeframe</label>
-        <select v-model="form.temporal_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-      </div>
+    <!-- Timeframe Section -->
+    <div class="bg-gray-50 p-3 rounded-md border border-gray-200">
+      <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Timeframe</h4>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Year</label>
-        <input v-model="form.year" type="number" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
-      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <div v-if="form.temporal_type === 'monthly'" class="md:col-span-2 flex items-center space-x-4">
-        <div class="flex-grow">
-          <label class="block text-sm font-medium text-gray-700">Month</label>
-          <select v-model="form.month" :disabled="form.is_all_months"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm disabled:bg-gray-100">
-            <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
-              month: 'long'
-              }) }}</option>
+        <!-- 1. Frequency -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Frequency</label>
+          <select v-model="form.temporal_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
           </select>
         </div>
-        <div class="flex items-center pt-6">
-          <input v-model="form.is_all_months" type="checkbox" id="all-months" class="h-4 w-4 text-indigo-600 rounded" />
-          <label for="all-months" class="ml-2 text-sm text-gray-700">Create for every month</label>
+
+        <!-- 2. Year -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Year</label>
+          <input v-model="form.year" type="number" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
         </div>
+
+        <!-- === WEEKLY SPECIFIC UI === -->
+        <template v-if="form.temporal_type === 'weekly'">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700">Creation Scope</label>
+            <select v-model="form.weekly_scope" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+              <option value="specific_week">Single Specific Week</option>
+              <option value="all_in_month">All Weeks in a specific Month</option>
+              <option value="all_in_year">All Weeks in the Year</option>
+            </select>
+          </div>
+
+          <!-- Specific Week Input -->
+          <div v-if="form.weekly_scope === 'specific_week'">
+            <label class="block text-sm font-medium text-gray-700">Week Number (1-53)</label>
+            <input v-model="form.week" type="number" min="1" max="53"
+              class="mt-1 block w-full border rounded-md shadow-sm"
+              :class="errors.week ? 'border-red-500' : 'border-gray-300'" />
+            <p v-if="errors.week" class="text-red-500 text-xs mt-1">{{ errors.week }}</p>
+          </div>
+
+          <!-- Month Selector (For "Specific Week" context if helpful, or "All in Month") -->
+          <div v-if="form.weekly_scope === 'all_in_month'">
+            <label class="block text-sm font-medium text-gray-700">Select Month</label>
+            <select v-model="form.month" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+              <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
+                month:
+                'long' }) }}</option>
+            </select>
+          </div>
+        </template>
+
+        <!-- === MONTHLY SPECIFIC UI === -->
+        <template v-if="form.temporal_type === 'monthly'">
+          <div class="md:col-span-2 flex items-center space-x-4">
+            <div class="flex-grow">
+              <label class="block text-sm font-medium text-gray-700">Month</label>
+              <select v-model="form.month" :disabled="form.is_all_months"
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm disabled:bg-gray-100">
+                <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
+                  month:
+                  'long' }) }}</option>
+              </select>
+            </div>
+            <div class="flex items-center pt-6">
+              <input v-model="form.is_all_months" type="checkbox" id="all-months"
+                class="h-4 w-4 text-indigo-600 rounded" />
+              <label for="all-months" class="ml-2 text-sm text-gray-700">Create for every month</label>
+            </div>
+          </div>
+        </template>
+
       </div>
     </div>
 
@@ -241,4 +340,4 @@ async function handleSubmit() {
         class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Goal</button>
     </div>
   </div>
-</template>/template>
+</template>

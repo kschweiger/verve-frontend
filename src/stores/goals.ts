@@ -35,6 +35,7 @@ export const useGoalStore = defineStore('goal', () => {
 
   const yearlyGoals = ref<Goal[]>([]);
   const monthlyGoals = ref<Goal[]>([]);
+  const weeklyGoals = ref<Goal[]>([]);
 
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -45,10 +46,13 @@ export const useGoalStore = defineStore('goal', () => {
     'Content-Type': 'application/json'
   });
 
-  async function _fetch(year: number, month?: number | null) {
+
+  // Update the helper _fetch to support the week param
+  async function _fetch(year: number, month?: number | null, week?: number | null) {
     const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/goal/`);
     url.searchParams.append('year', year.toString());
-    if (month) url.searchParams.append('month', month.toString());
+    if (month !== undefined && month !== null) url.searchParams.append('month', month.toString());
+    if (week !== undefined && week !== null) url.searchParams.append('week', week.toString());
 
     const response = await fetch(url.toString(), { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch goals');
@@ -67,18 +71,21 @@ export const useGoalStore = defineStore('goal', () => {
     }
   }
 
-  // Used by Full View to load buckets in parallel
-  async function fetchAllGoalsForView(year: number, month: number) {
+  async function fetchAllGoalsForView(year: number, month: number, week?: number) {
     isLoading.value = true;
     try {
-      const [yearly, monthly] = await Promise.all([
-        _fetch(year),        // Fetch strictly yearly (backend filters by year only)
-        _fetch(year, month)  // Fetch monthly
+      // Parallel fetch for all buckets
+      // Note: Passing year, month, and week to the same endpoint relies on
+      // the backend returning goals relevant to those filters.
+      const [yearly, monthly, weekly] = await Promise.all([
+        _fetch(year),
+        _fetch(year, month),
+        week ? _fetch(year, null, week) : Promise.resolve([])
       ]);
 
-      // Filter client-side just to be safe in case backend returns everything
       yearlyGoals.value = yearly.filter(g => g.temporal_type === 'yearly');
       monthlyGoals.value = monthly.filter(g => g.temporal_type === 'monthly');
+      weeklyGoals.value = weekly.filter(g => g.temporal_type === 'weekly');
 
     } catch (e: any) {
       error.value = e.message;
@@ -86,7 +93,6 @@ export const useGoalStore = defineStore('goal', () => {
       isLoading.value = false;
     }
   }
-
   async function createGoal(payload: GoalCreatePayload) {
     isLoading.value = true;
     try {
@@ -171,7 +177,7 @@ export const useGoalStore = defineStore('goal', () => {
     }
   }
   return {
-    goals, yearlyGoals, monthlyGoals, isLoading, error,
+    goals, yearlyGoals, monthlyGoals, weeklyGoals, isLoading, error,
     fetchGoals, fetchAllGoalsForView, createGoal, updateGoal, deleteGoal, modifyManualGoal
   };
 });
