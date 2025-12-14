@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import type { Activity } from '@/stores/activity';
+import { useActivityStore } from '@/stores/activity';
 import { fetchActivitySummary, fetchActivityTrack, type TrackPoint } from '@/services/api';
 import ActivityEquipment from '@/components/ActivityEquipment.vue';
 import ActivityHighlights from '@/components/ActivityHighlights.vue';
 // Child Components we will create next
 import LeafletMap from '@/components/LeafletMap.vue';
 import ElevationChart from '@/components/ElevationChart.vue';
+import ActivityGallery from '@/components/ActivityGallery.vue';
 
 // The activity ID is passed as a prop from the router
 const props = defineProps<{
   id: string;
 }>();
+
+const activityStore = useActivityStore();
 
 // Local state for this view
 const activity = ref<Activity | null>(null);
@@ -29,7 +33,8 @@ onMounted(async () => {
   try {
     const [summaryResponse, trackResponse] = await Promise.all([
       fetchActivitySummary(props.id),
-      fetchActivityTrack(props.id)
+      fetchActivityTrack(props.id),
+      activityStore.fetchActivityImages(props.id)
     ]);
     activity.value = summaryResponse;
     trackData.value = trackResponse;
@@ -38,6 +43,9 @@ onMounted(async () => {
   } finally {
     isLoading.value = false;
   }
+});
+watch(() => props.id, (newId) => {
+  activityStore.fetchActivityImages(newId);
 });
 
 </script>
@@ -54,7 +62,7 @@ onMounted(async () => {
           <div>
             <!-- Add a name if it exists, otherwise show the date -->
             <h1 class="text-2xl font-bold text-gray-800">{{ activity.name || new Date(activity.start).toLocaleString()
-            }}</h1>
+              }}</h1>
             <p v-if="activity.name" class="text-sm text-gray-500">{{ new Date(activity.start).toLocaleString() }}</p>
           </div>
           <router-link :to="{ name: 'activity-edit', params: { id: activity.id } }"
@@ -106,6 +114,9 @@ onMounted(async () => {
         <p>No map or elevation data available for this activity.</p>
       </div>
 
+
+      <ActivityGallery :activity-id="id" :images="activityStore.activityImages"
+        :is-loading="activityStore.isImagesLoading" />
 
       <ActivityEquipment :activity-id="id" />
 

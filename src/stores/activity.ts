@@ -54,6 +54,11 @@ export interface ActivityCreatePayload {
   add_default_equipment: boolean;
 }
 
+export interface ActivityImage {
+  id: string;
+  url: string;
+}
+
 
 const ACTIVITIES_PER_PAGE = 5;
 
@@ -94,6 +99,10 @@ export const useActivityStore = defineStore('activity', () => {
   const canLoadMore = ref(true);
   const currentFilters = ref<ActivityFilters>({});
 
+  const activityImages = ref<ActivityImage[]>([]);
+  const isImagesLoading = ref(false);
+
+  const userStore = useUserStore();
 
   // --- ACTIONS ---
   async function fetchRecentActivities() {
@@ -327,6 +336,83 @@ export const useActivityStore = defineStore('activity', () => {
     }
   }
 
+
+  // 1. Fetch Images (UPDATED)
+  async function fetchActivityImages(activityId: string) {
+    isImagesLoading.value = true;
+    activityImages.value = []; // Reset
+
+    if (!userStore.token) { isImagesLoading.value = false; return; }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/media/images/activity/${activityId}`, {
+        headers: { 'Authorization': `Bearer ${userStore.token}` }
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        // UPDATED: Now accessing .data instead of .images
+        activityImages.value = responseData.data;
+      }
+    } catch (e) {
+      console.error('Failed to load images', e);
+    } finally {
+      isImagesLoading.value = false;
+    }
+  }
+
+  // 2. Upload Image (Unchanged, ensures consistent path)
+  async function uploadActivityImage(activityId: string, file: File) {
+    if (!userStore.token) return false;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/media/image/activity/${activityId}`,
+        {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${userStore.token}` },
+          body: formData
+        }
+      );
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      await fetchActivityImages(activityId);
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  // 3. Delete Image (Confirmed path based on your request)
+  async function deleteActivityImage(imageId: string, activityId: string) {
+    if (!userStore.token) return false;
+
+    try {
+      // Endpoint: DELETE /api/v1/media/image/{image_id}
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/media/image/${imageId}`,
+        {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${userStore.token}` }
+        }
+      );
+
+      if (!response.ok) throw new Error('Delete failed');
+
+      // Optimistically remove from UI
+      activityImages.value = activityImages.value.filter(img => img.id !== imageId);
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
   // Expose state and actions
   return {
     // Dashboard Widget
@@ -348,6 +434,12 @@ export const useActivityStore = defineStore('activity', () => {
     uploadActivity,
 
     // Update
-    updateActivity
+    updateActivity,
+
+    activityImages,
+    isImagesLoading,
+    fetchActivityImages,
+    uploadActivityImage,
+    deleteActivityImage
   }
 })
