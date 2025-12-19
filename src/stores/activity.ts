@@ -413,6 +413,28 @@ export const useActivityStore = defineStore('activity', () => {
     }
   }
 
+  async function deleteActivity(id: string): Promise<boolean> {
+    const userStore = useUserStore();
+    if (!userStore.token) return false;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${userStore.token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to delete activity');
+
+      // Optimistic update: Remove from recent list if it's there
+      recentActivities.value = recentActivities.value.filter(a => a.id !== id);
+
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
   // Expose state and actions
   return {
     // Dashboard Widget
@@ -435,6 +457,8 @@ export const useActivityStore = defineStore('activity', () => {
 
     // Update
     updateActivity,
+
+    deleteActivity,
 
     activityImages,
     isImagesLoading,
