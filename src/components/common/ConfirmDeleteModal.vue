@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { watch, onUnmounted } from 'vue';
 
-defineProps<{
+const props = defineProps<{
   isOpen: boolean;
   title: string;
   message: string;
@@ -10,9 +10,14 @@ defineProps<{
 
 const emit = defineEmits(['close', 'confirm']);
 
-// Prevent scrolling when modal is open
-onMounted(() => document.body.style.overflow = 'hidden');
-onUnmounted(() => document.body.style.overflow = '');
+watch(() => props.isOpen, (val) => {
+  document.body.style.overflow = val ? 'hidden' : '';
+});
+
+// Cleanup in case the component is destroyed while the modal is open
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 </script>
 
 <template>
