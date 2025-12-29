@@ -12,6 +12,7 @@ import ActivityGallery from '@/components/ActivityGallery.vue';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue';
 import IconTrash from '@/components/icons/IconTrash.vue';
 import ActivityLocationsWidget from '@/components/widgets/ActivityLocationsWidget.vue';
+import CombinedMetricsChart from '@/components/CombinedMetricsChart.vue';
 import { useLocationStore } from '@/stores/location';
 
 const props = defineProps<{
@@ -139,6 +140,10 @@ async function handleDeleteConfirm() {
         <div class="bg-white p-6 rounded-lg shadow-md">
           <h3 class="text-xl font-bold text-gray-800 mb-4">Elevation Profile</h3>
           <ElevationChart :track-data="trackData" :hovered-index="hoveredPointIndex" @point-hover="handlePointHover" />
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <CombinedMetricsChart :track-data="trackData" :hovered-index="hoveredPointIndex"
+            @point-hover="handlePointHover" />
         </div>
       </template>
       <!-- Show a message if there is no track data -->

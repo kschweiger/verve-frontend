@@ -9,6 +9,7 @@ export interface TrackPoint {
   lon: number;
   ele: number | null;
   dist: number; // This is 'cum_distance' from your API
+  speed?: number | null; // Optional speed in m/s
   hr?: number | null; // Optional heart rate
   cad?: number | null; // Optional cadence
   power?: number | null; // Optional power
@@ -79,6 +80,7 @@ export async function fetchActivityTrack(activityId: string): Promise<TrackPoint
     lon: p.longitude,
     ele: p.elevation,
     dist: p.cum_distance,
+    speed: p.speed_m_s,
     hr: p.heartrate,
     cad: p.cadence,
     power: p.power,
