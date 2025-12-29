@@ -236,7 +236,8 @@ async function handleSubmit() {
             <select v-model="form.month" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
               <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
                 month:
-                'long' }) }}</option>
+                  'long'
+              }) }}</option>
             </select>
           </div>
         </template>
@@ -250,7 +251,8 @@ async function handleSubmit() {
                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm disabled:bg-gray-100">
                 <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
                   month:
-                  'long' }) }}</option>
+                    'long'
+                }) }}</option>
               </select>
             </div>
             <div class="flex items-center pt-6">

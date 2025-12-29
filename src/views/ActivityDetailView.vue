@@ -11,12 +11,15 @@ import ElevationChart from '@/components/ElevationChart.vue';
 import ActivityGallery from '@/components/ActivityGallery.vue';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue';
 import IconTrash from '@/components/icons/IconTrash.vue';
+import ActivityLocationsWidget from '@/components/widgets/ActivityLocationsWidget.vue';
+import { useLocationStore } from '@/stores/location';
 
 const props = defineProps<{
   id: string;
 }>();
 const router = useRouter();
 const activityStore = useActivityStore();
+const locationStore = useLocationStore();
 
 // Local state for this view
 const activity = ref<Activity | null>(null);
@@ -37,7 +40,8 @@ onMounted(async () => {
     const [summaryResponse, trackResponse] = await Promise.all([
       fetchActivitySummary(props.id),
       fetchActivityTrack(props.id),
-      activityStore.fetchActivityImages(props.id)
+      activityStore.fetchActivityImages(props.id),
+      locationStore.fetchLocationsForActivity(props.id)
     ]);
     activity.value = summaryResponse;
     trackData.value = trackResponse;
@@ -141,9 +145,12 @@ async function handleDeleteConfirm() {
       </div>
 
 
-      <ActivityGallery :activity-id="id" :images="activityStore.activityImages"
-        :is-loading="activityStore.isImagesLoading" />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <ActivityGallery :activity-id="id" :images="activityStore.activityImages"
+          :is-loading="activityStore.isImagesLoading" />
 
+        <ActivityLocationsWidget />
+      </div>
       <ActivityEquipment :activity-id="id" />
 
 
