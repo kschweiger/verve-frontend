@@ -49,7 +49,7 @@ export interface ActivityCreatePayload {
   start: string; // ISO Date Time
   type_id: number;
   sub_type_id?: number | null;
-  distance: number;
+  distance?: number | null;
   duration: string; // ISO 8601 Duration
   add_default_equipment: boolean;
 }

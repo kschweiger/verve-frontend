@@ -70,8 +70,8 @@ const formatTime = (isoDate: string) => {
       <!-- Row 2: Stats Grid -->
       <div class="grid grid-cols-3 gap-2 border-t border-gray-100 pt-2">
         <div>
-          <p class="text-sm font-semibold text-gray-700">{{ (activity.distance).toFixed(2) }} <span
-              class="text-xs font-normal text-gray-500">km</span></p>
+          {{ activity.distance != null ? activity.distance.toFixed(2) : '-' }}
+          <span v-if="activity.distance != null" class="text-xs font-normal text-gray-500">km</span>
         </div>
         <div class="text-center">
           <p class="text-sm font-semibold text-gray-700">{{ activity.duration }}</p>
@@ -120,7 +120,9 @@ const formatTime = (isoDate: string) => {
 
       <!-- Distance -->
       <div class="text-right">
-        <p class="font-semibold text-gray-800">{{ (activity.distance).toFixed(2) }} km</p>
+        <p class="font-semibold text-gray-800">
+          {{ activity.distance != null ? activity.distance.toFixed(2) + ' km' : '-' }}
+        </p>
         <p class="text-sm text-gray-500">Distance</p>
       </div>
     </div>

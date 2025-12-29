@@ -65,8 +65,8 @@ onMounted(() => {
               </div>
               <div class="text-right">
                 <p class="font-semibold text-gray-700">
-                  {{ (activity.distance).toFixed(2) }} km
-                </p>
+                  {{ activity.distance != null ? activity.distance.toFixed(2) : '-' }} <span
+                    v-if="activity.distance != null" class="text-xs">km</span> </p>
                 <p class="text-sm text-gray-500">
                   {{ activity.duration }}
                 </p>

@@ -85,7 +85,7 @@ async function handleDeleteConfirm() {
           <div>
             <!-- Add a name if it exists, otherwise show the date -->
             <h1 class="text-2xl font-bold text-gray-800">{{ activity.name || new Date(activity.start).toLocaleString()
-            }}</h1>
+              }}</h1>
             <p v-if="activity.name" class="text-sm text-gray-500">{{ new Date(activity.start).toLocaleString() }}</p>
           </div>
           <div class="flex items-center space-x-3">
@@ -105,7 +105,9 @@ async function handleDeleteConfirm() {
         <!-- </h1> -->
         <div class="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
           <div>
-            <p class="text-2xl font-bold">{{ (activity.distance).toFixed(2) }}</p>
+            <p class="text-2xl font-bold">
+              {{ activity.distance != null ? activity.distance.toFixed(2) : '-' }}
+            </p>
             <p class="text-sm text-gray-500">km</p>
           </div>
           <div>
