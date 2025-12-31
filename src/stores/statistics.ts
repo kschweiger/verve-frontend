@@ -15,9 +15,19 @@ export interface StatsMetric {
   elevation_gain: number;
 }
 
+export interface ActivityCalendarItem {
+  id: string;
+  name: string | null;
+  type_id: number;
+  distance: number | null;
+  duration: number;
+  elevation_gain: number | null;
+}
+
 export interface CalendarDay {
   date: string; // YYYY-MM-DD
   is_in_month: boolean;
+  items: ActivityCalendarItem[];
   active_type_ids: number[]; // Critical for showing the bike icons
   total: StatsMetric;
 }

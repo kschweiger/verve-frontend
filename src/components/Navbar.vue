@@ -22,7 +22,7 @@ function handleLogout() {
           <div class="flex text-white space-x-4">
             <!-- Use router-link for SPA navigation without page reloads -->
             <router-link to="/dashboard" class="hover:text-gray-300">Dashboard</router-link>
-            <!-- We will create these routes later -->
+            <router-link to="/calendar" class="hover:text-gray-300">Calendar</router-link>
             <router-link to="/activities" class="hover:text-gray-300">Activities</router-link>
             <router-link to="/heatmap" class="hover:text-gray-300">Heatmap</router-link>
             <router-link to="/locations" class="hover:text-gray-300">Locations</router-link>
