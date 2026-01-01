@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Line } from 'vue-chartjs';
-import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement, Filler, ArcElement } from 'chart.js';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Filler,
+  ArcElement,
+  type ChartOptions
+} from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import type { TrackPoint } from '@/services/api';
 
@@ -36,17 +48,16 @@ const chartData = computed(() => {
   };
 });
 
-// --- THIS IS THE FIX ---
-// Wrap the entire options object in a computed property.
-const chartOptions = computed(() => {
+// Explicitly typed to ensure Type safety
+const chartOptions = computed<ChartOptions<'line'>>(() => {
   return {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
       intersect: false,
-      mode: 'index',
+      mode: 'index' as const,
     },
-    onHover: (event, chartElement) => {
+    onHover: (event: any, chartElement: any[]) => {
       if (chartElement.length > 0) {
         // The mouse is ON our chart.
         isChartHovered.value = true;
@@ -56,13 +67,10 @@ const chartOptions = computed(() => {
         }
       } else {
         // The mouse is NOT on our chart.
-        // We should only emit 'null' if the mouse was JUST on our chart and moved away.
         if (isChartHovered.value) {
-          isChartHovered.value = false; // Reset our local state
+          isChartHovered.value = false;
           emit('point-hover', null);
         }
-        // If isChartHovered is already false, it means the hover state is
-        // being controlled by the map, so we DO NOTHING.
       }
     },
     plugins: {
@@ -73,10 +81,9 @@ const chartOptions = computed(() => {
         annotations: {
           line1: {
             type: 'line',
-            // Now, this part will be re-evaluated whenever props.hoveredIndex changes
             display: props.hoveredIndex !== null,
             scaleID: 'x',
-            value: props.hoveredIndex,
+            value: props.hoveredIndex ?? 0,
             borderColor: 'rgba(239, 68, 68, 0.7)',
             borderWidth: 2,
             borderDash: [6, 6],

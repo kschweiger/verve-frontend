@@ -98,7 +98,7 @@ watch([weekAndYear, selectedActivityTypeId], ([newWeek, newType]) => {
 
 // Set a default activity type once the types are loaded
 watch(() => typeStore.activityTypes, (newTypes) => {
-  if (newTypes.length > 0 && !selectedActivityTypeId.value) {
+  if (newTypes.length > 0 && newTypes[0] && !selectedActivityTypeId.value) {
     selectedActivityTypeId.value = newTypes[0].id;
   }
 });

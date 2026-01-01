@@ -231,7 +231,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         class="px-3 py-1 text-xs font-semibold rounded-full border transition-colors" :class="selectedMetricKey === m
           ? `bg-gray-800 text-white border-gray-800`
           : `bg-white text-gray-600 border-gray-200 hover:border-gray-400`">
-        {{ metricDefinitions[m].label.split(' ')[0] }}
+        {{ metricDefinitions[m]?.label.split(' ')[0] }}
       </button>
     </div>
 

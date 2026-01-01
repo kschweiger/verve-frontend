@@ -63,8 +63,7 @@ const formatValue = (value: number | string, metric: string): string => {
   }
   return numValue.toString();// Fallback
 };
-
-const rankIcon = {
+const rankIcon: Record<number, string> = {
   1: '🥇', // Gold
   2: '🥈', // Silver
   3: '🥉', // Bronze
@@ -101,7 +100,7 @@ const rankIcon = {
             <span class="text-2xl">{{ rankIcon[activity.rank] }}</span>
             <div>
               <p class="font-semibold text-gray-800">{{ activity.name || new Date(activity.start).toLocaleDateString()
-                }}</p>
+              }}</p>
               <p class="text-sm text-gray-500">{{ new Date(activity.start).toLocaleDateString() }}</p>
             </div>
           </div>
