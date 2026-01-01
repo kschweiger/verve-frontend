@@ -21,5 +21,3 @@ export function formatDuration(seconds: number): string {
   }
   return `${minutes}m ${secs}s`;
 }
-
-

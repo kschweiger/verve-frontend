@@ -109,7 +109,7 @@ const toggleEquipment = () => {
 
         <!-- EXPANDED EQUIPMENT LIST -->
         <div v-if="isEquipmentExpanded"
-          class="mt-2 p-2 bg-gray-50 rounded border border-gray-100 text-xs text-gray-600 animate-fadeIn">
+          class="mt-2 p-2 bg-gray-50 rounded border border-gray-100 text-xs text-gray-600 animate-fade-in">
           <p class="font-semibold mb-1 text-gray-500 uppercase tracking-wider text-[10px]">Included Gear:</p>
           <ul class="list-disc list-inside space-y-0.5">
             <li v-for="name in resolvedEquipmentNames" :key="name">{{ name }}</li>
@@ -192,7 +192,7 @@ const toggleEquipment = () => {
   }
 }
 
-@keyframes fadeIn {
+@keyframes fade-in {
   from {
     opacity: 0;
     transform: translateY(-5px);
@@ -204,7 +204,7 @@ const toggleEquipment = () => {
   }
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.2s ease-out forwards;
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
 }
 </style>
