@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 import router from '@/router';
 
-// --- INTERFACES to match your API responses ---
+// --- INTERFACES ---
 export interface UserProfile {
   name: string;
   email: string;
@@ -11,13 +11,16 @@ export interface UserProfile {
   is_active: boolean;
 }
 
+export interface HeatmapSettings {
+  // Array of tuples: [type_id, sub_type_id (nullable)]
+  excluded_activity_types: Array<[number, number | null]>;
+}
+
 export interface UserSettings {
   default_type_id: number | null;
-  defautl_sub_type_id: number | null; // Note: possible typo in API? 'defautl'
+  defautl_sub_type_id: number | null; // Note: API typo 'defautl' kept for compatibility
   locale: string;
-  heatmap_settings: {
-    excluded_activity_types: number[];
-  };
+  heatmap_settings: HeatmapSettings;
 }
 
 export interface UserProfilePayload {
@@ -25,11 +28,11 @@ export interface UserProfilePayload {
   email?: string;
   full_name?: string;
 }
+
 export interface PasswordUpdatePayload {
   old_password: string;
   new_password: string;
 }
-
 
 export const useSettingsStore = defineStore('settings', () => {
   // --- STATE ---
@@ -38,9 +41,12 @@ export const useSettingsStore = defineStore('settings', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  // --- ACTION ---
+  // --- ACTIONS ---
+
   async function fetchAllSettings() {
+    // Prevent double-fetching if already loading
     if (isLoading.value) return;
+
     isLoading.value = true;
     error.value = null;
 
@@ -58,21 +64,29 @@ export const useSettingsStore = defineStore('settings', () => {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${userStore.token}` }
         }),
-        fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/settings/`, {
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/settings`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${userStore.token}` }
         })
       ]);
 
-      if (!profileResponse.ok) throw new Error('Failed to load user profile.');
-      if (!settingsResponse.ok) throw new Error('Failed to load user settings.');
+      if (!profileResponse.ok) {
+        throw new Error('Failed to load user profile.');
+      }
+      if (!settingsResponse.ok) {
+        throw new Error('Failed to load user settings.');
+      }
 
-      userProfile.value = await profileResponse.json();
-      const settingsCollection = await settingsResponse.json();
-      userSettings.value = settingsCollection.settings; // Unwrap the nested settings object
+      const profileData = await profileResponse.json();
+      const settingsData = await settingsResponse.json();
+
+      userProfile.value = profileData;
+      // API returns { settings: { ... } } wrapper based on schema
+      userSettings.value = settingsData.settings;
 
     } catch (e: any) {
-      error.value = e.message;
+      console.error(e);
+      error.value = e.message || 'An error occurred while loading settings.';
     } finally {
       isLoading.value = false;
     }
@@ -87,25 +101,25 @@ export const useSettingsStore = defineStore('settings', () => {
         body: JSON.stringify(payload)
       });
       if (!response.ok) throw new Error('Failed to update profile.');
+
       await fetchAllSettings(); // Re-fetch to get the latest data
-      // --- THIS IS THE FIX ---
-      // Create an update object for the user store.
+
+      // Update local user store info for the UI (navbar, etc.)
       const userInfoUpdate: { name?: string; fullName?: string } = {};
       if (payload.name) userInfoUpdate.name = payload.name;
       if (payload.full_name) userInfoUpdate.fullName = payload.full_name;
 
-      // If we have updates, call the user store's action.
       if (Object.keys(userInfoUpdate).length > 0) {
         userStore.setUserInfo(userInfoUpdate);
       }
 
       return true;
     } catch (e: any) {
-      console.error(e); return false;
+      console.error(e);
+      return false;
     }
   }
 
-  // --- NEW: Action to update the password ---
   async function updatePassword(payload: PasswordUpdatePayload): Promise<{ success: boolean; message: string }> {
     const userStore = useUserStore();
     try {
@@ -114,16 +128,14 @@ export const useSettingsStore = defineStore('settings', () => {
         headers: { 'Authorization': `Bearer ${userStore.token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.detail || 'Failed to update password.');
       }
 
-      // 2. On success, log the user out
+      // On success, log the user out and redirect
       userStore.logout();
-
-      // 3. Use the router (now available via `this.$router`) to navigate to the login page
-      //    We pass a query parameter to show a success message on the login screen.
       router.push({
         name: 'login',
         query: { status: 'password-updated' }
@@ -135,7 +147,6 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  // --- NEW: Action to update default activity types ---
   async function updateDefaultTypes(typeId: number | null, subTypeId: number | null): Promise<boolean> {
     const userStore = useUserStore();
     try {
@@ -148,17 +159,43 @@ export const useSettingsStore = defineStore('settings', () => {
         headers: { 'Authorization': `Bearer ${userStore.token}` }
       });
       if (!response.ok) throw new Error('Failed to update default types.');
+
       await fetchAllSettings(); // Re-fetch to get the latest data
       return true;
     } catch (e: any) {
-      console.error(e); return false;
+      console.error(e);
+      return false;
+    }
+  }
+
+  async function updateHeatmapSettings(excludedTypes: Array<[number, number | null]>): Promise<boolean> {
+    const userStore = useUserStore();
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/heatmap_settings`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${userStore.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ excluded_activity_types: excludedTypes })
+      });
+
+      if (!response.ok) throw new Error('Failed to update heatmap settings.');
+
+      await fetchAllSettings(); // Refresh local settings
+      return true;
+    } catch (e: any) {
+      console.error(e);
+      return false;
     }
   }
 
   return {
-    userProfile, userSettings, isLoading, error, fetchAllSettings,
+    userProfile, userSettings, isLoading, error,
+    fetchAllSettings,
     updateUserProfile,
     updatePassword,
     updateDefaultTypes,
+    updateHeatmapSettings
   };
 });
