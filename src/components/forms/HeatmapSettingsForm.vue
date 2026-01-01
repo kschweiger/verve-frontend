@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useTypeStore } from '@/stores/types';
 import type { HeatmapSettings } from '@/stores/settings';
 
@@ -10,31 +10,42 @@ const props = defineProps<{
 const emit = defineEmits(['save', 'cancel']);
 const typeStore = useTypeStore();
 
-// Local state for exclusions.
-// We use a Set of strings "typeId:subTypeId" for easier UI binding logic.
-// "1:null" means Main Type 1 is excluded.
-// "1:5" means SubType 5 of Type 1 is excluded.
+// "typeId:subTypeId" or "typeId:null"
 const excludedSet = ref<Set<string>>(new Set());
 
 onMounted(async () => {
   await typeStore.fetchActivityTypes();
 
-  // Parse initial settings into the Set
   props.initialSettings.excluded_activity_types.forEach(([tId, stId]) => {
     const key = `${tId}:${stId === null ? 'null' : stId}`;
     excludedSet.value.add(key);
   });
 });
 
-// Helper to toggle main type
+// Helper to toggle main type AND all its sub-types
 function toggleMainType(typeId: number, isChecked: boolean) {
-  const key = `${typeId}:null`;
+  const type = typeStore.activityTypes.find(t => t.id === typeId);
+  if (!type) return;
+
+  // 1. Handle the Generic bucket (typeId, null)
+  const mainKey = `${typeId}:null`;
+
   if (!isChecked) {
-    // User unchecked it -> Add to exclusion
-    excludedSet.value.add(key);
+    // User unchecked the category header -> Hide EVERYTHING in this category
+    excludedSet.value.add(mainKey); // Hide generic
+
+    // Hide all sub-types
+    type.sub_types.forEach(sub => {
+      excludedSet.value.add(`${typeId}:${sub.id}`);
+    });
   } else {
-    // User checked it -> Remove from exclusion
-    excludedSet.value.delete(key);
+    // User checked the category header -> Show EVERYTHING in this category
+    excludedSet.value.delete(mainKey); // Show generic
+
+    // Show all sub-types
+    type.sub_types.forEach(sub => {
+      excludedSet.value.delete(`${typeId}:${sub.id}`);
+    });
   }
 }
 
@@ -50,22 +61,27 @@ function toggleSubType(typeId: number, subTypeId: number, isChecked: boolean) {
 
 // Check status helpers
 function isMainIncluded(typeId: number): boolean {
+  // We use the "Generic" bucket state to represent the header checkbox state
+  // If the generic bucket is hidden, we treat the whole header as unchecked/hidden
   return !excludedSet.value.has(`${typeId}:null`);
 }
 
 function isSubIncluded(typeId: number, subTypeId: number): boolean {
-  // If main type is excluded, sub types are implicitly excluded visually,
-  // but we track them independently to allow fine-grained control if main is re-enabled.
-  // Actually, usually if main is checked, we look at subs.
   return !excludedSet.value.has(`${typeId}:${subTypeId}`);
 }
 
 function onSave() {
-  // Convert Set back to Array of Tuples
   const result: Array<[number, number | null]> = [];
 
   excludedSet.value.forEach(key => {
-    const [tIdStr, stIdStr] = key.split(':');
+    const parts = key.split(':');
+    if (parts.length < 2) return;
+
+    const tIdStr = parts[0];
+    const stIdStr = parts[1];
+
+    if (tIdStr === undefined || stIdStr === undefined) return;
+
     const tId = parseInt(tIdStr);
     const stId = stIdStr === 'null' ? null : parseInt(stIdStr);
     result.push([tId, stId]);
@@ -88,7 +104,7 @@ function onSave() {
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
       <div v-for="type in typeStore.activityTypes" :key="type.id" class="border rounded-md p-3 bg-gray-50">
 
-        <!-- Main Type Checkbox -->
+        <!-- Main Type Checkbox (Acts as Bulk Toggle) -->
         <div class="flex items-center mb-2">
           <input type="checkbox" :id="`type-${type.id}`" :checked="isMainIncluded(type.id)"
             @change="(e) => toggleMainType(type.id, (e.target as HTMLInputElement).checked)"
@@ -99,7 +115,6 @@ function onSave() {
         </div>
 
         <!-- Sub Types List -->
-        <!-- Only show sub-options if Main Type is Included (Visible) -->
         <div v-if="isMainIncluded(type.id) && type.sub_types.length > 0" class="ml-6 space-y-1">
           <div v-for="sub in type.sub_types" :key="sub.id" class="flex items-center">
             <input type="checkbox" :id="`subtype-${type.id}-${sub.id}`" :checked="isSubIncluded(type.id, sub.id)"
