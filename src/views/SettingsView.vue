@@ -7,6 +7,8 @@ import PasswordChangeForm from '@/components/forms/PasswordChangeForm.vue';
 import AppSettingsForm from '@/components/forms/AppSettingsForm.vue';
 import HeatmapSettingsForm from '@/components/forms/HeatmapSettingsForm.vue';
 
+const appVersion = import.meta.env.VITE_APP_VERSION || 'Dev';
+
 const settingsStore = useSettingsStore();
 const typeStore = useTypeStore();
 
@@ -221,6 +223,11 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
               </div>
             </div>
           </div>
+        </div>
+        <div class="text-center border-t border-gray-200 pt-6 mt-8">
+          <p class="text-xs text-gray-400 font-mono">
+            Verve Outdoors Frontend v{{ appVersion }}
+          </p>
         </div>
 
       </div>
