@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Activity } from '@/stores/activity';
 import { useActivityStore } from '@/stores/activity';
@@ -56,6 +56,11 @@ watch(() => props.id, (newId) => {
   activityStore.fetchActivityImages(newId);
 });
 
+const hasLocationData = computed(() => {
+  if (!trackData.value || trackData.value.length === 0) return false;
+  // Check if at least one point has lat/lon
+  return trackData.value.some(p => p.lat !== null && p.lon !== null);
+});
 
 async function handleDeleteConfirm() {
   isDeleting.value = true;
@@ -86,7 +91,7 @@ async function handleDeleteConfirm() {
           <div>
             <!-- Add a name if it exists, otherwise show the date -->
             <h1 class="text-2xl font-bold text-gray-800">{{ activity.name || new Date(activity.start).toLocaleString()
-              }}</h1>
+            }}</h1>
             <p v-if="activity.name" class="text-sm text-gray-500">{{ new Date(activity.start).toLocaleString() }}</p>
           </div>
           <div class="flex items-center space-x-3">
@@ -135,9 +140,12 @@ async function handleDeleteConfirm() {
       <!-- 2. Leaflet Map -->
 
       <template v-if="trackData && trackData.length > 0">
-        <LeafletMap :track-data="trackData" :hovered-index="hoveredPointIndex" @point-hover="handlePointHover" />
-
-        <div class="bg-white p-6 rounded-lg shadow-md">
+        <LeafletMap v-if="hasLocationData" :track-data="trackData" :hovered-index="hoveredPointIndex"
+          @point-hover="handlePointHover" />
+        <!-- <div v-else class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center"> -->
+        <!--   <p class="text-gray-500 italic">No GPS data available for this activity.</p> -->
+        <!-- </div> -->
+        <div v-if="hasLocationData" class="bg-white p-6 rounded-lg shadow-md">
           <h3 class="text-xl font-bold text-gray-800 mb-4">Elevation Profile</h3>
           <ElevationChart :track-data="trackData" :hovered-index="hoveredPointIndex" @point-hover="handlePointHover" />
         </div>

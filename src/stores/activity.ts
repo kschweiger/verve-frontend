@@ -239,7 +239,13 @@ export const useActivityStore = defineStore('activity', () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Upload failed.');
+        let msg = 'Upload failed.';
+        if (errorData.detail) {
+          msg = typeof errorData.detail === 'string'
+            ? errorData.detail
+            : (errorData.detail[0]?.msg || JSON.stringify(errorData.detail));
+        }
+        throw new Error(msg);
       }
 
       // After a successful upload, we should refresh the recent activities list

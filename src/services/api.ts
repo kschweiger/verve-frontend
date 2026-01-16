@@ -5,10 +5,11 @@ import { parseISODuration, formatDuration } from '@/utils/datetime'; // <-- Impo
 
 // Define the structure of our track point data to match the API response
 export interface TrackPoint {
-  lat: number;
-  lon: number;
+  lat: number | null;
+  lon: number | null;
   ele: number | null;
-  dist: number; // This is 'cum_distance' from your API
+  time: string;
+  dist: number; // 'cum_distance'
   speed?: number | null; // Optional speed in m/s
   hr?: number | null; // Optional heart rate
   cad?: number | null; // Optional cadence
@@ -80,6 +81,7 @@ export async function fetchActivityTrack(activityId: string): Promise<TrackPoint
     lon: p.longitude,
     ele: p.elevation,
     dist: p.cum_distance,
+    time: p.time,
     speed: p.speed_m_s,
     hr: p.heartrate,
     cad: p.cadence,
