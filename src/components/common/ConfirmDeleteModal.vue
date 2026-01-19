@@ -24,21 +24,21 @@ onUnmounted(() => {
   <Transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0"
     enter-to-class="opacity-100" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100"
     leave-to-class="opacity-0">
-    <div v-if="isOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" role="dialog"
+    <div v-if="isOpen" class="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-6" role="dialog"
       aria-modal="true">
 
       <!-- Backdrop -->
-      <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="$emit('close')"></div>
+      <div class="fixed inset-0 bg-verve-brown/30 backdrop-blur-sm transition-opacity" @click="$emit('close')"></div>
 
       <!-- Modal Panel -->
       <div
-        class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-100">
+        class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-verve-medium/30">
         <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
           <div class="sm:flex sm:items-start">
 
             <!-- Warning Icon -->
             <div
-              class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+              class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-50 sm:mx-0 sm:h-10 sm:w-10 border border-red-100">
               <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
                 aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -48,18 +48,18 @@ onUnmounted(() => {
 
             <!-- Content -->
             <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-              <h3 class="text-lg font-semibold leading-6 text-gray-900">{{ title }}</h3>
+              <h3 class="text-lg font-bold leading-6 text-verve-brown">{{ title }}</h3>
               <div class="mt-2">
-                <p class="text-sm text-gray-500">{{ message }}</p>
+                <p class="text-sm text-verve-brown/70 leading-relaxed">{{ message }}</p>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Actions -->
-        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+        <div class="bg-verve-light/10 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-verve-medium/20">
           <button type="button" @click="$emit('confirm')" :disabled="isDeleting"
-            class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            class="inline-flex w-full justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             <span v-if="isDeleting" class="flex items-center">
               <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
@@ -71,7 +71,7 @@ onUnmounted(() => {
             <span v-else>Delete</span>
           </button>
           <button type="button" @click="$emit('close')" :disabled="isDeleting"
-            class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50 transition-colors">
+            class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-verve-brown shadow-sm ring-1 ring-inset ring-verve-medium/50 hover:bg-verve-light/50 sm:mt-0 sm:w-auto disabled:opacity-50 transition-colors">
             Cancel
           </button>
         </div>

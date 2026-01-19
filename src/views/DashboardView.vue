@@ -12,41 +12,61 @@ const userStore = useUserStore();
 </script>
 
 <template>
-  <div class="p-4 sm:p-6 lg:p-8">
+  <div class="bg-verve-medium min-h-full p-4 sm:p-6 lg:p-8">
     <div class="max-w-7xl mx-auto">
-      <h1 class="text-3xl font-bold text-gray-900 mb-6">
-        Welcome back, {{ userStore.user_full_name ?? userStore.user_name }}!
-      </h1>
+
+      <!-- Header -->
+      <div class="flex justify-between items-end mb-8">
+        <div>
+          <h1 class="text-3xl font-bold text-verve-brown">
+            Welcome back, {{ userStore.user_full_name ?? userStore.user_name }}!
+          </h1>
+          <p class="text-verve-brown/60 mt-1 font-medium">Highlights & Overview</p>
+        </div>
+      </div>
 
       <!--
-        Responsive Widget Grid:
-        - `grid`: Enables grid layout.
-        - `grid-cols-1`: Default is 1 column (for mobile).
-        - `md:grid-cols-2`: On medium screens and up, switch to 2 columns.
-        - `lg:grid-cols-3`: On large screens and up, switch to 3 columns.
-        - `gap-6`: Adds a nice space between grid items.
+        Main Layout
       -->
-      <div class="mb-6">
-        <YearlyStatsWidget />
-      </div>
-      <div class="mb-6">
-        <WeeklyStatsWidget /> <!-- <-- Add the new widget -->
-      </div>
+      <div class="space-y-6">
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <CalendarWidget />
-        <UploadActivityWidget />
-        <LastActivitiesWidget />
-        <HighlightsWidget />
-        <GoalsWidget />
-        <QuickAddWidget />
-        <!-- Placeholder for future widgets -->
-        <div class="bg-white rounded-lg shadow-md p-6 h-48 flex items-center justify-center">
-          <p class="text-gray-400">Future Widget Spot</p>
+        <!-- Top Row: Statistics -->
+        <div class="grid grid-cols-1  gap-6">
+          <YearlyStatsWidget />
+          <WeeklyStatsWidget />
         </div>
-        <div class="bg-white rounded-lg shadow-md p-6 h-48 flex items-center justify-center">
-          <p class="text-gray-400">Future Widget Spot</p>
+
+        <!-- Widget Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <!-- Column-agnostic grid placement -->
+          <CalendarWidget />
+          <LastActivitiesWidget />
+          <GoalsWidget />
+
+          <HighlightsWidget />
+          <UploadActivityWidget />
+          <QuickAddWidget />
+
+          <!-- Placeholders for future widgets -->
+          <div
+            class="bg-white/50 border-2 border-dashed border-verve-brown/10 rounded-xl shadow-sm h-48 flex items-center justify-center hover:bg-white/60 transition-colors cursor-pointer group">
+            <p class="text-verve-brown/40 font-bold group-hover:text-verve-brown/60">Future Widget Spot</p>
+          </div>
+          <div
+            class="bg-white/50 border-2 border-dashed border-verve-brown/10 rounded-xl shadow-sm h-48 flex items-center justify-center hover:bg-white/60 transition-colors cursor-pointer group">
+            <p class="text-verve-brown/40 font-bold group-hover:text-verve-brown/60">Future Widget Spot</p>
+          </div>
         </div>
+
+        <!-- Add Widget Button (Mockup Style) -->
+        <div class="flex justify-center pt-8 pb-4">
+          <button
+            class="px-6 py-3 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all flex items-center gap-2">
+            <span class="text-xl leading-none">+</span> Add Widget
+          </button>
+        </div>
+
       </div>
     </div>
   </div>

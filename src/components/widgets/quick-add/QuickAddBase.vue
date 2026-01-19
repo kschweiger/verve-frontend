@@ -97,13 +97,13 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:bg-white hover:shadow-sm transition-all">
+  <div class="border border-verve-medium/50 rounded-xl p-3 bg-white/60 hover:bg-white hover:shadow-sm transition-all">
     <!-- Header / Toggle -->
     <div @click="showForm = !showForm" class="flex justify-between items-center cursor-pointer select-none">
       <div class="flex items-center space-x-2">
-        <span class="font-bold text-gray-700 text-sm">{{ title }}</span>
+        <span class="font-bold text-verve-brown text-sm">{{ title }}</span>
       </div>
-      <div class="text-indigo-600">
+      <div class="text-verve-brown font-bold">
         <span v-if="!showForm" class="text-xl leading-none">+</span>
         <span v-else class="text-xl leading-none">&minus;</span>
       </div>
@@ -114,28 +114,28 @@ async function handleSubmit() {
 
       <!-- Date Picker -->
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Date</label>
+        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Date</label>
         <input v-model="date" type="date"
-          class="w-full border-gray-300 rounded-md text-sm py-1.5 focus:ring-indigo-500 focus:border-indigo-500" />
+          class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
       </div>
 
       <!-- Duration Inputs (HH : MM : SS) -->
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Duration</label>
+        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Duration</label>
         <div class="flex space-x-2">
           <div class="flex-1">
             <input v-model="durHours" type="number" min="0" placeholder="HH"
-              class="w-full border-gray-300 rounded-md text-sm py-1.5 text-center focus:ring-indigo-500 focus:border-indigo-500"
+              class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
               @keyup.enter="handleSubmit" />
           </div>
           <div class="flex-1">
             <input v-model="durMinutes" type="number" min="0" max="59" placeholder="MM"
-              class="w-full border-gray-300 rounded-md text-sm py-1.5 text-center focus:ring-indigo-500 focus:border-indigo-500"
+              class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
               @keyup.enter="handleSubmit" />
           </div>
           <div class="flex-1">
             <input v-model="durSeconds" type="number" min="0" max="59" placeholder="SS"
-              class="w-full border-gray-300 rounded-md text-sm py-1.5 text-center focus:ring-indigo-500 focus:border-indigo-500"
+              class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
               @keyup.enter="handleSubmit" />
           </div>
         </div>
@@ -143,17 +143,17 @@ async function handleSubmit() {
 
       <!-- Distance Input (Conditional) -->
       <div v-if="distanceMode !== 'NOT_APPLICABLE'">
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">
-          Distance (km) <span v-if="distanceMode === 'OPTIONAL'" class="text-gray-400 font-normal">(Opt)</span>
+        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          Distance (km) <span v-if="distanceMode === 'OPTIONAL'" class="font-normal opacity-70">(Opt)</span>
         </label>
         <input v-model="distance" type="number" step="0.01" placeholder="0.0"
-          class="w-full border-gray-300 rounded-md text-sm py-1.5 focus:ring-indigo-500 focus:border-indigo-500"
+          class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
           @keyup.enter="handleSubmit" />
       </div>
 
       <!-- Submit -->
       <button @click="handleSubmit" :disabled="isLoading || (!durHours && !durMinutes && !durSeconds)"
-        class="w-full bg-indigo-600 text-white text-sm font-medium py-1.5 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        class="w-full bg-verve-neon text-verve-brown text-sm font-bold py-2 rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-verve-dark/5">
         {{ isLoading ? 'Saving...' : 'Log Activity' }}
       </button>
     </div>

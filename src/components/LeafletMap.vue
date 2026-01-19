@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue';
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import type { TrackPoint } from '@/services/api';
+import { VERVE_COLORS } from '@/utils/colors';
 
 const props = defineProps<{
   trackData: TrackPoint[];
@@ -29,7 +30,7 @@ const drawTrackOnMap = () => {
   if (trackPolyline) {
     trackPolyline.setLatLngs(latLngs);
   } else {
-    trackPolyline = L.polyline(latLngs, { color: 'red' }).addTo(map);
+    trackPolyline = L.polyline(latLngs, { color: VERVE_COLORS.orange }).addTo(map);
 
     // --- 2. ADD MOUSEMOVE EVENT LISTENER ---
     trackPolyline.on('mousemove', (e: L.LeafletMouseEvent) => {
@@ -116,7 +117,7 @@ watch(() => props.hoveredIndex, (newIndex) => {
       radius: 8,
       color: '#ffffff',
       weight: 2,
-      fillColor: '#ef4444', // A reddish color
+      fillColor: VERVE_COLORS.orange, // A reddish color
       fillOpacity: 1,
     }).addTo(map);
   }

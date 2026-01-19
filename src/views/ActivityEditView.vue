@@ -97,25 +97,33 @@ async function handleSubmit() {
 }
 </script>
 <template>
-  <div class="p-4 sm:p-6 lg:p-8">
+  <div class="p-4 sm:p-6 lg:p-8 bg-verve-light/30 min-h-[calc(100vh-64px)]">
     <div class="max-w-2xl mx-auto">
-      <div v-if="isLoading" class="text-center">Loading...</div>
-      <div v-else-if="error && !isSaving" class="p-4 bg-red-100 text-red-700 rounded-md">{{ error }}</div>
 
-      <form v-else @submit.prevent="handleSubmit" class="bg-white p-6 rounded-lg shadow-md space-y-6">
-        <h1 class="text-2xl font-bold text-gray-800">Edit Activity</h1>
+      <div v-if="isLoading" class="text-center py-12 text-verve-brown/60">
+        <span class="animate-pulse">Loading...</span>
+      </div>
+
+      <div v-else-if="error && !isSaving" class="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 shadow-sm">
+        {{ error }}
+      </div>
+
+      <form v-else @submit.prevent="handleSubmit"
+        class="bg-white p-8 rounded-xl shadow-sm border border-verve-medium/30 space-y-6">
+        <h1 class="text-2xl font-bold text-verve-brown border-b border-verve-medium/30 pb-4">Edit Activity</h1>
 
         <!-- Name Input -->
         <div>
-          <label for="activity-name" class="block text-sm font-medium text-gray-700">Name</label>
+          <label for="activity-name" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Name</label>
           <input v-model="name" type="text" id="activity-name"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+            class="w-full border-verve-medium rounded-xl text-sm py-2.5 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
 
         <!-- Type Dropdown -->
         <div>
-          <label for="type" class="block text-sm font-medium text-gray-700">Activity Type</label>
-          <select v-model="selectedTypeId" id="type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+          <label for="type" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Activity Type</label>
+          <select v-model="selectedTypeId" id="type"
+            class="w-full border-verve-medium rounded-xl text-sm py-2.5 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
             <option :value="null">None</option>
             <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
           </select>
@@ -123,26 +131,28 @@ async function handleSubmit() {
 
         <!-- Sub-Type Dropdown -->
         <div>
-          <label for="sub-type" class="block text-sm font-medium text-gray-700">Sub-Type</label>
+          <label for="sub-type" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Sub-Type</label>
           <select v-model="selectedSubTypeId" id="sub-type"
             :disabled="!selectedTypeId || availableSubTypes.length === 0"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm disabled:bg-gray-100">
+            class="w-full border-verve-medium rounded-xl text-sm py-2.5 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white disabled:bg-gray-50 disabled:text-gray-400">
             <option :value="null">None</option>
             <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
           </select>
         </div>
 
         <!-- Submission Error -->
-        <div v-if="error && isSaving" class="text-red-600 text-sm">{{ error }}</div>
+        <div v-if="error && isSaving" class="text-red-600 text-sm p-3 bg-red-50 rounded-lg border border-red-100">
+          {{ error }}
+        </div>
 
         <!-- Action Buttons -->
-        <div class="flex justify-end space-x-4">
+        <div class="flex justify-end space-x-4 pt-4 border-t border-verve-medium/30">
           <router-link :to="{ name: 'activity-detail', params: { id: props.id } }"
-            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+            class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
             Cancel
           </router-link>
           <button type="submit" :disabled="isSaving"
-            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300">
+            class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             {{ isSaving ? 'Saving...' : 'Save Changes' }}
           </button>
         </div>

@@ -43,55 +43,66 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-xl font-bold text-gray-800 mb-4">Equipment Used</h3>
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
+    <h3 class="text-xl font-bold text-verve-brown mb-4">Equipment Used</h3>
 
     <!-- Assigned List -->
     <div v-if="equipmentStore.activityEquipment.length > 0" class="space-y-2 mb-6">
       <div v-for="item in equipmentStore.activityEquipment" :key="item.id"
-        class="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100">
+        class="flex justify-between items-center bg-white p-3 rounded-xl border border-verve-medium/20 hover:bg-verve-light/20 transition-colors">
         <div>
-          <p class="font-semibold text-sm text-gray-800">{{ item.name }}</p>
-          <p class="text-xs text-gray-500">{{ item.brand }} {{ item.model }}</p>
+          <p class="font-bold text-sm text-verve-brown">{{ item.name }}</p>
+          <p class="text-xs text-verve-brown/60">{{ item.brand }} {{ item.model }}</p>
         </div>
         <div class="flex items-center space-x-3">
-          <span class="text-xs font-mono bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+          <span
+            class="text-xs font-medium bg-verve-light text-verve-brown/80 px-2.5 py-1 rounded-lg border border-verve-medium/20">
             {{ item.equipment_type }}
           </span>
           <button @click="equipmentStore.removeEquipmentFromActivity(item.id, activityId)"
-            class="text-red-500 hover:text-red-700 text-sm font-medium">Remove</button>
+            class="text-red-500 hover:text-red-700 text-sm font-medium transition-colors">Remove</button>
         </div>
       </div>
     </div>
-    <p v-else class="text-sm text-gray-500 mb-6 italic">No equipment assigned.</p>
+    <p v-else
+      class="text-sm text-verve-brown/50 mb-6 italic text-center py-4 bg-verve-light/10 rounded-xl border border-dashed border-verve-medium/30">
+      No equipment assigned.
+    </p>
 
     <!-- Add Section -->
-    <div class="border-t pt-4">
-      <label class="block text-sm font-bold text-gray-700 mb-2">Add Gear</label>
+    <div class="border-t border-verve-medium/30 pt-4">
+      <label class="block text-sm font-bold text-verve-brown mb-3">Add Gear</label>
 
       <!-- Radio Toggle -->
-      <div class="flex space-x-4 mb-3 text-sm">
-        <label class="flex items-center cursor-pointer">
-          <input type="radio" v-model="addMode" value="item" class="mr-2 text-indigo-600 focus:ring-indigo-500" />
-          Single Item
+      <div class="flex space-x-6 mb-4 text-sm">
+        <label class="flex items-center cursor-pointer group">
+          <input type="radio" v-model="addMode" value="item"
+            class="mr-2 text-verve-dark focus:ring-verve-dark border-verve-medium" />
+          <span
+            :class="addMode === 'item' ? 'text-verve-brown font-bold' : 'text-verve-brown/70 group-hover:text-verve-brown'">Single
+            Item</span>
         </label>
-        <label class="flex items-center cursor-pointer">
-          <input type="radio" v-model="addMode" value="set" class="mr-2 text-indigo-600 focus:ring-indigo-500" />
-          Entire Set
+        <label class="flex items-center cursor-pointer group">
+          <input type="radio" v-model="addMode" value="set"
+            class="mr-2 text-verve-dark focus:ring-verve-dark border-verve-medium" />
+          <span
+            :class="addMode === 'set' ? 'text-verve-brown font-bold' : 'text-verve-brown/70 group-hover:text-verve-brown'">Entire
+            Set</span>
         </label>
       </div>
 
       <!-- Controls -->
-      <div class="flex gap-2">
+      <div class="flex gap-3">
         <select v-if="addMode === 'item'" v-model="selectedEquipmentId"
-          class="flex-grow border-gray-300 rounded-md text-sm">
+          class="flex-grow border-verve-medium rounded-xl text-sm text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white py-2">
           <option :value="null">Select item...</option>
           <option v-for="item in availableEquipment" :key="item.id" :value="item.id">
             {{ item.name }} ({{ item.equipment_type }})
           </option>
         </select>
 
-        <select v-else v-model="selectedSetId" class="flex-grow border-gray-300 rounded-md text-sm">
+        <select v-else v-model="selectedSetId"
+          class="flex-grow border-verve-medium rounded-xl text-sm text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white py-2">
           <option :value="null">Select set...</option>
           <option v-for="set in availableSets" :key="set.id" :value="set.id">
             {{ set.name }} ({{ set.items.length }} items)
@@ -99,14 +110,15 @@ onMounted(() => {
         </select>
 
         <button @click="handleAdd" :disabled="addMode === 'item' ? !selectedEquipmentId : !selectedSetId"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:bg-indigo-300 transition-colors shadow-sm">
+          class="px-5 py-2 bg-verve-neon text-verve-brown font-bold rounded-xl text-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-verve-dark/5">
           Add
         </button>
       </div>
 
       <!-- Quick Remove Set Helper -->
-      <div v-if="addMode === 'set' && selectedSetId" class="mt-2 text-right">
-        <button @click="handleRemoveSet(selectedSetId!)" class="text-xs text-red-500 hover:text-red-700 underline">
+      <div v-if="addMode === 'set' && selectedSetId" class="mt-3 text-right">
+        <button @click="handleRemoveSet(selectedSetId!)"
+          class="text-xs text-red-500 hover:text-red-700 hover:underline font-medium transition-colors">
           Remove this set from activity
         </button>
       </div>

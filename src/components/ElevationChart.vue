@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { VERVE_COLORS, hexToRgba } from '@/utils/colors';
 import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -38,8 +39,8 @@ const chartData = computed(() => {
     labels,
     datasets: [{
       label: 'Elevation',
-      backgroundColor: 'rgba(79, 70, 229, 0.2)',
-      borderColor: 'rgba(79, 70, 229, 1)',
+      backgroundColor: hexToRgba(VERVE_COLORS.dark, 0.2),
+      borderColor: VERVE_COLORS.dark,
       data: data,
       fill: true,
       pointRadius: 0,
@@ -84,7 +85,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
             display: props.hoveredIndex !== null,
             scaleID: 'x',
             value: props.hoveredIndex ?? 0,
-            borderColor: 'rgba(239, 68, 68, 0.7)',
+            borderColor: hexToRgba(VERVE_COLORS.orange, 0.7),
             borderWidth: 2,
             borderDash: [6, 6],
           }

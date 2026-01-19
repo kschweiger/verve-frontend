@@ -47,34 +47,36 @@ onMounted(loadData);
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6">
+  <div class="bg-white rounded-xl shadow-sm border border-verve-medium/30 p-6 h-full">
     <!-- Header -->
     <div class="flex justify-between items-end mb-6">
       <div>
-        <div class="text-xs text-gray-500 uppercase font-bold tracking-wider">Activity Log</div>
+        <div class="text-xs text-verve-brown/60 uppercase font-bold tracking-wider mb-0.5">Activity Log</div>
         <div class="flex items-baseline space-x-2">
-          <h3 class="text-2xl font-bold text-gray-800">{{ monthName }}</h3>
-          <span class="text-lg text-gray-400">{{ currentYear }}</span>
+          <h3 class="text-2xl font-bold text-verve-brown">{{ monthName }}</h3>
+          <span class="text-lg text-verve-brown/40">{{ currentYear }}</span>
         </div>
       </div>
 
       <!-- Stats Summary -->
       <div class="text-right hidden sm:block">
-        <div class="text-xs text-gray-500 uppercase">Activities</div>
-        <div class="text-xl font-bold text-indigo-600">{{ totalActivitiesInView }}</div>
+        <div class="text-xs text-verve-brown/60 uppercase font-bold">Activities</div>
+        <div class="text-xl font-bold text-verve-orange">{{ totalActivitiesInView }}</div>
       </div>
 
       <!-- Controls -->
       <div class="flex space-x-1">
-        <button @click="changeMonth(-1)" class="p-1 hover:bg-gray-100 rounded text-gray-500">&lt;</button>
-        <button @click="changeMonth(1)" class="p-1 hover:bg-gray-100 rounded text-gray-500">&gt;</button>
+        <button @click="changeMonth(-1)"
+          class="p-1 hover:bg-verve-light rounded text-verve-brown/60 hover:text-verve-brown transition-colors">&lt;</button>
+        <button @click="changeMonth(1)"
+          class="p-1 hover:bg-verve-light rounded text-verve-brown/60 hover:text-verve-brown transition-colors">&gt;</button>
       </div>
     </div>
 
     <div v-if="statsStore.calendarData" class="w-full">
 
-      <!-- Weekday Labels -->
-      <div class="grid grid-cols-7 mb-2 text-center text-xs font-semibold text-gray-400">
+      <!-- Weekday Labels (Reusable Class) -->
+      <div class="grid grid-cols-7 cal-grid-header">
         <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
       </div>
 
@@ -82,26 +84,24 @@ onMounted(loadData);
       <div class="flex flex-col space-y-2">
         <div v-for="(week, wIdx) in statsStore.calendarData.weeks" :key="wIdx" class="grid grid-cols-7">
           <!-- Days -->
-          <div v-for="(day, dIdx) in week.days" :key="dIdx"
-            class="aspect-square flex items-center justify-center relative">
-            <!-- 1. Day with Activity (Filled Circle) -->
-            <div v-if="day.total.count > 0 && day.is_in_month"
-              class="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-sm"
-              :title="`${day.total.distance.toFixed(1)} km`">
-              <!-- Show Icon if available -->
+          <div v-for="(day, dIdx) in week.days" :key="dIdx" class="cal-day-wrapper">
+            <!-- 1. Day with Activity (Clickable Filled Circle) -->
+            <button v-if="day.total.count > 0 && day.is_in_month" @click="handleDayClick(day)"
+              class="cal-day-circle cal-day-filled group"
+              :title="`${day.total.distance.toFixed(1)} km - Click to view`">
               <div class="w-4 h-4">
+                <!-- Pass a light color class if needed, usually icons inherit currentColor -->
                 <ActivityIcon :type-id="day.active_type_ids[0]" />
               </div>
-            </div>
+            </button>
 
-            <!-- 2. Today (Outline Circle) - if not an active day -->
-            <div v-else-if="isToday(day.date)"
-              class="w-8 h-8 rounded-full border-2 border-indigo-600 flex items-center justify-center font-bold text-indigo-700">
+            <!-- 2. Today (Outline Circle) -->
+            <div v-else-if="isToday(day.date)" class="cal-day-circle cal-day-today">
               {{ new Date(day.date).getDate() }}
             </div>
 
             <!-- 3. Standard Day (Text) -->
-            <span v-else class="text-sm font-medium" :class="day.is_in_month ? 'text-gray-600' : 'text-gray-300'">
+            <span v-else class="cal-day-circle" :class="day.is_in_month ? 'cal-day-text' : 'cal-day-muted'">
               {{ new Date(day.date).getDate() }}
             </span>
           </div>
@@ -111,7 +111,7 @@ onMounted(loadData);
     </div>
 
     <!-- Loading State -->
-    <div v-else class="h-64 flex items-center justify-center text-gray-400">
+    <div v-else class="h-64 flex items-center justify-center text-verve-brown/40 text-sm">
       Loading calendar...
     </div>
   </div>

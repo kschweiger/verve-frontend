@@ -1,2 +1,102 @@
-@import './base.css';
+@import "./base.css";
 @import "tailwindcss";
+
+@theme {
+  /* The Verve Palette */
+  --color-verve-light: #EFF3DB;   /* hellgrün */
+  --color-verve-medium: #CDD4A4;  /* mittelgrün */
+  --color-verve-neon: #9EFF00;    /* neongrün */
+  --color-verve-brown: #6D5239;   /* braun */
+  --color-verve-orange: #F57A07;  /* orange */
+  --color-verve-dark: #778332;    /* dunkelgrün */
+
+  /* Map standard colors to palette for ease of use */
+  --color-primary: var(--color-verve-brown);
+  --color-accent: var(--color-verve-neon);
+}
+
+/* Global Reset overrides */
+body {
+  @apply bg-verve-light text-verve-brown font-sans;
+}
+
+/* Buttons */
+button.btn-primary,
+a.btn-primary {
+  @apply bg-verve-neon text-verve-brown px-6 py-2 rounded-xl font-semibold shadow-sm hover:brightness-105 transition-all cursor-pointer border border-verve-dark/10;
+}
+
+button.btn-secondary {
+  @apply bg-white border border-verve-medium text-verve-brown px-6 py-2 rounded-xl font-medium hover:bg-verve-light transition-all;
+}
+
+button.btn-outline {
+  @apply px-4 py-2 border border-verve-brown text-verve-brown font-semibold rounded-xl hover:bg-verve-light transition-colors cursor-pointer;
+}
+
+/* Input Fields */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="datetime-local"],
+select,
+textarea {
+  @apply border-verve-medium rounded-xl focus:ring-verve-dark focus:border-verve-dark bg-white/80;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-verve-dark);
+
+  @apply text-verve-dark focus:ring-verve-dark cursor-pointer;
+}
+
+/* Custom File Input */
+.file-input {
+  @apply mt-1 block w-full text-sm text-verve-brown/80;
+  @apply file:mr-4 file:py-2 file:px-4;
+  @apply file:rounded-xl file:border-0;
+  @apply file:text-sm file:font-semibold;
+  @apply file:bg-verve-light file:text-verve-brown;
+  @apply hover:file:bg-verve-medium hover:file:cursor-pointer transition-colors;
+}
+
+/* Progress Bars */
+.progress-track {
+  @apply w-full bg-verve-light rounded-full h-2.5 overflow-hidden;
+}
+
+.progress-fill {
+  @apply h-full rounded-full transition-all duration-500;
+}
+
+/* Calendar Components */
+.cal-grid-header {
+  @apply text-center text-xs font-bold text-verve-brown/40 uppercase tracking-wider mb-2;
+}
+
+.cal-day-wrapper {
+  @apply aspect-square flex items-center justify-center relative;
+}
+
+.cal-day-circle {
+  @apply w-8 h-8 flex items-center justify-center rounded-full transition-all text-sm font-medium;
+}
+
+.cal-day-filled {
+  @apply bg-verve-brown text-white shadow-sm hover:bg-verve-dark cursor-pointer;
+}
+
+.cal-day-today {
+  @apply border-2 border-verve-orange text-verve-orange font-bold;
+}
+
+.cal-day-text {
+  @apply text-verve-brown;
+}
+
+.cal-day-muted {
+  @apply text-verve-brown/30;
+}

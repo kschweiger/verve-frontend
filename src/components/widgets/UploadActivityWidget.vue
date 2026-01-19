@@ -77,15 +77,17 @@ async function handleAutoSubmit() {
       <h3 class="text-xl font-bold text-gray-800">Add Activity</h3>
 
       <!-- Tabs -->
-      <div class="flex bg-gray-100 rounded p-1">
-        <button @click="activeTab = 'auto'"
-          :class="activeTab === 'auto' ? 'bg-white shadow text-indigo-600' : 'text-gray-500 hover:text-gray-700'"
-          class="px-3 py-1 text-xs font-semibold rounded transition-all">
+      <div class="flex bg-verve-light p-1 rounded-xl">
+        <button @click="activeTab = 'auto'" :class="activeTab === 'auto'
+          ? 'bg-white shadow-sm text-verve-brown'
+          : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50'"
+          class="flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all">
           Auto Upload
         </button>
-        <button @click="activeTab = 'manual'"
-          :class="activeTab === 'manual' ? 'bg-white shadow text-indigo-600' : 'text-gray-500 hover:text-gray-700'"
-          class="px-3 py-1 text-xs font-semibold rounded transition-all">
+        <button @click="activeTab = 'manual'" :class="activeTab === 'manual'
+          ? 'bg-white shadow-sm text-verve-brown'
+          : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50'"
+          class="flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all">
           Manual
         </button>
       </div>
@@ -96,8 +98,7 @@ async function handleAutoSubmit() {
       <form @submit.prevent="handleAutoSubmit" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700">GPX/FIT/GeoJSON File</label>
-          <input id="file-upload" type="file" @change="handleFileChange" required
-            class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+          <input id="file-upload" type="file" @change="handleFileChange" required class="file-input w-full" />
         </div>
 
         <div class="grid grid-cols-2 gap-2">
@@ -123,8 +124,7 @@ async function handleAutoSubmit() {
           {{ feedbackMessage.text }}
         </div>
 
-        <button type="submit" :disabled="isLoading"
-          class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300">
+        <button type="submit" :disabled="isLoading" class="btn-primary w-full">
           {{ isLoading ? 'Uploading...' : 'Upload' }}
         </button>
       </form>
@@ -136,8 +136,7 @@ async function handleAutoSubmit() {
         <p>Log a gym session, yoga class,</p>
         <p>or an activity without GPS data.</p>
       </div>
-      <button @click="showManualModal = true"
-        class="px-4 py-2 border border-indigo-600 text-indigo-600 font-medium rounded-md hover:bg-indigo-50 transition">
+      <button @click="showManualModal = true" class="btn-outline">
         Open Manual Entry Form
       </button>
     </div>

@@ -13,10 +13,6 @@ const form = ref({
 });
 
 async function handleSave() {
-  // We save fields sequentially since the API updates one attribute at a time
-  // In a real app, you might want a 'PATCH' endpoint for bulk updates,
-  // but we work with what we have.
-
   const promises = [];
   if (form.value.name !== props.goal.name)
     promises.push(goalStore.updateGoal(props.goal.id, 'name', form.value.name));
@@ -33,34 +29,50 @@ async function handleSave() {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-      <h3 class="text-xl font-bold text-gray-800 mb-4">Edit Goal</h3>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-verve-brown/20 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-verve-medium/30">
 
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-4 border-b border-verve-medium/30 pb-3">
+        <h3 class="text-xl font-bold text-verve-brown">Edit Goal</h3>
+        <button @click="$emit('close')" class="text-verve-brown/40 hover:text-verve-brown transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Form Fields -->
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Name</label>
-          <input v-model="form.name" type="text" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Name</label>
+          <input v-model="form.name" type="text"
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Description</label>
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Description</label>
           <input v-model="form.description" type="text"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700">Target</label>
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Target</label>
           <input v-model="form.target" type="number" step="any"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
       </div>
 
-      <div class="flex justify-end space-x-3 mt-6">
+      <!-- Actions -->
+      <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-verve-medium/30">
         <button @click="$emit('close')"
-          class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button @click="handleSave" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save
-          Changes</button>
+          class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
+          Cancel
+        </button>
+        <button @click="handleSave"
+          class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all">
+          Save Changes
+        </button>
       </div>
     </div>
   </div>

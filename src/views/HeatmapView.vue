@@ -24,30 +24,42 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-4 sm:p-6 lg:p-8">
+  <div class="p-4 sm:p-6 lg:p-8 bg-verve-medium min-h-[calc(100vh-64px)]">
     <div class="max-w-7xl mx-auto space-y-6">
+
+      <!-- Header -->
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Activity Heatmap</h1>
-        <p class="mt-1 text-gray-500">A global view of all your recorded activities.</p>
+        <h1 class="text-3xl font-bold text-verve-brown">Activity Heatmap</h1>
+        <p class="mt-2 text-verve-brown/60">A global view of all your recorded activities.</p>
       </div>
 
-      <!-- Reuse the filter component! -->
+      <!-- Filter Component -->
       <ActivityFilter :initial-filters="initialFilters" @filter-change="heatmapStore.fetchHeatmapData" />
 
-      <!-- Loading and Error states -->
-      <div v-if="heatmapStore.isLoading" class="text-center py-10">
-        <p class="text-gray-500">Generating heatmap...</p>
+      <!-- Loading State -->
+      <div v-if="heatmapStore.isLoading" class="text-center py-12 text-verve-brown/60">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-verve-brown mx-auto mb-3"></div>
+        <p>Generating heatmap...</p>
       </div>
-      <div v-else-if="heatmapStore.error" class="p-4 bg-red-100 text-red-700 rounded-md">
+
+      <!-- Error State -->
+      <div v-else-if="heatmapStore.error" class="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 shadow-sm">
         <p>Error: {{ heatmapStore.error }}</p>
       </div>
 
       <!-- The Heatmap Component -->
-      <div v-else class="relative w-full h-[600px] bg-white rounded-lg shadow-md">
-        <!-- Only render the map component if there are points to display -->
+      <div v-else
+        class="relative w-full h-[600px] bg-white rounded-xl shadow-sm border border-verve-medium/30 overflow-hidden">
+        <!-- Map -->
         <HeatmapLayer v-if="hasData" :points="heatmapStore.heatmapPoints" :center="heatmapStore.heatmapCenter" />
-        <!-- Show a message if there are no points -->
-        <div v-else class="flex items-center justify-center h-full text-gray-500">
+
+        <!-- Empty State -->
+        <div v-else class="flex flex-col items-center justify-center h-full text-verve-brown/40 italic bg-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-2 opacity-50" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           <p>No activity data found for the selected filters.</p>
         </div>
       </div>

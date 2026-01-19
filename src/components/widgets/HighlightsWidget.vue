@@ -71,48 +71,63 @@ const rankIcon: Record<number, string> = {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h3 class="text-xl font-bold text-gray-800 mb-4">Personal Records</h3>
+  <div class="bg-white rounded-xl shadow-sm border border-verve-medium/30 p-6 h-full">
+    <h3 class="text-xl font-bold text-verve-brown mb-4">Personal Records</h3>
+
     <!-- CONTROLS -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-      <select v-model="selectedMetric" class="w-full border-gray-300 rounded-md">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <select v-model="selectedMetric"
+        class="w-full border-verve-medium rounded-xl text-sm text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
         <option v-for="m in highlightStore.availableMetrics" :key="m" :value="m">{{ m.replace(/_/g, ' ') }}</option>
       </select>
-      <select v-model="selectedScope" class="w-full border-gray-300 rounded-md">
+
+      <select v-model="selectedScope"
+        class="w-full border-verve-medium rounded-xl text-sm text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
         <option value="yearly">This Year</option>
         <option value="lifetime">All Time</option>
       </select>
-      <select v-if="selectedScope === 'yearly'" v-model="selectedYear" class="w-full border-gray-300 rounded-md">
+
+      <select v-if="selectedScope === 'yearly'" v-model="selectedYear"
+        class="w-full border-verve-medium rounded-xl text-sm text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
         <option v-for="y in 5" :key="y" :value="new Date().getFullYear() - y + 1">{{ new Date().getFullYear() - y + 1 }}
         </option>
       </select>
     </div>
 
     <!-- RESULTS -->
-    <div v-if="highlightStore.isLoading" class="text-center py-8">Loading records...</div>
-    <div v-else-if="highlightedActivities.length > 0" class="space-y-3">
-      <!-- --- MODIFIED: The v-for loop now includes the value --- -->
+    <div v-if="highlightStore.isLoading" class="text-center py-8 text-verve-brown/60 text-sm">Loading records...</div>
+
+    <div v-else-if="highlightedActivities.length > 0" class="space-y-2">
       <router-link v-for="activity in highlightedActivities" :key="activity.id"
-        :to="{ name: 'activity-detail', params: { id: activity.id } }" class="block p-3 rounded-md hover:bg-gray-50">
+        :to="{ name: 'activity-detail', params: { id: activity.id } }"
+        class="block p-3 rounded-xl hover:bg-verve-light/50 border border-transparent hover:border-verve-medium/30 transition-all">
+
         <div class="flex items-center justify-between">
           <!-- Left side: Icon and Activity Info -->
           <div class="flex items-center space-x-4">
             <span class="text-2xl">{{ rankIcon[activity.rank] }}</span>
-            <div>
-              <p class="font-semibold text-gray-800">{{ activity.name || new Date(activity.start).toLocaleDateString()
-              }}</p>
-              <p class="text-sm text-gray-500">{{ new Date(activity.start).toLocaleDateString() }}</p>
+            <div class="overflow-hidden">
+              <p class="font-bold text-verve-brown text-sm truncate max-w-[120px] sm:max-w-[150px]">
+                {{ activity.name || new Date(activity.start).toLocaleDateString() }}
+              </p>
+              <p class="text-xs text-verve-brown/60">
+                {{ new Date(activity.start).toLocaleDateString() }}
+              </p>
             </div>
           </div>
+
           <!-- Right side: The record value -->
-          <div class="text-right">
-            <p class="text-lg font-bold text-indigo-600">
+          <div class="text-right whitespace-nowrap">
+            <p class="text-lg font-bold text-verve-orange">
               {{ formatValue(activity.value, selectedMetric) }}
             </p>
           </div>
         </div>
       </router-link>
     </div>
-    <div v-else class="text-center py-8 text-gray-500">No records found for this selection.</div>
+
+    <div v-else class="text-center py-8 text-verve-brown/60 text-sm italic">
+      No records found for this selection.
+    </div>
   </div>
 </template>

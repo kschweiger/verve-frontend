@@ -122,77 +122,88 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex justify-between items-start border-b pb-3">
+  <div class="space-y-5">
+    <div class="flex justify-between items-start border-b border-verve-medium/30 pb-3">
       <div>
-        <h3 class="text-lg font-bold text-gray-800">Set Location Goal</h3>
-        <p class="text-sm text-indigo-600 font-medium">{{ location.name }}</p>
+        <h3 class="text-xl font-bold text-verve-brown">Set Location Goal</h3>
+        <p class="text-sm text-verve-orange font-bold mt-1">{{ location.name }}</p>
       </div>
-      <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600">&times;</button>
+      <button @click="$emit('close')" class="text-verve-brown/40 hover:text-verve-brown transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
     <!-- Name -->
     <div>
-      <label class="block text-sm font-medium text-gray-700">Goal Name</label>
+      <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Goal Name <span
+          class="text-red-500">*</span></label>
       <input v-model="form.name" type="text"
-        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+        class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white"
+        :class="errors.name ? 'border-red-500' : ''" />
       <p v-if="errors.name" class="text-red-500 text-xs mt-1">{{ errors.name }}</p>
     </div>
 
     <!-- Timeframe (Simplified Layout) -->
-    <div class="bg-gray-50 p-3 rounded-md border border-gray-200 text-sm">
-      <div class="grid grid-cols-2 gap-3 mb-3">
+    <div class="bg-verve-light/20 p-4 rounded-xl border border-verve-medium/30">
+      <div class="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <label class="block font-medium text-gray-700">Frequency</label>
-          <select v-model="form.temporal_type" class="mt-1 w-full border-gray-300 rounded-md">
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Frequency</label>
+          <select v-model="form.temporal_type"
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white">
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
           </select>
         </div>
         <div>
-          <label class="block font-medium text-gray-700">Year</label>
-          <input v-model="form.year" type="number" class="mt-1 w-full border-gray-300 rounded-md" />
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Year</label>
+          <input v-model="form.year" type="number"
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white" />
         </div>
       </div>
 
       <!-- Conditional Date Inputs -->
       <template v-if="form.temporal_type === 'monthly'">
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-4">
           <div class="flex-grow">
-            <label class="block font-medium text-gray-700">Month</label>
+            <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Month</label>
             <select v-model="form.month" :disabled="form.is_all_months"
-              class="mt-1 w-full border-gray-300 rounded-md disabled:bg-gray-200">
+              class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white disabled:bg-gray-100 disabled:text-gray-400">
               <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
                 month:
                 'long' }) }}</option>
             </select>
           </div>
-          <div class="pt-6">
+          <div class="pt-5">
             <label class="flex items-center">
-              <input v-model="form.is_all_months" type="checkbox" class="h-4 w-4 text-indigo-600 rounded" />
-              <span class="ml-2 text-gray-600">All Months</span>
+              <input v-model="form.is_all_months" type="checkbox" class="h-4 w-4 rounded border-verve-medium" />
+              <span class="ml-2 text-sm text-verve-brown font-medium">All Months</span>
             </label>
           </div>
         </div>
       </template>
 
       <template v-if="form.temporal_type === 'weekly'">
-        <div class="mb-2">
-          <label class="block font-medium text-gray-700">Scope</label>
-          <select v-model="form.weekly_scope" class="mt-1 w-full border-gray-300 rounded-md">
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Scope</label>
+          <select v-model="form.weekly_scope"
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white">
             <option value="specific_week">Specific Week</option>
             <option value="all_in_month">All weeks in Month</option>
             <option value="all_in_year">All weeks in Year</option>
           </select>
         </div>
         <div v-if="form.weekly_scope === 'specific_week'">
-          <label class="block font-medium text-gray-700">Week Number</label>
-          <input v-model="form.week" type="number" min="1" max="53" class="mt-1 w-full border-gray-300 rounded-md" />
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Week Number</label>
+          <input v-model="form.week" type="number" min="1" max="53"
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white" />
         </div>
         <div v-if="form.weekly_scope === 'all_in_month'">
-          <label class="block font-medium text-gray-700">Month</label>
-          <select v-model="form.month" class="mt-1 w-full border-gray-300 rounded-md">
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Month</label>
+          <select v-model="form.month"
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white">
             <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
               month: 'long'
               }) }}</option>
@@ -203,28 +214,32 @@ async function handleSubmit() {
 
     <!-- Target -->
     <div>
-      <label class="block text-sm font-medium text-gray-700">Target Visits</label>
+      <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Target Visits <span
+          class="text-red-500">*</span></label>
       <input v-model="form.target" type="number" min="1"
-        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+        class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white"
+        :class="errors.target ? 'border-red-500' : ''" />
+      <p v-if="errors.target" class="text-red-500 text-xs mt-1">{{ errors.target }}</p>
     </div>
 
     <!-- Optional Filters -->
-    <div class="border-t pt-3">
-      <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Conditions (Optional)</h4>
+    <div class="border-t border-verve-medium/30 pt-3">
+      <h4 class="text-xs font-bold text-verve-brown/50 uppercase tracking-wide mb-3">Conditions (Optional)</h4>
 
       <!-- Type Filter -->
-      <div class="mb-2">
+      <div class="mb-3">
         <label class="flex items-center">
-          <input v-model="useActivityConstraint" type="checkbox" class="h-4 w-4 text-indigo-600 rounded" />
-          <span class="ml-2 text-sm text-gray-700">Specific Activity Type</span>
+          <input v-model="useActivityConstraint" type="checkbox" class="h-4 w-4 rounded border-verve-medium" />
+          <span class="ml-2 text-sm text-verve-brown font-medium">Specific Activity Type</span>
         </label>
-        <div v-if="useActivityConstraint" class="pl-6 mt-1 flex gap-2">
-          <select v-model="selectedTypeId" class="w-1/2 border-gray-300 rounded-md text-sm">
+        <div v-if="useActivityConstraint" class="pl-6 mt-2 flex gap-2">
+          <select v-model="selectedTypeId"
+            class="w-1/2 border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white">
             <option :value="null">Type...</option>
             <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
           </select>
           <select v-model="selectedSubTypeId" :disabled="!selectedTypeId"
-            class="w-1/2 border-gray-300 rounded-md text-sm disabled:bg-gray-100">
+            class="w-1/2 border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white disabled:bg-gray-100 disabled:text-gray-400">
             <option :value="null">Any Sub-Type</option>
             <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
           </select>
@@ -234,11 +249,12 @@ async function handleSubmit() {
       <!-- Equipment Filter -->
       <div>
         <label class="flex items-center">
-          <input v-model="useEquipmentConstraint" type="checkbox" class="h-4 w-4 text-indigo-600 rounded" />
-          <span class="ml-2 text-sm text-gray-700">Specific Equipment</span>
+          <input v-model="useEquipmentConstraint" type="checkbox" class="h-4 w-4 rounded border-verve-medium" />
+          <span class="ml-2 text-sm text-verve-brown font-medium">Specific Equipment</span>
         </label>
-        <div v-if="useEquipmentConstraint" class="pl-6 mt-1">
-          <select v-model="selectedEquipmentIds" multiple class="w-full border-gray-300 rounded-md text-sm h-16">
+        <div v-if="useEquipmentConstraint" class="pl-6 mt-2">
+          <select v-model="selectedEquipmentIds" multiple
+            class="w-full border-verve-medium rounded-xl text-sm h-20 p-2 text-verve-brown focus:ring-verve-dark bg-white">
             <option v-for="eq in equipmentStore.allEquipment" :key="eq.id" :value="eq.id">
               {{ eq.name }}
             </option>
@@ -248,10 +264,13 @@ async function handleSubmit() {
     </div>
 
     <!-- Actions -->
-    <div class="flex justify-end space-x-3 pt-2">
-      <button @click="$emit('close')" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
+    <div class="flex justify-end space-x-3 pt-3 border-t border-verve-medium/30">
+      <button @click="$emit('close')"
+        class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
+        Cancel
+      </button>
       <button @click="handleSubmit" :disabled="isSaving"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50">
+        class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all disabled:opacity-50">
         {{ isSaving ? 'Saving...' : 'Create Goal' }}
       </button>
     </div>

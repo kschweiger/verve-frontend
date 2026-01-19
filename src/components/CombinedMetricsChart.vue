@@ -15,7 +15,7 @@ import {
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import type { TrackPoint } from '@/services/api';
-
+import { VERVE_COLORS, hexToRgba } from '@/utils/colors';
 ChartJS.register(
   Title, Tooltip, Legend, LineElement, CategoryScale,
   LinearScale, PointElement, Filler, annotationPlugin
@@ -43,28 +43,28 @@ const metricDefinitions: Record<string, MetricConfig> = {
   speed: {
     key: 'speed',
     label: 'Speed (km/h)',
-    color: '#3b82f6',
+    color: VERVE_COLORS.chartBlue,
     transform: (v) => v * 3.6,
     fallbackValue: 0
   },
   hr: {
     key: 'hr',
     label: 'Heart Rate (bpm)',
-    color: '#ef4444',
+    color: VERVE_COLORS.orange,
     transform: (v) => v,
     fallbackValue: null
   },
   cad: {
     key: 'cad',
     label: 'Cadence (rpm)',
-    color: '#8b5cf6',
+    color: VERVE_COLORS.brown,
     transform: (v) => v,
     fallbackValue: 0
   },
   power: {
     key: 'power',
     label: 'Power (W)',
-    color: '#f59e0b',
+    color: VERVE_COLORS.orange,
     transform: (v) => v,
     fallbackValue: 0
   }
@@ -173,8 +173,8 @@ const chartData = computed(() => {
     datasets.push({
       label: 'Elevation (m)',
       data: elevationData,
-      borderColor: '#9ca3af',
-      backgroundColor: 'rgba(156, 163, 175, 0.2)',
+      borderColor: VERVE_COLORS.chartGray,
+      backgroundColor: hexToRgba(VERVE_COLORS.chartGray, 0.2),
       yAxisID: 'yElevation',
       fill: 'start',
       pointRadius: 0,

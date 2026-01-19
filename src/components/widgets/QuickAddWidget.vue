@@ -62,11 +62,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6 h-full">
-    <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Add</h3>
+  <div class="bg-white rounded-xl shadow-sm border border-verve-medium/30 p-6 h-full">
+    <h3 class="text-xl font-bold text-verve-brown mb-4">Quick Add</h3>
 
-    <!-- Loading State: Show if we have no resolved configs yet -->
-    <div v-if="activeConfigs.length === 0" class="text-gray-400 text-sm animate-pulse">
+    <!-- Loading State -->
+    <div v-if="activeConfigs.length === 0" class="text-verve-brown/60 text-sm animate-pulse py-4 text-center">
       Loading types...
     </div>
 

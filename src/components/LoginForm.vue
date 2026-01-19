@@ -32,29 +32,29 @@ async function handleLogin() {
 <template>
   <form @submit.prevent="handleLogin" class="space-y-6">
     <!-- Error Message Display -->
-    <div v-if="errorMessage" class="p-3 text-sm text-red-700 bg-red-100 border border-red-400 rounded-md">
+    <div v-if="errorMessage" class="p-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl">
       {{ errorMessage }}
     </div>
 
     <div>
-      <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
+      <label for="email" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Email address</label>
       <div class="mt-1">
         <input v-model="email" id="email" name="email" type="email" autocomplete="email" required
-          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-black focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+          class="w-full px-4 py-3 border border-verve-medium rounded-xl shadow-sm text-verve-brown focus:outline-none focus:ring-2 focus:ring-verve-dark focus:border-verve-dark bg-white transition-colors" />
       </div>
     </div>
 
     <div>
-      <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+      <label for="password" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Password</label>
       <div class="mt-1">
         <input v-model="password" id="password" name="password" type="password" autocomplete="current-password" required
-          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-black focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+          class="w-full px-4 py-3 border border-verve-medium rounded-xl shadow-sm text-verve-brown focus:outline-none focus:ring-2 focus:ring-verve-dark focus:border-verve-dark bg-white transition-colors" />
       </div>
     </div>
 
     <div>
       <button type="submit"
-        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        class="w-full flex justify-center py-3 px-4 border border-verve-dark/5 rounded-xl shadow-sm text-sm font-bold text-verve-brown bg-verve-neon hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-verve-neon transition-all">
         Sign in
       </button>
     </div>

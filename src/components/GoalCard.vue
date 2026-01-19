@@ -81,25 +81,24 @@ const toggleEquipment = () => {
 
 <template>
   <div
-    class="bg-white rounded-lg border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow flex flex-col h-full">
+    class="bg-white rounded-xl border border-verve-medium/30 shadow-sm p-5 hover:shadow-md transition-all flex flex-col h-full group">
     <div class="flex justify-between items-start mb-2">
       <!-- Title & Constraints -->
       <div class="flex-grow pr-2">
-        <h4 class="text-lg font-bold text-gray-800 break-words">{{ goal.name }}</h4>
+        <h4 class="text-lg font-bold text-verve-brown break-words leading-tight">{{ goal.name }}</h4>
 
         <!-- BADGES ROW -->
-        <div v-if="constraintBadges.length > 0" class="flex flex-wrap gap-2 mt-1">
+        <div v-if="constraintBadges.length > 0" class="flex flex-wrap gap-2 mt-2">
           <button v-for="(badge, index) in constraintBadges" :key="index"
             @click="badge.type === 'equipment' ? toggleEquipment() : null" :class="[
-              'px-2 py-0.5 rounded text-xs font-medium border transition-colors',
+              'px-2 py-0.5 rounded-lg text-xs font-bold border transition-colors',
               badge.clickable
-                ? 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200 cursor-pointer flex items-center gap-1'
-                : 'bg-gray-100 text-gray-700 border-gray-200 cursor-default'
+                ? 'bg-verve-medium/20 text-verve-brown border-verve-medium/40 hover:bg-verve-medium/40 cursor-pointer flex items-center gap-1'
+                : 'bg-verve-light text-verve-brown/80 border-verve-light cursor-default'
             ]">
             {{ badge.label }}
-            <!-- Add a tiny chevron icon if clickable -->
             <svg v-if="badge.clickable" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-              class="w-3 h-3 transition-transform" :class="isEquipmentExpanded ? 'rotate-180' : ''">
+              class="w-3 h-3 transition-transform text-verve-brown/60" :class="isEquipmentExpanded ? 'rotate-180' : ''">
               <path fill-rule="evenodd"
                 d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
                 clip-rule="evenodd" />
@@ -109,34 +108,38 @@ const toggleEquipment = () => {
 
         <!-- EXPANDED EQUIPMENT LIST -->
         <div v-if="isEquipmentExpanded"
-          class="mt-2 p-2 bg-gray-50 rounded border border-gray-100 text-xs text-gray-600 animate-fade-in">
-          <p class="font-semibold mb-1 text-gray-500 uppercase tracking-wider text-[10px]">Included Gear:</p>
-          <ul class="list-disc list-inside space-y-0.5">
+          class="mt-2 p-2 bg-verve-light/30 rounded-lg border border-verve-medium/20 text-xs text-verve-brown/80 animate-fadeIn">
+          <p class="font-bold mb-1 text-verve-brown/50 uppercase tracking-wider text-[10px]">Included Gear:</p>
+          <ul class="list-disc list-inside space-y-0.5 ml-1">
             <li v-for="name in resolvedEquipmentNames" :key="name">{{ name }}</li>
           </ul>
         </div>
 
-        <p v-if="goal.description" class="text-sm text-gray-500 mt-2 line-clamp-2">{{ goal.description }}</p>
+        <p v-if="goal.description" class="text-sm text-verve-brown/60 mt-2 line-clamp-2 leading-relaxed">{{
+          goal.description }}</p>
       </div>
 
       <!-- Context Menu / Actions -->
-      <div class="flex items-center space-x-1 flex-shrink-0">
+      <div class="flex items-center space-x-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <!-- Manual +/- Controls -->
-        <div v-if="goal.type === 'manual'" class="flex items-center bg-gray-100 rounded-md mr-2">
+        <div v-if="goal.type === 'manual'" class="flex items-center bg-verve-light rounded-lg mr-2">
           <button @click="$emit('manual-update', goal, false)"
-            class="px-2 py-1 hover:bg-red-100 text-gray-600 hover:text-red-600 rounded-l">-</button>
+            class="px-2 py-1 hover:bg-red-100 text-verve-brown hover:text-red-600 rounded-l-lg transition-colors font-bold">-</button>
+          <div class="w-px h-3 bg-verve-medium/30"></div>
           <button @click="$emit('manual-update', goal, true)"
-            class="px-2 py-1 hover:bg-green-100 text-gray-600 hover:text-green-600 rounded-r">+</button>
+            class="px-2 py-1 hover:bg-green-100 text-verve-brown hover:text-green-600 rounded-r-lg transition-colors font-bold">+</button>
         </div>
 
-        <button @click="$emit('edit', goal)" class="p-1.5 text-gray-400 hover:text-indigo-600 rounded hover:bg-gray-100"
+        <button @click="$emit('edit', goal)"
+          class="p-1.5 text-verve-brown/40 hover:text-verve-brown rounded-lg hover:bg-verve-light transition-colors"
           title="Edit">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
             <path
               d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
           </svg>
         </button>
-        <button @click="$emit('clone', goal)" class="p-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-gray-100"
+        <button @click="$emit('clone', goal)"
+          class="p-1.5 text-verve-brown/40 hover:text-verve-brown rounded-lg hover:bg-verve-light transition-colors"
           title="Clone to next period">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
             <path
@@ -145,7 +148,8 @@ const toggleEquipment = () => {
               d="M4.5 5A1.5 1.5 0 0 0 3 6.5v6a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-6a1.5 1.5 0 0 0-1.5-1.5h-11Z" />
           </svg>
         </button>
-        <button @click="$emit('delete', goal)" class="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-gray-100"
+        <button @click="$emit('delete', goal)"
+          class="p-1.5 text-verve-brown/40 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
           title="Delete">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
             <path fill-rule="evenodd"
@@ -160,21 +164,21 @@ const toggleEquipment = () => {
     <div class="mt-auto"></div>
 
     <!-- Progress Stats -->
-    <div class="flex justify-between items-end mb-1 text-sm mt-3">
-      <div class="font-bold text-gray-900 text-2xl">
+    <div class="flex justify-between items-end mb-2 text-sm mt-3">
+      <div class="font-bold text-verve-brown text-2xl">
         {{ (goal.progress * 100).toFixed(0) }}%
       </div>
-      <div class="text-gray-600">
-        <span class="font-semibold text-gray-900">{{ formatValue(goal.current, goal.aggregation) }}</span>
-        <span class="text-gray-400 mx-1">/</span>
+      <div class="text-verve-brown/60 font-mono text-xs">
+        <span class="font-bold text-verve-brown">{{ formatValue(goal.current, goal.aggregation) }}</span>
+        <span class="text-verve-brown/40 mx-1">/</span>
         <span>{{ formatValue(goal.target, goal.aggregation) }}</span>
       </div>
     </div>
 
-    <!-- Progress Bar -->
-    <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-      <div class="h-full rounded-full transition-all duration-500 relative"
-        :class="goal.reached ? 'bg-green-500' : 'bg-indigo-600'" :style="{ width: `${progressPercent}%` }">
+    <!-- Progress Bar using Global Classes -->
+    <div class="progress-track">
+      <div class="progress-fill relative" :class="goal.reached ? 'bg-verve-neon' : 'bg-verve-orange'"
+        :style="{ width: `${progressPercent}%` }">
         <div v-if="!goal.reached" class="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
       </div>
     </div>
@@ -204,7 +208,7 @@ const toggleEquipment = () => {
   }
 }
 
-.animate-fade-in {
+.animate-fadeIn {
   animation: fade-in 0.2s ease-out forwards;
 }
 </style>

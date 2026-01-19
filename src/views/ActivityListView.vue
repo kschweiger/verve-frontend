@@ -30,40 +30,41 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="p-4 sm:p-6 lg:p-8">
+  <div class="p-4 sm:p-6 lg:p-8 bg-verve-medium min-h-[calc(100vh-64px)]">
     <div class="max-w-7xl mx-auto">
-      <h1 class="text-3xl font-bold text-gray-900 mb-6">My Activities</h1>
+      <h1 class="text-3xl font-bold text-verve-brown mb-6">My Activities</h1>
 
       <!-- The Filter Component -->
       <ActivityFilter :initial-filters="initialFilters" @filter-change="activityStore.fetchActivities($event, false)" />
+
       <!-- Error Display -->
-      <div v-if="activityStore.listError" class="mt-6 p-4 bg-red-100 text-red-700 rounded-md">
+      <div v-if="activityStore.listError" class="mt-6 p-4 bg-red-100 text-red-700 rounded-xl">
         <p>Error loading activities: {{ activityStore.listError }}</p>
       </div>
 
       <!-- The Activity List -->
-      <div v-else class="mt-6 bg-white rounded-lg shadow-md overflow-hidden">
-        <ul v-if="activityStore.paginatedActivities.length > 0">
-          <li v-for="activity in activityStore.paginatedActivities" :key="activity.id" class="border-b last:border-b-0">
+      <div v-else class="mt-6">
+        <ul v-if="activityStore.paginatedActivities.length > 0" class="space-y-1">
+          <li v-for="activity in activityStore.paginatedActivities" :key="activity.id">
             <ActivityListItem :activity="activity" />
           </li>
         </ul>
-        <div v-else-if="!activityStore.isListLoading" class="p-6 text-center text-gray-500">
-          <p>No activities found matching your criteria.</p>
+        <div v-else-if="!activityStore.isListLoading" class="p-12 text-center text-verve-brown/50 bg-white">
+          <p class="text-lg">No activities found matching your criteria.</p>
         </div>
       </div>
 
       <!-- Loading State & Load More Button -->
-      <div class="mt-6 text-center">
-        <div v-if="activityStore.isListLoading" class="py-4">
-          <p class="text-gray-500">Loading...</p>
+      <div class="mt-8 text-center pb-8">
+        <div v-if="activityStore.isListLoading" class="py-4 text-verve-brown/60">
+          <span class="animate-pulse">Loading...</span>
         </div>
         <button v-else-if="activityStore.canLoadMore" @click="loadMoreActivities"
-          class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md shadow-md hover:bg-indigo-700 transition">
+          class="px-8 py-3 bg-verve-brown text-white font-bold rounded-xl shadow-md hover:bg-verve-brown/90 transition-all">
           Load More
         </button>
-        <p v-else-if="activityStore.paginatedActivities.length > 0" class="py-4 text-gray-500">
-          End of list.
+        <p v-else-if="activityStore.paginatedActivities.length > 0" class="py-4 text-verve-brown/40 italic">
+          All activities loaded.
         </p>
       </div>
     </div>

@@ -26,31 +26,34 @@ function onSave() {
 }
 </script>
 <template>
-  <div class="space-y-4 pt-4">
+  <div class="space-y-4 pt-2">
     <div>
-      <label for="profile-name" class="block text-sm font-medium text-gray-700">Username</label>
+      <label for="profile-name" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Username</label>
       <input v-model="name" type="text" id="profile-name"
-        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+        class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
     </div>
+
     <div>
-      <label for="profile-fullname" class="block text-sm font-medium text-gray-700">Full Name</label>
+      <label for="profile-fullname" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Full Name</label>
       <input v-model="fullName" type="text" id="profile-fullname"
-        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+        class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
     </div>
+
     <div>
-      <label for="profile-email" class="block text-sm font-medium text-gray-700">Email</label>
+      <label for="profile-email" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Email</label>
       <input v-model="email" type="email" id="profile-email"
-        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+        class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
     </div>
-    <div class="flex justify-end space-x-3 pt-4">
+
+    <div class="flex justify-end space-x-3 pt-4 border-t border-verve-medium/30">
       <!-- Secondary Button Style -->
       <button @click="$emit('cancel')"
-        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+        class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
         Cancel
       </button>
       <!-- Primary Button Style -->
       <button @click="onSave"
-        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+        class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all">
         Save Changes
       </button>
     </div>

@@ -31,9 +31,8 @@ const swimStyles = ['freestyle', 'backstroke', 'breaststroke', 'butterfly'];
 
 interface LapDataUI {
   count: number;
-  lap_lengths: number | null; // Note: UI uses "lengths", payload maps to "lenths"
+  lap_lengths: number | null;
   style: string | null;
-  // Duration split
   h: number;
   m: number;
   s: number;
@@ -84,7 +83,7 @@ function toISODuration(h: number, m: number, s: number): string {
 function addSwimSegment() {
   swimmingSegments.value.push({
     count: 1,
-    lap_lengths: 25, // Default pool size estimate
+    lap_lengths: 25,
     style: 'freestyle',
     h: 0, m: 0, s: 0
   });
@@ -116,18 +115,16 @@ async function handleSubmit() {
     duration: isoDuration,
     elevation_change_up: elevationGain.value,
     add_default_equipment: addDefaultEquipment.value,
-    meta_data: {} // Default empty
+    meta_data: {}
   };
 
   // 2. Build Metadata if Swimming
   if (isSwimming.value) {
     const segments = swimmingSegments.value.map(seg => {
-      // Check if duration is set
       const hasDuration = seg.h > 0 || seg.m > 0 || seg.s > 0;
-
       return {
         count: seg.count,
-        lap_lengths: seg.lap_lengths, // <-- Mapping to backend typo 'lenths'
+        lap_lengths: seg.lap_lengths,
         style: seg.style,
         duration: hasDuration ? toISODuration(seg.h, seg.m, seg.s) : null
       };
@@ -154,44 +151,49 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex justify-between items-center border-b pb-2">
-      <h3 class="text-lg font-bold text-gray-800">Log Activity</h3>
-      <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600">&times;</button>
+  <div class="space-y-5">
+    <div class="flex justify-between items-center border-b border-verve-medium/30 pb-3">
+      <h3 class="text-xl font-bold text-verve-brown">Log Activity</h3>
+      <button @click="$emit('close')" class="text-verve-brown/40 hover:text-verve-brown transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
     <!-- Error Banner -->
-    <div v-if="error" class="p-3 bg-red-100 text-red-700 text-sm rounded">{{ error }}</div>
+    <div v-if="error" class="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{{ error }}</div>
 
-    <form @submit.prevent="handleSubmit" class="space-y-4 max-h-[75vh] overflow-y-auto px-1">
+    <form @submit.prevent="handleSubmit" class="space-y-5 max-h-[75vh] overflow-y-auto px-1">
 
       <!-- Name & Date -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Name</label>
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Name</label>
           <input v-model="name" type="text" placeholder="e.g. Morning Jog"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Date & Time</label>
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Date & Time</label>
           <input v-model="start" type="datetime-local" required
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
       </div>
 
       <!-- Type & SubType -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Type *</label>
-          <select v-model="typeId" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Type *</label>
+          <select v-model="typeId" required
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
             <option :value="null">Select...</option>
             <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Sub-Type</label>
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Sub-Type</label>
           <select v-model="subTypeId" :disabled="!typeId"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm disabled:bg-gray-100">
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white disabled:bg-gray-50 disabled:text-gray-400">
             <option :value="null">None</option>
             <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
           </select>
@@ -201,87 +203,92 @@ async function handleSubmit() {
       <!-- Stats -->
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Distance (km)</label>
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Distance (km)</label>
           <input v-model="distanceKm" type="number" step="0.01" min="0" required
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Elevation Gain (m)</label>
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Elevation (m)</label>
           <input v-model="elevationGain" type="number" step="1" min="0"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+            class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
       </div>
 
       <!-- Duration -->
       <div>
-        <label class="block text-sm font-medium text-gray-700">Duration</label>
-        <div class="flex space-x-2 mt-1">
+        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Duration</label>
+        <div class="flex space-x-2">
           <div class="flex-1">
             <input v-model="durHours" type="number" min="0" placeholder="HH"
-              class="w-full border-gray-300 rounded-md text-center" />
-            <span class="text-xs text-gray-500 block text-center">Hrs</span>
+              class="w-full border-verve-medium rounded-xl text-sm py-2 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
+            <span class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold">Hrs</span>
           </div>
           <div class="flex-1">
             <input v-model="durMinutes" type="number" min="0" max="59" placeholder="MM"
-              class="w-full border-gray-300 rounded-md text-center" />
-            <span class="text-xs text-gray-500 block text-center">Min</span>
+              class="w-full border-verve-medium rounded-xl text-sm py-2 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
+            <span class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold">Min</span>
           </div>
           <div class="flex-1">
             <input v-model="durSeconds" type="number" min="0" max="59" placeholder="SS"
-              class="w-full border-gray-300 rounded-md text-center" />
-            <span class="text-xs text-gray-500 block text-center">Sec</span>
+              class="w-full border-verve-medium rounded-xl text-sm py-2 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
+            <span class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold">Sec</span>
           </div>
         </div>
       </div>
 
       <!-- === SWIMMING SPECIFIC META DATA === -->
-      <div v-if="isSwimming" class="border rounded-md p-3 bg-blue-50 border-blue-200">
-        <div class="flex justify-between items-center mb-2">
-          <h4 class="text-sm font-bold text-blue-800">Swimming Laps</h4>
+      <div v-if="isSwimming" class="border border-verve-medium/30 rounded-xl p-4 bg-verve-light/20">
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="text-sm font-bold text-verve-brown">Swimming Laps</h4>
           <button type="button" @click="addSwimSegment"
-            class="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700">+ Add Set</button>
+            class="text-xs bg-verve-light hover:bg-verve-medium text-verve-brown font-bold px-3 py-1.5 rounded-lg border border-verve-medium/50 transition-colors">
+            + Add Set
+          </button>
         </div>
 
         <div class="space-y-3">
           <div v-for="(segment, index) in swimmingSegments" :key="index"
-            class="bg-white p-2 rounded shadow-sm relative">
+            class="bg-white p-3 rounded-xl shadow-sm border border-verve-medium/20 relative">
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
               <div>
-                <label class="block text-xs text-gray-500">Laps</label>
-                <input v-model="segment.count" type="number" min="1" class="w-full text-sm border-gray-300 rounded" />
+                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">Laps</label>
+                <input v-model="segment.count" type="number" min="1"
+                  class="w-full text-sm border-verve-medium rounded-lg text-verve-brown" />
               </div>
               <div>
-                <label class="block text-xs text-gray-500">Length (m)</label>
-                <input v-model="segment.lap_lengths" type="number" class="w-full text-sm border-gray-300 rounded"
-                  placeholder="25" />
+                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">Length (m)</label>
+                <input v-model="segment.lap_lengths" type="number" placeholder="25"
+                  class="w-full text-sm border-verve-medium rounded-lg text-verve-brown" />
               </div>
               <div class="col-span-2">
-                <label class="block text-xs text-gray-500">Style</label>
-                <select v-model="segment.style" class="w-full text-sm border-gray-300 rounded">
+                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">Style</label>
+                <select v-model="segment.style" class="w-full text-sm border-verve-medium rounded-lg text-verve-brown">
                   <option :value="null">Mixed/Other</option>
-                  <option v-for="style in swimStyles" :key="style" :value="style">{{ style.charAt(0).toUpperCase() +
-                    style.slice(1) }}</option>
+                  <option v-for="style in swimStyles" :key="style" :value="style">
+                    {{ style.charAt(0).toUpperCase() + style.slice(1) }}
+                  </option>
                 </select>
               </div>
             </div>
 
             <!-- Segment Duration -->
             <div>
-              <label class="block text-xs text-gray-500">Set Duration (Optional)</label>
+              <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">Set Duration
+                (Optional)</label>
               <div class="flex space-x-1">
                 <input v-model="segment.h" type="number" placeholder="H"
-                  class="w-1/3 text-sm text-center border-gray-300 rounded" />
+                  class="w-1/3 text-sm text-center border-verve-medium rounded-lg text-verve-brown" />
                 <input v-model="segment.m" type="number" placeholder="M"
-                  class="w-1/3 text-sm text-center border-gray-300 rounded" />
+                  class="w-1/3 text-sm text-center border-verve-medium rounded-lg text-verve-brown" />
                 <input v-model="segment.s" type="number" placeholder="S"
-                  class="w-1/3 text-sm text-center border-gray-300 rounded" />
+                  class="w-1/3 text-sm text-center border-verve-medium rounded-lg text-verve-brown" />
               </div>
             </div>
 
             <!-- Remove Button -->
             <button v-if="swimmingSegments.length > 1" type="button" @click="removeSwimSegment(index)"
-              class="absolute -top-1 -right-1 bg-red-100 text-red-600 rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-200">
+              class="absolute -top-2 -right-2 bg-white text-red-500 border border-red-200 rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-50 hover:border-red-300 shadow-sm transition-colors">
               &times;
             </button>
           </div>
@@ -290,24 +297,27 @@ async function handleSubmit() {
       <!-- ================================== -->
 
       <!-- Optional Track -->
-      <div class="border-t pt-4">
-        <label class="block text-sm font-medium text-gray-700">Attach Track File (Optional)</label>
-        <input type="file" @change="handleFileChange" accept=".gpx,.fit,.tcx"
-          class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+      <div class="border-t border-verve-medium/30 pt-4">
+        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-2">Attach Track File (Optional)</label>
+        <input type="file" @change="handleFileChange" accept=".gpx,.fit,.tcx" class="file-input w-full" />
       </div>
 
       <!-- Settings -->
       <div class="flex items-center">
-        <input v-model="addDefaultEquipment" type="checkbox" id="def-equip" class="h-4 w-4 text-indigo-600 rounded" />
-        <label for="def-equip" class="ml-2 text-sm text-gray-700">Add default equipment for this activity type</label>
+        <input v-model="addDefaultEquipment" type="checkbox" id="def-equip"
+          class="h-4 w-4 text-verve-dark border-verve-medium rounded focus:ring-verve-dark" />
+        <label for="def-equip" class="ml-2 text-sm font-medium text-verve-brown">Add default equipment for this activity
+          type</label>
       </div>
 
       <!-- Buttons -->
       <div class="flex justify-end space-x-3 pt-2">
         <button type="button" @click="$emit('close')"
-          class="px-4 py-2 border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
+          class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
+          Cancel
+        </button>
         <button type="submit" :disabled="isLoading"
-          class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300">
+          class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-verve-dark/5">
           {{ isLoading ? 'Saving...' : 'Save Activity' }}
         </button>
       </div>
