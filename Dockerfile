@@ -20,7 +20,7 @@ COPY . .
 # 4. Build Configuration
 # Default to "/api" so the frontend works behind your reverse proxy automatically.
 # This makes the image domain-agnostic.
-ARG VITE_API_BASE_URL=/api
+ARG VITE_API_BASE_URL=/api/v1
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # 5. Build the app
