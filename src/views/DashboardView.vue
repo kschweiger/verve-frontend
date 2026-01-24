@@ -12,29 +12,35 @@ const userStore = useUserStore();
 </script>
 
 <template>
-  <div class="bg-verve-medium min-h-full p-4 sm:p-6 lg:p-8">
-    <div class="max-w-7xl mx-auto">
+  <div class="min-h-full flex flex-col">
 
-      <!-- Header -->
-      <div class="flex justify-between items-end mb-8">
-        <div>
-          <h1 class="text-3xl font-bold text-verve-brown">
-            Welcome back, {{ userStore.user_full_name ?? userStore.user_name }}!
-          </h1>
-          <p class="text-verve-brown/60 mt-1 font-medium">Highlights & Overview</p>
+    <!-- SECTION 1: White Background (Header & Statistics) -->
+    <div class="bg-white pt-8 pb-12 px-4 sm:px-6 lg:px-8 border-b border-verve-medium/20">
+      <div class="max-w-7xl mx-auto">
+
+        <!-- Header -->
+        <div class="flex justify-between items-end mb-8">
+          <div>
+            <h1 class="text-3xl font-bold text-verve-brown">
+              Welcome back, {{ userStore.user_full_name ?? userStore.user_name }}!
+            </h1>
+            <p class="text-verve-brown/60 mt-1 font-medium">Highlights & Overview</p>
+          </div>
         </div>
-      </div>
-
-      <!--
-        Main Layout
-      -->
-      <div class="space-y-6">
 
         <!-- Top Row: Statistics -->
-        <div class="grid grid-cols-1  gap-6">
+        <div class="grid grid-cols-1 gap-6">
           <YearlyStatsWidget />
           <WeeklyStatsWidget />
         </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 2: Medium Green Background (Widget Grid) -->
+    <!-- flex-grow ensures it fills the rest of the screen height -->
+    <div class="bg-verve-medium flex-grow px-4 sm:px-6 lg:px-8 py-8">
+      <div class="max-w-7xl mx-auto">
 
         <!-- Widget Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -60,7 +66,7 @@ const userStore = useUserStore();
         </div>
 
         <!-- Add Widget Button (Mockup Style) -->
-        <div class="flex justify-center pt-8 pb-4">
+        <div class="flex justify-center pt-12 pb-4">
           <button
             class="px-6 py-3 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all flex items-center gap-2">
             <span class="text-xl leading-none">+</span> Add Widget
@@ -69,5 +75,6 @@ const userStore = useUserStore();
 
       </div>
     </div>
+
   </div>
 </template>

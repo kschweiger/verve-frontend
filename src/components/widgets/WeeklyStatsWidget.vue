@@ -45,14 +45,13 @@ const weekAndYear = computed(() => {
   return { week, year: date.getFullYear() };
 });
 
-// Format data for the bar chart
 const barChartData = computed(() => {
   const data = weeklyStore.weeklyData?.[selectedMetric.value]?.per_day;
   if (!data) return { labels: [], datasets: [] };
   return {
     labels: Object.keys(data).map(d => new Date(d).toLocaleDateString(undefined, { weekday: 'short' })),
     datasets: [{
-      backgroundColor: VERVE_COLORS.orange,
+      backgroundColor: VERVE_COLORS.orange, // Keep Bar as primary Orange
       borderRadius: 6,
       barPercentage: 0.6,
       data: Object.values(data).map(val => val ?? 0),
@@ -71,17 +70,19 @@ const pieChartData = computed(() => {
     return subType?.name ?? `Sub-Type #${subTypeIdStr}`;
   });
 
+  const pieColors = [...CHART_COLORS.slice(1), CHART_COLORS[0]];
+  const pieHoverColors = [...CHART_HOVER_COLORS.slice(1), CHART_HOVER_COLORS[0]];
+
   return {
     labels,
     datasets: [{
-      backgroundColor: CHART_COLORS,
-      hoverBackgroundColor: CHART_HOVER_COLORS,
-      borderWidth: 0, // Cleaner pie
+      backgroundColor: pieColors,
+      hoverBackgroundColor: pieHoverColors,
+      borderWidth: 0,
       data: Object.values(data),
     }],
   };
 });
-
 // --- METHODS ---
 const goToPreviousWeek = () => currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() - 7));
 const goToNextWeek = () => currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() + 7));
