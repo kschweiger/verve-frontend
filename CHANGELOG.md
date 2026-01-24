@@ -1,4 +1,17 @@
 <!-- insertion marker -->
+<a name="0.2.0"></a>
+
+## [0.2.0](https://github.com/kschweiger/verve-frontend/compare/0.1.0...0.2.0) (2026-01-24)
+
+### Features
+
+- 📍 Support nullable track data and JSON file uploads ([b92d566](https://github.com/kschweiger/verve-frontend/commit/b92d5661e998f0a5fd4cbc165eee8de2a1efe37d))
+
+### Code Refactoring
+
+- Adapt style of dashboard ([719f9a3](https://github.com/kschweiger/verve-frontend/commit/719f9a31f4a4c22d820b59764d5be2bbe1ea8a0c))
+- Update style and layout ([308d8a0](https://github.com/kschweiger/verve-frontend/commit/308d8a041d1d873cea337fecd17a67fdc6b94da0))
+
 <a name="0.1.0"></a>
 
 ## [0.1.0](https://github.com/kschweiger/verve-frontend/compare/58f3b6e5b4703ff92ffaac9c2458282e1980ae8c...0.1.0) (2026-01-02)
