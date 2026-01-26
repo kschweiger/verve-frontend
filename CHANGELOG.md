@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="0.2.1"></a>
+
+## [0.2.1](https://github.com/kschweiger/verve-frontend/compare/0.2.0...0.2.1) (2026-01-26)
+
+### Bug Fixes
+
+- 🔗 Standardize URL construction to URLSearchParams ([93fe05f](https://github.com/kschweiger/verve-frontend/commit/93fe05fa89394a1029fd75eb9786c84c18ae4963))
+
 <a name="0.2.0"></a>
 
 ## [0.2.0](https://github.com/kschweiger/verve-frontend/compare/0.1.0...0.2.0) (2026-01-24)
