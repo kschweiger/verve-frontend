@@ -58,10 +58,13 @@ export const useHighlightStore = defineStore('highlight', () => {
     isLoading.value = true;
     dashboardHighlights.value = []; // Clear previous results
     try {
-      const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/highlights/metric/${metric}`);
+      const params = new URLSearchParams();
       if (year) {
-        url.searchParams.append('year', year.toString());
+        params.append('year', year.toString());
       }
+
+      const queryString = params.toString();
+      const url = `${import.meta.env.VITE_API_BASE_URL}/highlights/metric/${metric}${queryString ? '?' + queryString : ''}`;
       const response = await fetch(url.toString(), { headers: getAuthHeaders() });
       if (!response.ok) return;
       const data = await response.json();

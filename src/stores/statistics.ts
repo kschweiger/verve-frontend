@@ -81,12 +81,13 @@ export const useStatisticsStore = defineStore('statistics', () => {
 
     try {
       // Construct the URL. If year is null, no query parameter is added.
-      const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/statistics/year`);
+      const params = new URLSearchParams();
       if (year) {
-        url.searchParams.append('year', year.toString());
+        params.append('year', year.toString());
       }
 
-      const response = await fetch(url.toString(), {
+      const queryString = params.toString();
+      const url = `${import.meta.env.VITE_API_BASE_URL}/statistics/year${queryString ? '?' + queryString : ''}`; const response = await fetch(url.toString(), {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${userStore.token}` }
       });

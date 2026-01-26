@@ -49,10 +49,15 @@ export const useGoalStore = defineStore('goal', () => {
 
   // Update the helper _fetch to support the week param
   async function _fetch(year: number, month?: number | null, week?: number | null) {
-    const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/goal/`);
-    url.searchParams.append('year', year.toString());
-    if (month !== undefined && month !== null) url.searchParams.append('month', month.toString());
-    if (week !== undefined && week !== null) url.searchParams.append('week', week.toString());
+    const params = new URLSearchParams();
+    params.append('year', year.toString());
+
+    if (month !== undefined && month !== null) params.append('month', month.toString());
+    if (week !== undefined && week !== null) params.append('week', week.toString());
+
+    const queryString = params.toString();
+    const url = `${import.meta.env.VITE_API_BASE_URL}/goal/${queryString ? '?' + queryString : ''}`;
+
 
     const response = await fetch(url.toString(), { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch goals');
@@ -116,10 +121,11 @@ export const useGoalStore = defineStore('goal', () => {
 
   async function updateGoal(id: string, attribute: 'name' | 'description' | 'target', value: string | number) {
     try {
-      // API expects query params for this POST/UPDATE
-      const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/goal/${id}/update`);
-      url.searchParams.append('attribute', attribute);
-      url.searchParams.append('value', value.toString());
+      const params = new URLSearchParams();
+      params.append('attribute', attribute);
+      params.append('value', value.toString());
+
+      const url = `${import.meta.env.VITE_API_BASE_URL}/goal/${id}/update?${params.toString()}`;
 
       const response = await fetch(url.toString(), {
         method: 'POST', // Changed to POST based on your latest OpenAPI spec
@@ -149,13 +155,11 @@ export const useGoalStore = defineStore('goal', () => {
     }
   }
   async function modifyManualGoal(id: string, increase: boolean, amount: number = 1) {
-    // We don't set global loading here to avoid flickering the whole list
-    // Instead, we return the result so the UI can handle local loading state if needed
     try {
-      const url = new URL(`${import.meta.env.VITE_API_BASE_URL}/goal/${id}/modify_amount`);
-      url.searchParams.append('increase', increase.toString());
-      url.searchParams.append('amount', amount.toString());
+      const params = new URLSearchParams();
+      params.append('id', id);
 
+      const url = `${import.meta.env.VITE_API_BASE_URL}/goal/?${params.toString()}`;
       const response = await fetch(url.toString(), {
         method: 'GET', // Following your OpenAPI spec
         headers: getHeaders()
