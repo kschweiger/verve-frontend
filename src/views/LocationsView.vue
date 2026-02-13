@@ -6,8 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { useLocationStore, type Location } from '@/stores/location';
 import { VERVE_COLORS } from '@/utils/colors'; // <--- Import Colors
 import ActivityListItem from '@/components/ActivityListItem.vue';
-import IconTrash from '@/components/icons/IconTrash.vue';
-import IconPlus from '@/components/icons/IconPlus.vue';
+import { Trash2, Plus } from 'lucide-vue-next';
 import LocationCreateModal from '@/components/forms/LocationCreateModal.vue';
 import LocationGoalCreateForm from '@/components/forms/LocationGoalCreateForm.vue';
 
@@ -184,7 +183,7 @@ function handleGoalSaved() {
       <button v-if="!isAddingLocation" @click="startAddMode"
         class="bg-white p-2 rounded-xl shadow-md border-2 border-verve-medium/30 text-verve-brown hover:text-verve-orange hover:border-verve-medium transition-colors"
         title="Add Location">
-        <IconPlus class="w-6 h-6" />
+        <Plus class="size-4" />
       </button>
 
       <button v-else @click="cancelAddMode"
@@ -244,7 +243,7 @@ function handleGoalSaved() {
             </button>
             <button @click="handleDeleteLocation"
               class="px-4 py-2.5 bg-white border border-red-200 text-red-500 rounded-xl hover:bg-red-50 shadow-sm transition-colors">
-              <IconTrash class="w-5 h-5" />
+              <Trash2 class="size-4" />
             </button>
           </div>
 

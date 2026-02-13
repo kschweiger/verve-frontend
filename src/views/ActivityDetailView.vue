@@ -10,7 +10,7 @@ import LeafletMap from '@/components/LeafletMap.vue';
 import ElevationChart from '@/components/ElevationChart.vue';
 import ActivityGallery from '@/components/ActivityGallery.vue';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue';
-import IconTrash from '@/components/icons/IconTrash.vue';
+import { Trash2 } from 'lucide-vue-next';
 import ActivityLocationsWidget from '@/components/widgets/ActivityLocationsWidget.vue';
 import CombinedMetricsChart from '@/components/CombinedMetricsChart.vue';
 import { useLocationStore } from '@/stores/location';
@@ -103,7 +103,7 @@ async function handleDeleteConfirm() {
             <button @click="showDeleteModal = true"
               class="px-3 py-2 border border-red-200 rounded-xl text-red-600 bg-white hover:bg-red-50 hover:border-red-300 transition-colors"
               title="Delete Activity">
-              <IconTrash class="w-5 h-5" />
+              <Trash2 class="size-4" />
             </button>
           </div>
         </div>

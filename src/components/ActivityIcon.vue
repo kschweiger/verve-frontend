@@ -1,54 +1,47 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useTypeStore } from '@/stores/types';
+// Import only the icons you need
+import {
+  Bike,
+  Footprints,
+  Snowflake,
+  Waves,
+  Dumbbell,
+  HeartPulse,
+  Rocket
+} from 'lucide-vue-next';
 
-import IconBike from '@/components/icons/sports/IconBike.vue';
-import IconRun from '@/components/icons/sports/IconRun.vue';
-import IconWinter from '@/components/icons/sports/IconWinter.vue';
-import IconSwim from '@/components/icons/sports/IconSwim.vue';
-import IconStrength from '@/components/icons/sports/IconStrength.vue';
-import IconDefault from '@/components/icons/sports/IconDefault.vue';
-import IconCardio from '@/components/icons/sports/IconCardio.vue';
+const props = defineProps<{
+  typeId?: number;
+  size?: number | string; // Optional: control size via props
+}>();
 
-const props = defineProps<{ typeId?: number }>();
 const typeStore = useTypeStore();
 
-onMounted(() => {
-  typeStore.fetchActivityTypes();
-});
-
-
-const iconCategory = computed(() => {
-  if (!props.typeId) return 'default';
+const iconComponent = computed(() => {
+  if (!props.typeId) return Rocket;
 
   const type = typeStore.activityTypes.find(t => t.id === props.typeId);
-  const name = type ? type.name : '';
+  const name = type?.name || '';
 
+  // Clean mapping logic
   switch (name) {
-    case 'Cycling':
-      return 'bike';
-    case 'Foot Sports':
-      return 'run';
-    case 'Winter Sports':
-      return 'winter';
-    case 'Swimming':
-      return 'swim';
-    case 'Strength Training':
-      return 'strength';
-    case 'Indoor Cardio':
-      return "cardio";
-    default:
-      return 'default';
+    case 'Cycling': return Bike;
+    case 'Foot Sports': return Footprints;
+    case 'Winter Sports': return Snowflake;
+    case 'Swimming': return Waves;
+    case 'Strength Training': return Dumbbell;
+    case 'Indoor Cardio': return HeartPulse;
+    default: return Rocket;
   }
 });
 </script>
 
 <template>
-  <IconBike v-if="iconCategory === 'bike'" class="w-full h-full" />
-  <IconRun v-else-if="iconCategory === 'run'" class="w-full h-full" />
-  <IconWinter v-else-if="iconCategory === 'winter'" class="w-full h-full" />
-  <IconSwim v-else-if="iconCategory === 'swim'" class="w-full h-full" />
-  <IconStrength v-else-if="iconCategory === 'strength'" class="w-full h-full" />
-  <IconCardio v-else-if="iconCategory === 'cardio'" class="w-full h-full" />
-  <IconDefault v-else class="w-full h-full" />
+  <!--
+    size-full is Tailwind v4 shorthand for h-full w-full
+    stroke-2 sets a consistent line weight
+  -->
+  <component :is="iconComponent" class="size-full stroke-2" :size="size" />
 </template>

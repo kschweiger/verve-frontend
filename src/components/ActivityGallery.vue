@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useActivityStore, type ActivityImage } from '@/stores/activity';
-import IconPlus from '@/components/icons/IconPlus.vue';
-import IconTrash from '@/components/icons/IconTrash.vue';
-
+import { Trash2, Plus } from 'lucide-vue-next';
 const props = defineProps<{
   activityId: string;
   images: ActivityImage[];
@@ -50,7 +48,7 @@ const handleDelete = async (imageId: string) => {
 
         <button @click="triggerUpload" :disabled="isUploading"
           class="px-4 py-2 bg-verve-neon text-verve-brown text-sm font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 transition-all flex items-center border border-verve-dark/5">
-          <IconPlus class="h-4 w-4 mr-1.5" />
+          <Plus class="size-4 mr-2" />
           Add Photo
         </button>
       </div>
@@ -93,7 +91,7 @@ const handleDelete = async (imageId: string) => {
 
       <button @click.stop="handleDelete(selectedImage.id)"
         class="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center px-6 py-3 bg-red-600/90 hover:bg-red-600 text-white font-medium rounded-full shadow-xl backdrop-blur-md transition-all hover:scale-105">
-        <IconTrash class="h-5 w-5 mr-2" />
+        <Trash2 class="size-4 mr-2" />
         Delete Photo
       </button>
     </div>
