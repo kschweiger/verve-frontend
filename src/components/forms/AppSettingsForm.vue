@@ -5,7 +5,7 @@ import type { UserSettings } from '@/stores/settings';
 
 const props = defineProps<{ initialSettings: UserSettings }>();
 const emit = defineEmits<{
-  (e: 'save', payload: { typeId: number | null, subTypeId: number | null }): void;
+  (e: 'save', payload: { typeId: number | null; subTypeId: number | null }): void;
   (e: 'cancel'): void;
 }>();
 
@@ -15,11 +15,13 @@ const selectedSubTypeId = ref(props.initialSettings.defautl_sub_type_id);
 
 const availableSubTypes = computed(() => {
   if (!selectedTypeId.value) return [];
-  const foundType = typeStore.activityTypes.find(t => t.id === selectedTypeId.value);
+  const foundType = typeStore.activityTypes.find((t) => t.id === selectedTypeId.value);
   return foundType?.sub_types || [];
 });
 
-watch(selectedTypeId, () => { selectedSubTypeId.value = null; });
+watch(selectedTypeId, () => {
+  selectedSubTypeId.value = null;
+});
 onMounted(() => typeStore.fetchActivityTypes());
 
 function onSave() {
@@ -36,7 +38,9 @@ function onSave() {
       <select v-model="selectedTypeId" id="default-type"
         class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
         <option :value="null">None</option>
-        <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+        <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">
+          {{ t.name }}
+        </option>
       </select>
     </div>
 
@@ -48,12 +52,14 @@ function onSave() {
         :disabled="!selectedTypeId || availableSubTypes.length === 0"
         class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white disabled:bg-gray-50 disabled:text-gray-400">
         <option :value="null">None</option>
-        <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
+        <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
+          {{ st.name }}
+        </option>
       </select>
     </div>
 
     <!-- Actions -->
-    <div class="flex justify-end space-x-3 pt-4 border-t border-verve-medium/30">
+    <div class="flex justify-end gap-3 pt-4 border-t border-verve-medium/30">
       <button @click="$emit('cancel')"
         class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
         Cancel

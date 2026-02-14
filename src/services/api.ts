@@ -1,90 +1,95 @@
-// src/services/api.ts
-import type { Activity } from '@/stores/activity';
 import { useUserStore } from '@/stores/auth';
-import { parseISODuration, formatDuration } from '@/utils/datetime'; // <-- Import your helpers
+import type { Activity } from '@/stores/activity';
+import { parseISODuration, formatDuration } from '@/utils/datetime';
 
-// Define the structure of our track point data to match the API response
+// Raw API Response Interface
+export interface ApiActivity {
+  id: string;
+  start: string;
+  duration: string;
+  distance: number;
+  elevation_change_up?: number | null;
+  elevation_change_down?: number | null;
+  type_id: number;
+  sub_type_id?: number | null;
+  name?: string | null;
+  avg_speed?: number | null;
+  max_speed?: number | null;
+}
+
 export interface TrackPoint {
   lat: number | null;
   lon: number | null;
   ele: number | null;
   time: string;
-  dist: number; // 'cum_distance'
-  speed?: number | null; // Optional speed in m/s
-  hr?: number | null; // Optional heart rate
-  cad?: number | null; // Optional cadence
-  power?: number | null; // Optional power
+  dist: number;
+  speed?: number | null;
+  hr?: number | null;
+  cad?: number | null;
+  power?: number | null;
 }
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): HeadersInit => {
   const userStore = useUserStore();
   if (!userStore.token) throw new Error('Not authenticated');
-  return { 'Authorization': `Bearer ${userStore.token}` };
+  return { Authorization: `Bearer ${userStore.token}` };
 };
 
-// This helper will map the raw API response to our clean Activity interface
-const mapApiActivity = (apiActivity: any): Activity => {
-  // Your API returns elevation_change_up/down, let's ensure they are handled
-  const elevationGain = apiActivity.elevation_change_up ?? 0;
-  const elevationLoss = apiActivity.elevation_change_down ?? 0;
+const mapApiActivity = (apiActivity: ApiActivity): Activity => {
+  const durationSeconds = parseISODuration(apiActivity.duration);
 
   return {
     id: apiActivity.id,
     start: apiActivity.start,
-    duration: formatDuration(parseISODuration(apiActivity.duration)),
+    duration: formatDuration(durationSeconds),
+    durationSeconds: durationSeconds,
     distance: apiActivity.distance,
-    durationSeconds: parseISODuration(apiActivity.duration),
-    elevationGain: elevationGain,
-    elevationLoss: elevationLoss,
+    elevationGain: apiActivity.elevation_change_up ?? null,
+    elevationLoss: apiActivity.elevation_change_down ?? null,
     type_id: apiActivity.type_id,
-    sub_type_id: apiActivity.sub_type_id,
-    name: apiActivity.name,
-    avg_speed: apiActivity.avg_speed,
-    max_speed: apiActivity.max_speed,
-    // Add other summary fields like avg_speed, avg_hr if they exist on this object
+    sub_type_id: apiActivity.sub_type_id ?? null,
+    name: apiActivity.name ?? null,
+    avg_speed: apiActivity.avg_speed ?? null,
+    max_speed: apiActivity.max_speed ?? null,
   };
 };
 
-/**
- * Fetches the summary data for a single activity.
- */
 export async function fetchActivitySummary(activityId: string): Promise<Activity> {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}`, {
     method: 'GET',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
+
   if (!response.ok) throw new Error('Activity not found.');
-  const apiActivity = await response.json();
-  return mapApiActivity(apiActivity); // Use the mapping function for consistency
+
+  const apiActivity: ApiActivity = await response.json();
+  return mapApiActivity(apiActivity);
 }
-/**
- * Fetches the detailed track data for an activity.
- */
+
 export async function fetchActivityTrack(activityId: string): Promise<TrackPoint[]> {
-  // The endpoint is /track/{activity_id}, not /track/{activity_id}/data
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/track/${activityId}`, {
     method: 'GET',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
   });
+
   if (!response.ok) throw new Error('Failed to fetch activity track data.');
 
   const responseData = await response.json();
 
-  // Your API wraps the list in a "data" property
-  if (!responseData.data) {
-    return []; // Handle cases where data is missing
+  if (!responseData.data || !Array.isArray(responseData.data)) {
+    return [];
   }
 
-  // Map the API response fields to our cleaner TrackPoint interface
+  // Explicit mapping ensures type safety for TrackPoint[]
   return responseData.data.map((p: any) => ({
-    lat: p.latitude,
-    lon: p.longitude,
-    ele: p.elevation,
-    dist: p.cum_distance,
+    lat: p.latitude ?? null,
+    lon: p.longitude ?? null,
+    ele: p.elevation ?? null,
+    dist: p.cum_distance ?? 0,
     time: p.time,
-    speed: p.speed_m_s,
-    hr: p.heartrate,
-    cad: p.cadence,
-    power: p.power,
+    speed: p.speed_m_s ?? null,
+    hr: p.heartrate ?? null,
+    cad: p.cadence ?? null,
+    power: p.power ?? null,
   }));
 }

@@ -1,11 +1,11 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
-import type { Activity } from './activity'; // Assuming Activity interface is exported here
+import type { Activity } from './activity';
 import { parseISODuration, formatDuration } from '@/utils/datetime';
+import type { ApiActivity } from '@/services/api';
 
 // --- Interfaces ---
-
 export interface Location {
   id: string;
   name: string;
@@ -22,7 +22,6 @@ export interface LocationCreatePayload {
   longitude: number;
 }
 
-// Simplified bounds interface to decouple from Leaflet types
 export interface MapBounds {
   latMin: number;
   latMax: number;
@@ -32,15 +31,9 @@ export interface MapBounds {
 
 export const useLocationStore = defineStore('location', () => {
   // --- State ---
-
-  // Locations currently visible on the map
   const visibleLocations = ref<Location[]>([]);
-
-  // Data for the currently selected location (e.g. in the sidebar)
   const selectedLocation = ref<Location | null>(null);
-  const selectedLocationActivities = ref<Activity[]>([]); // Matched activities
-
-  // Locations attached to a specific activity (for Activity Detail View)
+  const selectedLocationActivities = ref<Activity[]>([]);
   const currentActivityLocations = ref<Location[]>([]);
 
   const isLoading = ref(false);
@@ -48,21 +41,20 @@ export const useLocationStore = defineStore('location', () => {
 
   const userStore = useUserStore();
   const getHeaders = () => ({
-    'Authorization': `Bearer ${userStore.token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${userStore.token}`,
+    'Content-Type': 'application/json',
   });
 
-  // --- Helper: Map Raw API to Activity Interface ---
-  const mapApiActivity = (apiActivity: any): Activity => {
-    // Basic mapping to ensure ActivityListItem works
-    const durationSeconds = parseISODuration(apiActivity.duration || 'PT0S');
+  // --- Helpers ---
+  const mapApiActivity = (apiActivity: ApiActivity): Activity => {
+    const durationSeconds = parseISODuration(apiActivity.duration);
     return {
       id: apiActivity.id,
       start: apiActivity.start,
       duration: formatDuration(durationSeconds),
-      durationSeconds: durationSeconds,
+      durationSeconds,
       distance: apiActivity.distance,
-      elevationGain: apiActivity.elevation_change_up ?? null, // <--- Critical Map
+      elevationGain: apiActivity.elevation_change_up ?? null,
       elevationLoss: apiActivity.elevation_change_down ?? null,
       name: apiActivity.name ?? null,
       avg_speed: apiActivity.avg_speed ?? null,
@@ -73,11 +65,6 @@ export const useLocationStore = defineStore('location', () => {
   };
 
   // --- Actions ---
-
-  /**
-   * Fetches locations within specific geographical bounds.
-   * Used by the Map View when panning/zooming.
-   */
   async function fetchLocationsInBounds(bounds: MapBounds) {
     isLoading.value = true;
     error.value = null;
@@ -87,27 +74,23 @@ export const useLocationStore = defineStore('location', () => {
       params.append('latitude_upper_bound', bounds.latMax.toString());
       params.append('longitude_lower_bound', bounds.lngMin.toString());
       params.append('longitude_upper_bound', bounds.lngMax.toString());
-      // Increase limit for map view if necessary, default is 20 in API
       params.append('limit', '100');
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?${params.toString()}`, {
-        headers: getHeaders()
+        headers: getHeaders(),
       });
 
       if (!response.ok) throw new Error('Failed to fetch locations.');
 
       const data = await response.json();
       visibleLocations.value = data.data;
-    } catch (e: any) {
-      error.value = e.message;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
     } finally {
       isLoading.value = false;
     }
   }
 
-  /**
-   * Fetches full details for a single location, including the activities that visited it.
-   */
   async function selectLocation(locationId: string) {
     isLoading.value = true;
     selectedLocation.value = null;
@@ -116,85 +99,71 @@ export const useLocationStore = defineStore('location', () => {
     try {
       // 1. Fetch Location Details
       const locResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/${locationId}`, {
-        headers: getHeaders()
+        headers: getHeaders(),
       });
       if (!locResponse.ok) throw new Error('Failed to load location details.');
       selectedLocation.value = await locResponse.json();
 
       // 2. Fetch Matched Activities
       const actResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/${locationId}/activities`, {
-        headers: getHeaders()
+        headers: getHeaders(),
       });
       if (actResponse.ok) {
         const actData = await actResponse.json();
-        // UPDATED: Map the raw data to the Activity interface
-        selectedLocationActivities.value = actData.data.map(mapApiActivity);
+        selectedLocationActivities.value = (actData.data as ApiActivity[]).map(mapApiActivity);
       }
-    } catch (e: any) {
-      error.value = e.message;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
     } finally {
       isLoading.value = false;
     }
   }
 
-  /**
-   * Creates a new location.
-   */
   async function createLocation(payload: LocationCreatePayload): Promise<boolean> {
     isLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/`, {
         method: 'PUT',
         headers: getHeaders(),
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) throw new Error('Failed to create location.');
-
-      // We don't necessarily need to refresh the list here because the map bounds
-      // check usually handles refreshing, but we could optimistic add if needed.
       return true;
-    } catch (e: any) {
-      error.value = e.message;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
       return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  /**
-   * Deletes a location.
-   */
   async function deleteLocation(locationId: string): Promise<boolean> {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/${locationId}`, {
         method: 'DELETE',
-        headers: getHeaders()
+        headers: getHeaders(),
       });
 
       if (!response.ok) throw new Error('Failed to delete location.');
 
       // Optimistic update
-      visibleLocations.value = visibleLocations.value.filter(l => l.id !== locationId);
+      visibleLocations.value = visibleLocations.value.filter((l) => l.id !== locationId);
       if (selectedLocation.value?.id === locationId) {
         selectedLocation.value = null;
         selectedLocationActivities.value = [];
       }
       return true;
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       return false;
     }
   }
 
-  /**
-   * Fetches all locations associated with a specific Activity ID.
-   * Used in Activity Detail View.
-   */
   async function fetchLocationsForActivity(activityId: string) {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/locations`, {
-        headers: getHeaders()
+        headers: getHeaders(),
       });
       if (!response.ok) throw new Error('Failed to fetch activity locations.');
 
@@ -206,14 +175,10 @@ export const useLocationStore = defineStore('location', () => {
     }
   }
 
-
-  /**
- * Strategy A: Get the most recent location added.
- */
   async function _getMostRecentCoordinates(): Promise<[number, number] | null> {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?limit=1`, {
-        headers: getHeaders()
+        headers: getHeaders(),
       });
       if (!response.ok) return null;
       const data = await response.json();
@@ -221,46 +186,29 @@ export const useLocationStore = defineStore('location', () => {
         return [data.data[0].latitude, data.data[0].longitude];
       }
       return null;
-    } catch (e) {
+    } catch {
       return null;
     }
   }
 
-  /**
-   * Determines the best starting center for the map.
-   * Logic:
-   * 1. Check for recent locations.
-   * 2. (Future) Check for user "Home" setting.
-   * 3. (Future) Check for browser geolocation.
-   * 4. Fallback to default.
-   */
   async function findLocationMapCenter(): Promise<[number, number]> {
-    // 1. Try Recent
     const recent = await _getMostRecentCoordinates();
     if (recent) return recent;
-
-    // 2. Future strategies go here...
-
-    // 3. Fallback (e.g. Munich)
-    return [48.13, 11.58];
+    return [48.13, 11.58]; // Fallback
   }
 
-
   return {
-    // State
     visibleLocations,
     selectedLocation,
     selectedLocationActivities,
     currentActivityLocations,
     isLoading,
     error,
-
-    // Actions
     fetchLocationsInBounds,
     selectLocation,
     createLocation,
     deleteLocation,
     fetchLocationsForActivity,
-    findLocationMapCenter
+    findLocationMapCenter,
   };
 });

@@ -10,7 +10,10 @@ export interface Highlight {
   year: number;
   value: number;
   rank: 1 | 2 | 3;
-  // activity is not on the highlight, we will need to fetch it separately for the widget
+}
+
+interface ApiResponse<T> {
+  data: T;
 }
 
 export const useHighlightStore = defineStore('highlight', () => {
@@ -20,30 +23,40 @@ export const useHighlightStore = defineStore('highlight', () => {
   const isLoading = ref(false);
 
   const userStore = useUserStore();
-  const getAuthHeaders = () => ({ 'Authorization': `Bearer ${userStore.token}` });
+  const getAuthHeaders = () => {
+    if (!userStore.token) throw new Error('Not authenticated');
+    return { Authorization: `Bearer ${userStore.token}` };
+  };
 
   // --- ACTIONS ---
 
-  // Fetch the list of all possible metrics for dropdowns
   async function fetchAvailableMetrics() {
     if (availableMetrics.value.length > 0) return;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/highlights/metrics`, { headers: getAuthHeaders() });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/highlights/metrics`, {
+        headers: getAuthHeaders(),
+      });
       if (!response.ok) throw new Error('Failed to fetch highlight metrics.');
-      const data = await response.json();
+
+      const data: ApiResponse<string[]> = await response.json();
       availableMetrics.value = data.data;
     } catch (e) {
       console.error(e);
     }
   }
 
-  // Fetch highlights for a specific activity
   async function fetchHighlightsForActivity(activityId: string) {
     isLoading.value = true;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/highlights/activity/${activityId}`, { headers: getAuthHeaders() });
-      if (!response.ok) { activityHighlights.value = []; return; }
-      const data = await response.json();
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/highlights/activity/${activityId}`,
+        { headers: getAuthHeaders() }
+      );
+      if (!response.ok) {
+        activityHighlights.value = [];
+        return;
+      }
+      const data: ApiResponse<Highlight[]> = await response.json();
       activityHighlights.value = data.data;
     } catch (e) {
       console.error(e);
@@ -53,10 +66,9 @@ export const useHighlightStore = defineStore('highlight', () => {
     }
   }
 
-  // Fetch the top 3 highlights for a given metric and scope (for the dashboard)
   async function fetchDashboardHighlights(metric: string, year: number | null) {
     isLoading.value = true;
-    dashboardHighlights.value = []; // Clear previous results
+    dashboardHighlights.value = [];
     try {
       const params = new URLSearchParams();
       if (year) {
@@ -65,9 +77,11 @@ export const useHighlightStore = defineStore('highlight', () => {
 
       const queryString = params.toString();
       const url = `${import.meta.env.VITE_API_BASE_URL}/highlights/metric/${metric}${queryString ? '?' + queryString : ''}`;
-      const response = await fetch(url.toString(), { headers: getAuthHeaders() });
+
+      const response = await fetch(url, { headers: getAuthHeaders() });
       if (!response.ok) return;
-      const data = await response.json();
+
+      const data: ApiResponse<Highlight[]> = await response.json();
       dashboardHighlights.value = data.data;
     } catch (e) {
       console.error(e);
@@ -77,7 +91,12 @@ export const useHighlightStore = defineStore('highlight', () => {
   }
 
   return {
-    availableMetrics, activityHighlights, dashboardHighlights, isLoading,
-    fetchAvailableMetrics, fetchHighlightsForActivity, fetchDashboardHighlights,
+    availableMetrics,
+    activityHighlights,
+    dashboardHighlights,
+    isLoading,
+    fetchAvailableMetrics,
+    fetchHighlightsForActivity,
+    fetchDashboardHighlights,
   };
 });

@@ -4,7 +4,10 @@ import { useGoalStore, type GoalCreatePayload } from '@/stores/goals';
 import { useTypeStore } from '@/stores/types';
 import { useEquipmentStore } from '@/stores/equipment';
 
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'saved'): void;
+}>();
 
 const goalStore = useGoalStore();
 const typeStore = useTypeStore();
@@ -17,7 +20,21 @@ function getCurrentWeekNumber() {
   return Math.ceil((days + 1) / 7);
 }
 
-const form = ref({
+interface FormState {
+  name: string;
+  description: string;
+  target: number;
+  temporal_type: 'weekly' | 'monthly' | 'yearly';
+  year: number;
+  month: number;
+  week: number;
+  is_all_months: boolean;
+  weekly_scope: 'specific_week' | 'all_in_month' | 'all_in_year';
+  type: 'activity' | 'manual'; // 'location' handled in separate form
+  aggregation: string;
+}
+
+const form = ref<FormState>({
   name: '',
   description: '',
   target: 0,
@@ -50,7 +67,7 @@ const aggregations = [
 
 const availableSubTypes = computed(() => {
   if (!selectedTypeId.value) return [];
-  const t = typeStore.activityTypes.find(x => x.id === selectedTypeId.value);
+  const t = typeStore.activityTypes.find((x) => x.id === selectedTypeId.value);
   return t ? t.sub_types : [];
 });
 
@@ -82,7 +99,7 @@ function validate() {
 async function handleSubmit() {
   if (!validate()) return;
 
-  const constraints: Record<string, any> = {};
+  const constraints: Record<string, unknown> = {};
   if (useActivityConstraint.value && selectedTypeId.value) {
     constraints['type_id'] = selectedTypeId.value;
     if (selectedSubTypeId.value) constraints['sub_type_id'] = selectedSubTypeId.value;
@@ -91,24 +108,33 @@ async function handleSubmit() {
     constraints['equipment_ids'] = selectedEquipmentIds.value;
   }
 
-  let finalMonth: number | null | undefined = null;
-  let finalWeek: number | null | undefined = null;
+  let finalMonth: number | null = null;
+  let finalWeek: number | null = null;
 
   if (form.value.temporal_type === 'monthly') {
     finalMonth = form.value.is_all_months ? null : form.value.month;
     finalWeek = null;
   } else if (form.value.temporal_type === 'weekly') {
     switch (form.value.weekly_scope) {
-      case 'specific_week': finalWeek = form.value.week; finalMonth = null; break;
-      case 'all_in_month': finalWeek = null; finalMonth = form.value.month; break;
-      case 'all_in_year': finalWeek = null; finalMonth = null; break;
+      case 'specific_week':
+        finalWeek = form.value.week;
+        finalMonth = null;
+        break;
+      case 'all_in_month':
+        finalWeek = null;
+        finalMonth = form.value.month;
+        break;
+      case 'all_in_year':
+        finalWeek = null;
+        finalMonth = null;
+        break;
     }
   } else if (form.value.temporal_type === 'yearly') {
     finalMonth = null;
     finalWeek = null;
   }
 
-  const payload: GoalCreatePayload & { week?: number | null } = {
+  const payload: GoalCreatePayload = {
     name: form.value.name,
     description: form.value.description || undefined,
     target: form.value.target,
@@ -118,7 +144,7 @@ async function handleSubmit() {
     year: form.value.year,
     month: finalMonth,
     week: finalWeek,
-    constraints: Object.keys(constraints).length > 0 ? constraints : undefined
+    constraints: Object.keys(constraints).length > 0 ? constraints : undefined,
   };
 
   const success = await goalStore.createGoal(payload);
@@ -134,7 +160,7 @@ async function handleSubmit() {
     <div class="flex justify-between items-center border-b border-verve-medium/30 pb-3">
       <h3 class="text-xl font-bold text-verve-brown">Set New Goal</h3>
       <button @click="$emit('close')" class="text-verve-brown/40 hover:text-verve-brown transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
@@ -143,8 +169,9 @@ async function handleSubmit() {
     <!-- Name & Description -->
     <div class="grid grid-cols-1 gap-4">
       <div>
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Goal Name <span
-            class="text-red-500">*</span></label>
+        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          Goal Name <span class="text-red-500">*</span>
+        </label>
         <input v-model="form.name" type="text" placeholder="e.g. Run 100km"
           class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-brown/30"
           :class="errors.name ? 'border-red-500' : ''" />
@@ -202,28 +229,28 @@ async function handleSubmit() {
             <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Select Month</label>
             <select v-model="form.month"
               class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white">
-              <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
-                month:
-                'long' }) }}</option>
+              <option v-for="m in 12" :key="m" :value="m">
+                {{ new Date(0, m - 1).toLocaleString('default', { month: 'long' }) }}
+              </option>
             </select>
           </div>
         </template>
 
         <!-- MONTHLY UI -->
         <template v-if="form.temporal_type === 'monthly'">
-          <div class="md:col-span-2 flex items-center space-x-4">
-            <div class="flex-grow">
+          <div class="md:col-span-2 flex items-center gap-4">
+            <div class="grow">
               <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Month</label>
               <select v-model="form.month" :disabled="form.is_all_months"
                 class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white disabled:bg-gray-100 disabled:text-gray-400">
-                <option v-for="m in 12" :key="m" :value="m">{{ new Date(0, m - 1).toLocaleString('default', {
-                  month:
-                  'long' }) }}</option>
+                <option v-for="m in 12" :key="m" :value="m">
+                  {{ new Date(0, m - 1).toLocaleString('default', { month: 'long' }) }}
+                </option>
               </select>
             </div>
             <div class="flex items-center pt-5">
               <input v-model="form.is_all_months" type="checkbox" id="all-months"
-                class="h-4 w-4 rounded border-verve-medium" />
+                class="size-4 rounded border-verve-medium" />
               <label for="all-months" class="ml-2 text-sm text-verve-brown font-medium">Every Month</label>
             </div>
           </div>
@@ -245,42 +272,53 @@ async function handleSubmit() {
         <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Metric</label>
         <select v-model="form.aggregation"
           class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white">
-          <option v-for="agg in aggregations" :key="agg.value" :value="agg.value">{{ agg.label }}</option>
+          <option v-for="agg in aggregations" :key="agg.value" :value="agg.value">
+            {{ agg.label }}
+          </option>
         </select>
       </div>
     </div>
 
     <div>
-      <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Target Value <span
-          class="text-red-500">*</span></label>
+      <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+        Target Value <span class="text-red-500">*</span>
+      </label>
       <input v-model="form.target" type="number" step="any"
         class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white"
         :class="errors.target ? 'border-red-500' : ''" />
       <p v-if="errors.target" class="text-red-500 text-xs mt-1">{{ errors.target }}</p>
-      <p class="text-xs text-verve-brown/50 mt-1 italic">If using Duration, enter seconds (e.g., 3600 = 1 hour).</p>
+      <p class="text-xs text-verve-brown/50 mt-1 italic">
+        If using Duration, enter seconds (e.g., 3600 = 1 hour).
+      </p>
     </div>
 
     <!-- Constraints Section -->
     <div class="border-t border-verve-medium/30 pt-4">
-      <h4 class="text-xs font-bold text-verve-brown/50 uppercase tracking-wide mb-3">Filters (Optional)</h4>
+      <h4 class="text-xs font-bold text-verve-brown/50 uppercase tracking-wide mb-3">
+        Filters (Optional)
+      </h4>
 
       <!-- Activity Type Constraint -->
       <div class="mb-4">
         <div class="flex items-center mb-2">
           <input v-model="useActivityConstraint" type="checkbox" id="use-type"
-            class="h-4 w-4 rounded border-verve-medium" />
+            class="size-4 rounded border-verve-medium" />
           <label for="use-type" class="ml-2 text-sm font-medium text-verve-brown">Limit by Activity Type</label>
         </div>
         <div v-if="useActivityConstraint" class="pl-6 grid grid-cols-2 gap-3">
           <select v-model="selectedTypeId"
             class="border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown bg-white">
             <option :value="null">Select Type...</option>
-            <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+            <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">
+              {{ t.name }}
+            </option>
           </select>
           <select v-model="selectedSubTypeId" :disabled="!selectedTypeId"
             class="border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown bg-white disabled:bg-gray-50 disabled:text-gray-400">
             <option :value="null">Any Sub-Type</option>
-            <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
+            <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
+              {{ st.name }}
+            </option>
           </select>
         </div>
       </div>
@@ -289,7 +327,7 @@ async function handleSubmit() {
       <div>
         <div class="flex items-center mb-2">
           <input v-model="useEquipmentConstraint" type="checkbox" id="use-equip"
-            class="h-4 w-4 rounded border-verve-medium" />
+            class="size-4 rounded border-verve-medium" />
           <label for="use-equip" class="ml-2 text-sm font-medium text-verve-brown">Limit by Equipment</label>
         </div>
         <div v-if="useEquipmentConstraint" class="pl-6">
@@ -305,7 +343,7 @@ async function handleSubmit() {
     </div>
 
     <!-- Footer Actions -->
-    <div class="flex justify-end space-x-3 pt-4 border-t border-verve-medium/30">
+    <div class="flex justify-end gap-3 pt-4 border-t border-verve-medium/30">
       <button type="button" @click="$emit('close')"
         class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
         Cancel

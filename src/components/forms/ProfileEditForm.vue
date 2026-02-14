@@ -21,10 +21,11 @@ function onSave() {
   if (Object.keys(payload).length > 0) {
     emit('save', payload);
   } else {
-    emit('cancel'); // No changes, just cancel
+    emit('cancel');
   }
 }
 </script>
+
 <template>
   <div class="space-y-4 pt-2">
     <div>
@@ -45,13 +46,11 @@ function onSave() {
         class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
     </div>
 
-    <div class="flex justify-end space-x-3 pt-4 border-t border-verve-medium/30">
-      <!-- Secondary Button Style -->
+    <div class="flex justify-end gap-3 pt-4 border-t border-verve-medium/30">
       <button @click="$emit('cancel')"
         class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
         Cancel
       </button>
-      <!-- Primary Button Style -->
       <button @click="onSave"
         class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all">
         Save Changes

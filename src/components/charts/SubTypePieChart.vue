@@ -1,28 +1,33 @@
 <script setup lang="ts">
 import { Pie } from 'vue-chartjs';
-import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import { CHART_COLORS, CHART_HOVER_COLORS } from '@/utils/colors'; // <-- Import our colors
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  type ChartData,
+  type ChartOptions,
+} from 'chart.js';
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement);
 
-defineProps<{
-  chartData: {
-    labels: string[];
-    datasets: any[];
-  };
-  chartOptions?: any;
+const props = defineProps<{
+  chartData: ChartData<'pie'>;
+  chartOptions?: ChartOptions<'pie'>;
 }>();
 
-const defaultOptions = {
+const defaultOptions: ChartOptions<'pie'> = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'right' as const,
-    }
-  }
+      position: 'right',
+    },
+  },
 };
 </script>
+
 <template>
   <Pie :data="chartData" :options="chartOptions ?? defaultOptions" />
 </template>

@@ -3,27 +3,21 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/auth';
 
-// Get the router instance to redirect the user after login
 const router = useRouter();
-
-// Get the auth store instance
 const userStore = useUserStore();
 
 const email = ref('');
 const password = ref('');
-const errorMessage = ref<string | null>(null); // A ref to hold any login error messages
+const errorMessage = ref<string | null>(null);
 
 async function handleLogin() {
-  errorMessage.value = null; // Reset error message on new attempt
+  errorMessage.value = null;
 
-  // Call the login action from our Pinia store
   const success = await userStore.login(email.value, password.value);
 
   if (success) {
-    // If login is successful, redirect to the dashboard
     router.push({ name: 'dashboard' });
   } else {
-    // If login fails, show an error message
     errorMessage.value = 'Invalid email or password. Please try again.';
   }
 }
@@ -31,7 +25,6 @@ async function handleLogin() {
 
 <template>
   <form @submit.prevent="handleLogin" class="space-y-6">
-    <!-- Error Message Display -->
     <div v-if="errorMessage" class="p-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl">
       {{ errorMessage }}
     </div>

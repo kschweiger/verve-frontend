@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { useActivityStore } from '@/stores/activity';
+import { useActivityStore, type ActivityCreatePayload } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
 
-const emit = defineEmits(['close', 'saved']);
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'saved'): void;
+}>();
+
 const activityStore = useActivityStore();
 const typeStore = useTypeStore();
 
@@ -41,19 +45,17 @@ interface LapDataUI {
 const swimmingSegments = ref<LapDataUI[]>([]);
 
 // --- Computed & Watchers ---
-
 const availableSubTypes = computed(() => {
   if (!typeId.value) return [];
-  const t = typeStore.activityTypes.find(x => x.id === typeId.value);
+  const t = typeStore.activityTypes.find((x) => x.id === typeId.value);
   return t ? t.sub_types : [];
 });
 
 const isSwimming = computed(() => {
-  const t = typeStore.activityTypes.find(x => x.id === typeId.value);
+  const t = typeStore.activityTypes.find((x) => x.id === typeId.value);
   return t?.name === 'Swimming';
 });
 
-// Ensure at least one lap row exists if Swimming is selected
 watch(isSwimming, (newVal) => {
   if (newVal && swimmingSegments.value.length === 0) {
     addSwimSegment();
@@ -65,7 +67,6 @@ onMounted(() => {
 });
 
 // --- Methods ---
-
 function handleFileChange(event: Event) {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files[0]) selectedFile.value = target.files[0];
@@ -79,13 +80,14 @@ function toISODuration(h: number, m: number, s: number): string {
   return iso;
 }
 
-// --- Swimming Logic ---
 function addSwimSegment() {
   swimmingSegments.value.push({
     count: 1,
     lap_lengths: 25,
     style: 'freestyle',
-    h: 0, m: 0, s: 0
+    h: 0,
+    m: 0,
+    s: 0,
   });
 }
 
@@ -93,10 +95,9 @@ function removeSwimSegment(index: number) {
   swimmingSegments.value.splice(index, 1);
 }
 
-// --- Submission ---
 async function handleSubmit() {
   if (!typeId.value) {
-    error.value = "Activity Type is required.";
+    error.value = 'Activity Type is required.';
     return;
   }
 
@@ -106,37 +107,35 @@ async function handleSubmit() {
   const isoDuration = toISODuration(durHours.value, durMinutes.value, durSeconds.value);
 
   // 1. Build Base Payload
-  const payload: any = {
+  const payload: ActivityCreatePayload = {
     name: name.value || 'Manual Activity',
     start: new Date(start.value).toISOString(),
     type_id: typeId.value,
     sub_type_id: subTypeId.value,
     distance: distanceKm.value,
     duration: isoDuration,
-    elevation_change_up: elevationGain.value,
     add_default_equipment: addDefaultEquipment.value,
-    meta_data: {}
+    meta_data: {},
   };
 
   // 2. Build Metadata if Swimming
   if (isSwimming.value) {
-    const segments = swimmingSegments.value.map(seg => {
+    const segments = swimmingSegments.value.map((seg) => {
       const hasDuration = seg.h > 0 || seg.m > 0 || seg.s > 0;
       return {
         count: seg.count,
         lap_lengths: seg.lap_lengths,
         style: seg.style,
-        duration: hasDuration ? toISODuration(seg.h, seg.m, seg.s) : null
+        duration: hasDuration ? toISODuration(seg.h, seg.m, seg.s) : null,
       };
     });
 
     payload.meta_data = {
-      target: "SwimmingMetaData",
-      segments: segments
+      target: 'SwimmingMetaData',
+      segments: segments,
     };
   }
 
-  // 3. Send
   const result = await activityStore.createManualActivity(payload, selectedFile.value);
 
   isLoading.value = false;
@@ -155,17 +154,18 @@ async function handleSubmit() {
     <div class="flex justify-between items-center border-b border-verve-medium/30 pb-3">
       <h3 class="text-xl font-bold text-verve-brown">Log Activity</h3>
       <button @click="$emit('close')" class="text-verve-brown/40 hover:text-verve-brown transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
     </div>
 
     <!-- Error Banner -->
-    <div v-if="error" class="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{{ error }}</div>
+    <div v-if="error" class="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
+      {{ error }}
+    </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-5 max-h-[75vh] overflow-y-auto px-1">
-
       <!-- Name & Date -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -187,7 +187,9 @@ async function handleSubmit() {
           <select v-model="typeId" required
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
             <option :value="null">Select...</option>
-            <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+            <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">
+              {{ t.name }}
+            </option>
           </select>
         </div>
         <div>
@@ -195,7 +197,9 @@ async function handleSubmit() {
           <select v-model="subTypeId" :disabled="!typeId"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white disabled:bg-gray-50 disabled:text-gray-400">
             <option :value="null">None</option>
-            <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
+            <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
+              {{ st.name }}
+            </option>
           </select>
         </div>
       </div>
@@ -249,7 +253,6 @@ async function handleSubmit() {
         <div class="space-y-3">
           <div v-for="(segment, index) in swimmingSegments" :key="index"
             class="bg-white p-3 rounded-xl shadow-sm border border-verve-medium/20 relative">
-
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
               <div>
                 <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">Laps</label>
@@ -288,13 +291,12 @@ async function handleSubmit() {
 
             <!-- Remove Button -->
             <button v-if="swimmingSegments.length > 1" type="button" @click="removeSwimSegment(index)"
-              class="absolute -top-2 -right-2 bg-white text-red-500 border border-red-200 rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-50 hover:border-red-300 shadow-sm transition-colors">
+              class="absolute -top-2 -right-2 bg-white text-red-500 border border-red-200 rounded-full size-6 flex items-center justify-center hover:bg-red-50 hover:border-red-300 shadow-sm transition-colors">
               &times;
             </button>
           </div>
         </div>
       </div>
-      <!-- ================================== -->
 
       <!-- Optional Track -->
       <div class="border-t border-verve-medium/30 pt-4">
@@ -305,7 +307,7 @@ async function handleSubmit() {
       <!-- Settings -->
       <div class="flex items-center">
         <input v-model="addDefaultEquipment" type="checkbox" id="def-equip"
-          class="h-4 w-4 text-verve-dark border-verve-medium rounded focus:ring-verve-dark" />
+          class="size-4 text-verve-dark border-verve-medium rounded focus:ring-verve-dark" />
         <label for="def-equip" class="ml-2 text-sm font-medium text-verve-brown">Add default equipment for this activity
           type</label>
       </div>
@@ -321,7 +323,6 @@ async function handleSubmit() {
           {{ isLoading ? 'Saving...' : 'Save Activity' }}
         </button>
       </div>
-
     </form>
   </div>
 </template>

@@ -1,7 +1,7 @@
-import { ref } from 'vue'
-import { defineStore } from 'pinia'
+import { ref } from 'vue';
+import { defineStore } from 'pinia';
 
-// Define interfaces for our data structures
+// --- Interfaces ---
 export interface SubType {
   id: number;
   name: string;
@@ -13,6 +13,10 @@ export interface ActivityType {
   sub_types: SubType[];
 }
 
+interface ApiResponse<T> {
+  data: T;
+}
+
 export const useTypeStore = defineStore('type', () => {
   // --- STATE ---
   const activityTypes = ref<ActivityType[]>([]);
@@ -20,7 +24,7 @@ export const useTypeStore = defineStore('type', () => {
 
   // --- ACTIONS ---
   async function fetchActivityTypes() {
-    if (activityTypes.value.length > 0 || isLoading.value) return; // Don't fetch if we already have them
+    if (activityTypes.value.length > 0 || isLoading.value) return;
 
     isLoading.value = true;
 
@@ -29,15 +33,15 @@ export const useTypeStore = defineStore('type', () => {
         method: 'GET',
       });
       if (!response.ok) throw new Error('Failed to fetch activity types.');
-      const responseData = await response.json();
-      activityTypes.value = responseData.data;;
+
+      const responseData: ApiResponse<ActivityType[]> = await response.json();
+      activityTypes.value = responseData.data;
     } catch (error) {
       console.error(error);
-      // Handle error appropriately
     } finally {
       isLoading.value = false;
     }
   }
 
   return { activityTypes, fetchActivityTypes };
-})
+});

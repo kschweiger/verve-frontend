@@ -11,14 +11,23 @@ import {
   LinearScale,
   PointElement,
   Filler,
-  type ChartOptions
+  type ChartOptions,
+  type TooltipItem,
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import type { TrackPoint } from '@/services/api';
 import { VERVE_COLORS, hexToRgba } from '@/utils/colors';
+
 ChartJS.register(
-  Title, Tooltip, Legend, LineElement, CategoryScale,
-  LinearScale, PointElement, Filler, annotationPlugin
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Filler,
+  annotationPlugin
 );
 
 const props = defineProps<{
@@ -45,29 +54,29 @@ const metricDefinitions: Record<string, MetricConfig> = {
     label: 'Speed (km/h)',
     color: VERVE_COLORS.chartBlue,
     transform: (v) => v * 3.6,
-    fallbackValue: 0
+    fallbackValue: 0,
   },
   hr: {
     key: 'hr',
     label: 'Heart Rate (bpm)',
     color: VERVE_COLORS.orange,
     transform: (v) => v,
-    fallbackValue: null
+    fallbackValue: null,
   },
   cad: {
     key: 'cad',
     label: 'Cadence (rpm)',
     color: VERVE_COLORS.brown,
     transform: (v) => v,
-    fallbackValue: 0
+    fallbackValue: 0,
   },
   power: {
     key: 'power',
     label: 'Power (W)',
     color: VERVE_COLORS.orange,
     transform: (v) => v,
-    fallbackValue: 0
-  }
+    fallbackValue: 0,
+  },
 };
 
 const selectedMetricKey = ref<string>('');
@@ -79,14 +88,18 @@ onMounted(() => {
   analyzeData();
 });
 
-watch(() => props.trackData, () => {
-  analyzeData();
-});
+watch(
+  () => props.trackData,
+  () => {
+    analyzeData();
+  }
+);
 
 function analyzeData() {
   const found: Set<string> = new Set();
   let maxDist = 0;
   let hasEle = false;
+
   if (!props.trackData || props.trackData.length === 0) return;
 
   for (const point of props.trackData) {
@@ -97,6 +110,7 @@ function analyzeData() {
     if (point.ele !== null) hasEle = true;
     if (point.dist > maxDist) maxDist = point.dist;
   }
+
   // Decide X-Axis: If total distance is negligible (< 100m), assume stationary -> Time
   xAxisMode.value = maxDist > 100 ? 'distance' : 'time';
   hasElevation.value = hasEle;
@@ -107,8 +121,12 @@ function analyzeData() {
 
   availableMetrics.value = list;
 
+  // Fix: Check if list has items and assign safely
   if (list.length > 0 && !list.includes(selectedMetricKey.value)) {
-    selectedMetricKey.value = list[0] as string;
+    const firstMetric = list[0];
+    if (firstMetric) {
+      selectedMetricKey.value = firstMetric;
+    }
   }
 }
 
@@ -120,7 +138,6 @@ const yAxisLabel = computed(() => {
 const formatTimeLabel = (seconds: number) => {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  // const s = Math.floor(seconds % 60);
   if (h > 0) return `${h}:${m.toString().padStart(2, '0')}h`;
   return `${m}m`;
 };
@@ -128,28 +145,32 @@ const formatTimeLabel = (seconds: number) => {
 const chartData = computed(() => {
   const metricConf = metricDefinitions[selectedMetricKey.value];
 
+  // Early return guards against undefined trackData or empty array
   if (!props.trackData || props.trackData.length === 0 || !metricConf) {
     return { labels: [], datasets: [] };
   }
+
   let labels: string[] = [];
 
   if (xAxisMode.value === 'distance') {
-    labels = props.trackData.map(p => (p.dist / 1000).toFixed(1));
+    labels = props.trackData.map((p) => (p.dist / 1000).toFixed(1));
   } else {
     // Time Mode: Calculate elapsed time relative to start
-    const startTime = new Date(props.trackData[0].time).getTime();
-    labels = props.trackData.map(p => {
+    // Fix: Non-null assertion (!) is safe here because of the early return guard above
+    const startTime = new Date(props.trackData[0]!.time).getTime();
+    labels = props.trackData.map((p) => {
       const elapsedSec = (new Date(p.time).getTime() - startTime) / 1000;
       return formatTimeLabel(elapsedSec);
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const datasets: any[] = [];
 
   // Metric Dataset (Foreground)
-  const metricData = props.trackData.map(p => {
-    // @ts-ignore
-    const rawVal = p[metricConf.key];
+  const metricData = props.trackData.map((p) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawVal = (p as any)[metricConf.key];
     if (typeof rawVal !== 'number') return metricConf.fallbackValue;
     return metricConf.transform(rawVal);
   });
@@ -164,12 +185,12 @@ const chartData = computed(() => {
     pointRadius: 0,
     borderWidth: 1.5,
     tension: 0.2,
-    spanGaps: metricConf.fallbackValue !== null,
+    spanGaps: true,
   });
 
-  // Elevation Dataset (Background) - Only add if data exists
+  // Elevation Dataset (Background)
   if (hasElevation.value) {
-    const elevationData = props.trackData.map(p => p.ele ?? 0);
+    const elevationData = props.trackData.map((p) => p.ele ?? 0);
     datasets.push({
       label: 'Elevation (m)',
       data: elevationData,
@@ -186,7 +207,6 @@ const chartData = computed(() => {
   return { labels, datasets };
 });
 
-
 const chartOptions = computed<ChartOptions<'line'>>(() => {
   return {
     responsive: true,
@@ -195,6 +215,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       intersect: false,
       mode: 'index' as const,
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onHover: (event: any, chartElement: any[]) => {
       if (chartElement.length > 0) {
         const index = chartElement[0].index;
@@ -207,18 +228,18 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (context: any) => {
+          label: (context: TooltipItem<'line'>) => {
             let label = context.dataset.label || '';
             if (label) label += ': ';
             if (context.parsed.y !== null) label += context.parsed.y.toFixed(1);
             return label;
           },
-          title: (tooltipItems: any) => {
-            // Show "Distance: X km" or "Time: X min" in tooltip title
-            const val = tooltipItems[0].label;
+          title: (tooltipItems: TooltipItem<'line'>[]) => {
+            // Fix: Optional chaining and fallback for safety
+            const val = tooltipItems[0]?.label ?? '';
             return xAxisMode.value === 'distance' ? `${val} km` : val;
-          }
-        }
+          },
+        },
       },
       annotation: {
         annotations: {
@@ -230,9 +251,9 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
             borderColor: 'rgba(107, 114, 128, 0.5)',
             borderWidth: 1,
             borderDash: [4, 4],
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
       x: {
@@ -240,28 +261,26 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         grid: { display: false },
         title: {
           display: true,
-          text: xAxisMode.value === 'distance' ? 'Distance (km)' : 'Time'
-        }
+          text: xAxisMode.value === 'distance' ? 'Distance (km)' : 'Time',
+        },
       },
       yMetric: {
         type: 'linear',
         display: true,
         position: 'left',
         title: { display: true, text: yAxisLabel.value },
-        grid: { color: '#e5e7eb' }
+        grid: { color: '#e5e7eb' },
       },
       yElevation: {
-        // Only show axis if we have data
         type: 'linear',
         display: hasElevation.value,
         position: 'right',
         title: { display: true, text: 'Elevation (m)' },
-        grid: { display: false }
-      }
+        grid: { display: false },
+      },
     },
   };
 });
-
 </script>
 
 <template>
@@ -269,8 +288,9 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
     <div class="flex justify-end space-x-2 mb-2">
       <button v-for="m in availableMetrics" :key="m" @click="selectedMetricKey = m"
         class="px-3 py-1 text-xs font-semibold rounded-full border transition-colors" :class="selectedMetricKey === m
-          ? `bg-gray-800 text-white border-gray-800`
-          : `bg-white text-gray-600 border-gray-200 hover:border-gray-400`">
+            ? `bg-gray-800 text-white border-gray-800`
+            : `bg-white text-gray-600 border-gray-200 hover:border-gray-400`
+          ">
         {{ metricDefinitions[m]?.label.split(' ')[0] }}
       </button>
     </div>

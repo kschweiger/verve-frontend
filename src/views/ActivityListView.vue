@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useActivityStore } from '@/stores/activity';
 import type { ActivityFilters } from '@/stores/activity';
 import ActivityFilter from '@/components/ActivityFilter.vue';
@@ -9,23 +9,13 @@ const activityStore = useActivityStore();
 const initialFilters = ref<ActivityFilters>({});
 
 function loadMoreActivities() {
-  // The 'true' flag tells the action to append data, not replace it
   activityStore.fetchActivities(activityStore.currentFilters, true);
 }
 
-// Initial fetch when the component is first created
 onMounted(() => {
-  // Only fetch if the list is empty, otherwise we keep the existing state
   if (activityStore.paginatedActivities.length === 0) {
     activityStore.fetchActivities({});
   }
-});
-
-// Optional but good practice: Reset the list when the user navigates away from the page
-// so they get a fresh list next time.
-onUnmounted(() => {
-  // You could clear the list here if you always want a fresh start
-  // activityStore.paginatedActivities = [];
 });
 </script>
 

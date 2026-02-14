@@ -10,7 +10,10 @@ const props = defineProps<{
   defaultName?: string;
 }>();
 
-const emit = defineEmits(['success']);
+const emit = defineEmits<{
+  (e: 'success'): void;
+}>();
+
 const activityStore = useActivityStore();
 
 const isLoading = ref(false);
@@ -22,10 +25,9 @@ const durMinutes = ref<number | null>(null);
 const durSeconds = ref<number | null>(null);
 const distance = ref<number | null>(null);
 
-// Helper: Get today string safely for TS
-const getTodayString = () => new Date().toISOString().split('T')[0] ?? '';
+const getTodayString = (): string => new Date().toISOString().split('T')[0] ?? '';
 
-// Date State: Initialize with safe string
+// Date State
 const date = ref<string>(getTodayString());
 
 function toISODuration(h: number, m: number, s: number): string {
@@ -38,7 +40,6 @@ function toISODuration(h: number, m: number, s: number): string {
 
 function getISOStartDateTime(dateStr: string): string {
   const now = new Date();
-  // Handle empty string case by defaulting to now
   const selectedDate = dateStr ? new Date(dateStr) : new Date();
 
   selectedDate.setHours(now.getHours());
@@ -58,13 +59,10 @@ async function handleSubmit() {
   isLoading.value = true;
 
   let finalDistance: number | null = null;
-  if (props.distanceMode === 'NOT_APPLICABLE') {
-    finalDistance = null;
-  } else {
+  if (props.distanceMode !== 'NOT_APPLICABLE') {
     finalDistance = distance.value ? distance.value : null;
   }
 
-  // Ensure strict string type for the helper
   const dateString = date.value || getTodayString();
 
   const payload = {
@@ -74,7 +72,7 @@ async function handleSubmit() {
     sub_type_id: props.subTypeId,
     distance: finalDistance,
     duration: toISODuration(h, m, s),
-    add_default_equipment: true
+    add_default_equipment: true,
   };
 
   const result = await activityStore.createManualActivity(payload, null);
@@ -82,12 +80,11 @@ async function handleSubmit() {
   isLoading.value = false;
 
   if (result.success) {
-    // Reset Form
     durHours.value = null;
     durMinutes.value = null;
     durSeconds.value = null;
     distance.value = null;
-    date.value = getTodayString(); // Reset to safe string
+    date.value = getTodayString();
     showForm.value = false;
     emit('success');
   } else {
@@ -100,7 +97,7 @@ async function handleSubmit() {
   <div class="border border-verve-medium/50 rounded-xl p-3 bg-white/60 hover:bg-white hover:shadow-sm transition-all">
     <!-- Header / Toggle -->
     <div @click="showForm = !showForm" class="flex justify-between items-center cursor-pointer select-none">
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center gap-2">
         <span class="font-bold text-verve-brown text-sm">{{ title }}</span>
       </div>
       <div class="text-verve-brown font-bold">
@@ -111,7 +108,6 @@ async function handleSubmit() {
 
     <!-- Form (Expanded) -->
     <div v-if="showForm" class="mt-3 space-y-3">
-
       <!-- Date Picker -->
       <div>
         <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Date</label>
@@ -122,7 +118,7 @@ async function handleSubmit() {
       <!-- Duration Inputs (HH : MM : SS) -->
       <div>
         <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Duration</label>
-        <div class="flex space-x-2">
+        <div class="flex gap-2">
           <div class="flex-1">
             <input v-model="durHours" type="number" min="0" placeholder="HH"
               class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
@@ -144,7 +140,8 @@ async function handleSubmit() {
       <!-- Distance Input (Conditional) -->
       <div v-if="distanceMode !== 'NOT_APPLICABLE'">
         <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
-          Distance (km) <span v-if="distanceMode === 'OPTIONAL'" class="font-normal opacity-70">(Opt)</span>
+          Distance (km)
+          <span v-if="distanceMode === 'OPTIONAL'" class="font-normal opacity-70">(Opt)</span>
         </label>
         <input v-model="distance" type="number" step="0.01" placeholder="0.0"
           class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"

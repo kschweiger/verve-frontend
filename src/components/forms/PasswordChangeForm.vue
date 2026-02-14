@@ -15,16 +15,17 @@ const error = ref<string | null>(null);
 function onSave() {
   error.value = null;
   if (newPassword.value !== confirmPassword.value) {
-    error.value = "New passwords do not match.";
+    error.value = 'New passwords do not match.';
     return;
   }
   if (!oldPassword.value || !newPassword.value) {
-    error.value = "All fields are required.";
+    error.value = 'All fields are required.';
     return;
   }
   emit('save', { old_password: oldPassword.value, new_password: newPassword.value });
 }
 </script>
+
 <template>
   <div class="space-y-4 pt-2">
     <div>
@@ -51,7 +52,7 @@ function onSave() {
       {{ error }}
     </div>
 
-    <div class="flex justify-end space-x-3 pt-4 border-t border-verve-medium/30">
+    <div class="flex justify-end gap-3 pt-4 border-t border-verve-medium/30">
       <button @click="$emit('cancel')"
         class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
         Cancel

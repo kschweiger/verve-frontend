@@ -1,10 +1,15 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
-import type { ActivityFilters } from './activity'; // Reuse the filter interface
+import type { ActivityFilters } from './activity';
 
-// The heatmap plugin expects an array of [lat, lon, intensity]
+// [lat, lon, intensity]
 export type HeatPoint = [number, number, number];
+
+interface HeatmapResponse {
+  points: HeatPoint[];
+  center: [number, number];
+}
 
 export const useHeatmapStore = defineStore('heatmap', () => {
   // --- STATE ---
@@ -19,28 +24,35 @@ export const useHeatmapStore = defineStore('heatmap', () => {
     error.value = null;
     const userStore = useUserStore();
 
+    if (!userStore.token) {
+      error.value = "Not authenticated";
+      isLoading.value = false;
+      return;
+    }
+
     try {
-      // Build the URL with query parameters from the filters
       const params = new URLSearchParams();
       if (filters.year) params.append('year', filters.year.toString());
       if (filters.month) params.append('month', filters.month.toString());
       if (filters.type_id) params.append('activity_type_id', filters.type_id.toString());
       if (filters.sub_type_id) params.append('activity_sub_type_id', filters.sub_type_id.toString());
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/heatmap/activities?${params.toString()}`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${userStore.token}` }
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/heatmap/activities?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${userStore.token}` },
+        }
+      );
 
       if (!response.ok) throw new Error('Failed to fetch heatmap data.');
 
-      const data = await response.json();
+      const data: HeatmapResponse = await response.json();
 
       heatmapPoints.value = data.points;
       heatmapCenter.value = data.center;
-
-    } catch (e: any) {
-      error.value = e.message;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
     } finally {
       isLoading.value = false;
     }

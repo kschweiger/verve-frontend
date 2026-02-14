@@ -4,46 +4,35 @@ import { useTypeStore } from '@/stores/types';
 import { useActivityStore } from '@/stores/activity';
 import ActivityCreateForm from '@/components/forms/ActivityCreateForm.vue';
 
-// Get instances of our stores
 const typeStore = useTypeStore();
 const activityStore = useActivityStore();
 
 const activeTab = ref<'auto' | 'manual'>('auto');
 const showManualModal = ref(false);
 
-// Local state for the form inputs
+// Local state
 const selectedFile = ref<File | null>(null);
 const selectedTypeId = ref<number | null>(null);
 const selectedSubTypeId = ref<number | null>(null);
 
-// Local state for UI feedback
 const isLoading = ref(false);
 const feedbackMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null);
 
-// --- DEPENDENT DROPDOWN LOGIC ---
-// A computed property that reactively returns the list of sub-types
-// based on the currently selected main type.
+// Dependent dropdown logic
 const availableSubTypes = computed(() => {
-  if (!selectedTypeId.value) {
-    return []; // No type selected, so no sub-types are available
-  }
-  const foundType = typeStore.activityTypes.find(t => t.id === selectedTypeId.value);
+  if (!selectedTypeId.value) return [];
+  const foundType = typeStore.activityTypes.find((t) => t.id === selectedTypeId.value);
   return foundType ? foundType.sub_types : [];
 });
 
-// A "watcher" that resets the sub-type whenever the main type changes.
-// This prevents having a sub-type selected that doesn't belong to the new main type.
 watch(selectedTypeId, () => {
   selectedSubTypeId.value = null;
 });
 
-// --- DATA FETCHING ---
-// Fetch the types when the component is first mounted
 onMounted(() => {
   typeStore.fetchActivityTypes();
 });
 
-// --- FORM HANDLING ---
 function handleFileChange(event: Event) {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files[0]) {
@@ -58,42 +47,51 @@ async function handleAutoSubmit() {
   }
   isLoading.value = true;
   feedbackMessage.value = null;
-  const result = await activityStore.uploadActivity(selectedFile.value, selectedTypeId.value, selectedSubTypeId.value);
+
+  const result = await activityStore.uploadActivity(
+    selectedFile.value,
+    selectedTypeId.value,
+    selectedSubTypeId.value
+  );
+
   isLoading.value = false;
   feedbackMessage.value = { type: result.success ? 'success' : 'error', text: result.message };
+
   if (result.success) {
     selectedFile.value = null;
     selectedTypeId.value = null;
     selectedSubTypeId.value = null;
+
+    // Reset file input visually
     const fileInput = document.getElementById('file-upload') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
   }
-}</script>
+}
+</script>
 
 <template>
   <div class="bg-white rounded-lg shadow-md p-6 h-full">
-
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-xl font-bold text-gray-800">Add Activity</h3>
 
       <!-- Tabs -->
       <div class="flex bg-verve-light p-1 rounded-xl">
         <button @click="activeTab = 'auto'" :class="activeTab === 'auto'
-          ? 'bg-white shadow-sm text-verve-brown'
-          : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50'"
-          class="flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all">
+            ? 'bg-white shadow-sm text-verve-brown'
+            : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50'
+          " class="flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all">
           Auto Upload
         </button>
         <button @click="activeTab = 'manual'" :class="activeTab === 'manual'
-          ? 'bg-white shadow-sm text-verve-brown'
-          : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50'"
-          class="flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all">
+            ? 'bg-white shadow-sm text-verve-brown'
+            : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50'
+          " class="flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all">
           Manual
         </button>
       </div>
     </div>
 
-    <!-- TAB 1: Auto Upload (Existing) -->
+    <!-- TAB 1: Auto Upload -->
     <div v-if="activeTab === 'auto'">
       <form @submit.prevent="handleAutoSubmit" class="space-y-4">
         <div>
@@ -106,7 +104,9 @@ async function handleAutoSubmit() {
             <label class="block text-xs font-medium text-gray-700">Type (Opt)</label>
             <select v-model="selectedTypeId" class="mt-1 block w-full border-gray-300 text-sm rounded-md">
               <option :value="null">Auto-detect</option>
-              <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+              <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">
+                {{ t.name }}
+              </option>
             </select>
           </div>
           <div>
@@ -114,7 +114,9 @@ async function handleAutoSubmit() {
             <select v-model="selectedSubTypeId" :disabled="!selectedTypeId"
               class="mt-1 block w-full border-gray-300 text-sm rounded-md disabled:bg-gray-100">
               <option :value="null">Auto-detect</option>
-              <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
+              <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
+                {{ st.name }}
+              </option>
             </select>
           </div>
         </div>
@@ -136,9 +138,7 @@ async function handleAutoSubmit() {
         <p>Log a gym session, yoga class,</p>
         <p>or an activity without GPS data.</p>
       </div>
-      <button @click="showManualModal = true" class="btn-outline">
-        Open Manual Entry Form
-      </button>
+      <button @click="showManualModal = true" class="btn-outline">Open Manual Entry Form</button>
     </div>
 
     <!-- Modal -->
@@ -148,6 +148,5 @@ async function handleAutoSubmit() {
         <ActivityCreateForm @close="showManualModal = false" @saved="showManualModal = false" />
       </div>
     </div>
-
   </div>
 </template>

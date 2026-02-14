@@ -5,7 +5,7 @@ import { useTypeStore } from '@/stores/types';
 import { formatDuration } from '@/utils/datetime';
 import WeeklyBarChart from '@/components/charts/WeeklyBarChart.vue';
 import SubTypePieChart from '@/components/charts/SubTypePieChart.vue';
-import { CHART_COLORS, CHART_HOVER_COLORS, VERVE_COLORS } from '@/utils/colors'; // <--- Import VERVE_COLORS
+import { CHART_COLORS, CHART_HOVER_COLORS, VERVE_COLORS } from '@/utils/colors';
 
 // Get store instances
 const weeklyStore = useWeeklyStore();
@@ -39,66 +39,88 @@ const selectedMetricTotal = computed(() => {
 const weekAndYear = computed(() => {
   const date = new Date(currentDate.value.valueOf());
   date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
   const week1 = new Date(date.getFullYear(), 0, 4);
-  const week = 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+  const week =
+    1 +
+    Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
   return { week, year: date.getFullYear() };
 });
 
 const barChartData = computed(() => {
   const data = weeklyStore.weeklyData?.[selectedMetric.value]?.per_day;
   if (!data) return { labels: [], datasets: [] };
+
   return {
-    labels: Object.keys(data).map(d => new Date(d).toLocaleDateString(undefined, { weekday: 'short' })),
-    datasets: [{
-      backgroundColor: VERVE_COLORS.orange, // Keep Bar as primary Orange
-      borderRadius: 6,
-      barPercentage: 0.6,
-      data: Object.values(data).map(val => val ?? 0),
-    }],
+    labels: Object.keys(data).map((d) =>
+      new Date(d).toLocaleDateString(undefined, { weekday: 'short' })
+    ),
+    datasets: [
+      {
+        label: selectedMetric.value,
+        backgroundColor: VERVE_COLORS.orange,
+        borderRadius: 6,
+        barPercentage: 0.6,
+        data: Object.values(data).map((val) => val ?? 0),
+      },
+    ],
   };
 });
 
 // Format data for the pie chart
 const pieChartData = computed(() => {
   const data = weeklyStore.weeklyData?.[selectedMetric.value]?.pie_data;
-  const primaryType = typeStore.activityTypes.find(t => t.id === selectedActivityTypeId.value);
+  const primaryType = typeStore.activityTypes.find((t) => t.id === selectedActivityTypeId.value);
+
   if (!data || !primaryType) return { labels: [], datasets: [] };
 
-  const labels = Object.keys(data).map(subTypeIdStr => {
-    const subType = primaryType.sub_types.find(st => st.id === parseInt(subTypeIdStr));
+  const labels = Object.keys(data).map((subTypeIdStr) => {
+    const subType = primaryType.sub_types.find((st) => st.id === parseInt(subTypeIdStr));
     return subType?.name ?? `Sub-Type #${subTypeIdStr}`;
   });
 
+  // Ensure arrays are long enough or cycle colors if needed
   const pieColors = [...CHART_COLORS.slice(1), CHART_COLORS[0]];
   const pieHoverColors = [...CHART_HOVER_COLORS.slice(1), CHART_HOVER_COLORS[0]];
 
   return {
     labels,
-    datasets: [{
-      backgroundColor: pieColors,
-      hoverBackgroundColor: pieHoverColors,
-      borderWidth: 0,
-      data: Object.values(data),
-    }],
+    datasets: [
+      {
+        backgroundColor: pieColors,
+        hoverBackgroundColor: pieHoverColors,
+        borderWidth: 0,
+        data: Object.values(data),
+      },
+    ],
   };
 });
+
 // --- METHODS ---
-const goToPreviousWeek = () => currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() - 7));
-const goToNextWeek = () => currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() + 7));
+const goToPreviousWeek = () =>
+  (currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() - 7)));
+const goToNextWeek = () =>
+  (currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() + 7)));
 
 // --- WATCHERS ---
-watch([weekAndYear, selectedActivityTypeId], ([newWeek, newType]) => {
-  if (newType) {
-    weeklyStore.fetchWeeklyStats(newWeek.year, newWeek.week, newType);
-  }
-}, { immediate: true });
+watch(
+  [weekAndYear, selectedActivityTypeId],
+  ([newWeek, newType]) => {
+    if (newType) {
+      weeklyStore.fetchWeeklyStats(newWeek.year, newWeek.week, newType);
+    }
+  },
+  { immediate: true }
+);
 
-watch(() => typeStore.activityTypes, (newTypes) => {
-  if (newTypes.length > 0 && newTypes[0] && !selectedActivityTypeId.value) {
-    selectedActivityTypeId.value = newTypes[0].id;
+watch(
+  () => typeStore.activityTypes,
+  (newTypes) => {
+    if (newTypes.length > 0 && newTypes[0] && !selectedActivityTypeId.value) {
+      selectedActivityTypeId.value = newTypes[0].id;
+    }
   }
-});
+);
 
 onMounted(() => typeStore.fetchActivityTypes());
 </script>
@@ -126,11 +148,17 @@ onMounted(() => typeStore.fetchActivityTypes());
       <!-- Week Navigation -->
       <div class="flex items-center justify-between bg-verve-light/30 border border-verve-medium/20 p-1 rounded-xl">
         <button @click="goToPreviousWeek"
-          class="p-1.5 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors shadow-sm">&lt;</button>
-        <p class="text-sm font-bold text-verve-brown">Week {{ weekAndYear.week }}, <span
-            class="font-normal opacity-60">{{ weekAndYear.year }}</span></p>
+          class="p-1.5 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors shadow-sm">
+          &lt;
+        </button>
+        <p class="text-sm font-bold text-verve-brown">
+          Week {{ weekAndYear.week }},
+          <span class="font-normal opacity-60">{{ weekAndYear.year }}</span>
+        </p>
         <button @click="goToNextWeek"
-          class="p-1.5 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors shadow-sm">&gt;</button>
+          class="p-1.5 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors shadow-sm">
+          &gt;
+        </button>
       </div>
     </div>
 
@@ -145,14 +173,18 @@ onMounted(() => typeStore.fetchActivityTypes());
     </div>
 
     <div v-else-if="weeklyStore.weeklyData" class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-
       <!-- Bar Chart & Total Display -->
       <div class="lg:col-span-2">
         <div class="mb-4 flex items-baseline">
-          <span class="text-4xl font-bold text-verve-orange tracking-tight mr-1">{{ selectedMetricTotal.value }}</span>
-          <span v-if="selectedMetricTotal.unit" class="text-lg font-medium text-verve-brown/60">{{
-            selectedMetricTotal.unit }}</span>
-          <span class="ml-3 text-xs font-bold text-verve-brown/30 uppercase tracking-widest mb-1">this week</span>
+          <span class="text-4xl font-bold text-verve-orange tracking-tight mr-1">
+            {{ selectedMetricTotal.value }}
+          </span>
+          <span v-if="selectedMetricTotal.unit" class="text-lg font-medium text-verve-brown/60">
+            {{ selectedMetricTotal.unit }}
+          </span>
+          <span class="ml-3 text-xs font-bold text-verve-brown/30 uppercase tracking-widest mb-1">
+            this week
+          </span>
         </div>
         <div class="h-64">
           <WeeklyBarChart :chart-data="barChartData" />
@@ -162,12 +194,12 @@ onMounted(() => typeStore.fetchActivityTypes());
       <!-- Pie Chart -->
       <div class="h-64 lg:border-l border-verve-medium/20 lg:pl-8 flex flex-col justify-center">
         <p class="text-xs font-bold text-verve-brown/40 uppercase tracking-wider mb-2 text-center lg:text-left">
-          Breakdown</p>
+          Breakdown
+        </p>
         <div class="h-56">
           <SubTypePieChart :chart-data="pieChartData" />
         </div>
       </div>
-
     </div>
   </div>
 </template>

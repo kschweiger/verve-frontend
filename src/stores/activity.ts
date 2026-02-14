@@ -1,17 +1,16 @@
-import { ref } from 'vue'
-import { defineStore } from 'pinia'
-import { useUserStore } from './auth'
-import { parseISODuration, formatDuration } from '@/utils/datetime'
+import { ref } from 'vue';
+import { defineStore } from 'pinia';
+import { useUserStore } from './auth';
+import { parseISODuration, formatDuration } from '@/utils/datetime';
+import type { ApiActivity } from '@/services/api';
 
-function toISODuration(hours: number, minutes: number, seconds: number): string {
-  let iso = 'PT';
-  if (hours > 0) iso += `${hours}H`;
-  if (minutes > 0) iso += `${minutes}M`;
-  if (seconds > 0 || iso === 'PT') iso += `${seconds}S`; // Always at least PT0S
-  return iso;
-}
+// --- Helper Types ---
+type ApiError = {
+  message: string;
+  detail?: string | Array<{ msg: string }>;
+};
 
-
+// --- Interfaces ---
 export interface Activity {
   id: string;
   start: string;
@@ -25,7 +24,6 @@ export interface Activity {
   name: string | null;
   avg_speed: number | null;
   max_speed: number | null;
-
 }
 
 export interface ActivityFilters {
@@ -39,19 +37,17 @@ export interface ActivityUpdatePayload {
   name?: string;
   type_id?: number | null;
   sub_type_id?: number | null;
-  // meta_data is also possible, but we'll stick to these for now
 }
-
-
 
 export interface ActivityCreatePayload {
   name: string;
-  start: string; // ISO Date Time
+  start: string;
   type_id: number;
   sub_type_id?: number | null;
   distance?: number | null;
-  duration: string; // ISO 8601 Duration
+  duration: string;
   add_default_equipment: boolean;
+  meta_data?: Record<string, unknown>;
 }
 
 export interface ActivityImage {
@@ -59,28 +55,22 @@ export interface ActivityImage {
   url: string;
 }
 
-
 const ACTIVITIES_PER_PAGE = 5;
 
-const mapApiActivity = (apiActivity: any): Activity => {
+const mapApiActivity = (apiActivity: ApiActivity): Activity => {
   const durationSeconds = parseISODuration(apiActivity.duration);
 
   return {
     id: apiActivity.id,
     start: apiActivity.start,
-
-    // Core metrics are assumed to be present
     duration: formatDuration(durationSeconds),
-    durationSeconds: durationSeconds,
+    durationSeconds,
     distance: apiActivity.distance,
-
-    // Use nullish coalescing for safety on nullable fields
     elevationGain: apiActivity.elevation_change_up ?? null,
     elevationLoss: apiActivity.elevation_change_down ?? null,
     name: apiActivity.name ?? null,
     avg_speed: apiActivity.avg_speed ?? null,
     max_speed: apiActivity.max_speed ?? null,
-
     type_id: apiActivity.type_id,
     sub_type_id: apiActivity.sub_type_id ?? null,
   };
@@ -106,13 +96,11 @@ export const useActivityStore = defineStore('activity', () => {
 
   // --- ACTIONS ---
   async function fetchRecentActivities() {
-    // Don't re-fetch if we are already loading
     if (isRecentLoading.value) return;
 
     isRecentLoading.value = true;
     recentError.value = null;
 
-    const userStore = useUserStore();
     if (!userStore.token) {
       recentError.value = 'Authentication token not found.';
       isRecentLoading.value = false;
@@ -120,25 +108,17 @@ export const useActivityStore = defineStore('activity', () => {
     }
 
     try {
-      // Call the endpoint to get activities, with a limit of 5
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/activity/?limit=5`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?limit=5`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${userStore.token}`
-        },
-      }
-      );
+        headers: { Authorization: `Bearer ${userStore.token}` },
+      });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch activities.');
-      }
+      if (!response.ok) throw new Error('Failed to fetch activities.');
 
       const data = await response.json();
-      recentActivities.value = data.data.map(mapApiActivity);
-
-    } catch (e: any) {
-      recentError.value = e.message || 'An unknown error occurred.';
+      recentActivities.value = (data.data as ApiActivity[]).map(mapApiActivity);
+    } catch (e: unknown) {
+      recentError.value = e instanceof Error ? e.message : 'An unknown error occurred.';
     } finally {
       isRecentLoading.value = false;
     }
@@ -152,10 +132,9 @@ export const useActivityStore = defineStore('activity', () => {
       paginatedActivities.value = [];
       currentPage.value = 1;
       canLoadMore.value = true;
-      currentFilters.value = filters; // Store the new filters
+      currentFilters.value = filters;
     }
 
-    const userStore = useUserStore();
     if (!userStore.token) {
       listError.value = 'Not authenticated.';
       isListLoading.value = false;
@@ -169,18 +148,23 @@ export const useActivityStore = defineStore('activity', () => {
 
       if (currentFilters.value.year) params.append('year', currentFilters.value.year.toString());
       if (currentFilters.value.month) params.append('month', currentFilters.value.month.toString());
-      if (currentFilters.value.type_id) params.append('type_id', currentFilters.value.type_id.toString());
-      if (currentFilters.value.sub_type_id) params.append('sub_type_id', currentFilters.value.sub_type_id.toString());
+      if (currentFilters.value.type_id)
+        params.append('type_id', currentFilters.value.type_id.toString());
+      if (currentFilters.value.sub_type_id)
+        params.append('sub_type_id', currentFilters.value.sub_type_id.toString());
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?${params.toString()}`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${userStore.token}` }
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/activity/?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${userStore.token}` },
+        }
+      );
 
       if (!response.ok) throw new Error('Failed to fetch paginated activities.');
 
       const data = await response.json();
-      const newActivities = data.data.map(mapApiActivity);
+      const newActivities = (data.data as ApiActivity[]).map(mapApiActivity);
 
       if (loadMore) {
         paginatedActivities.value.push(...newActivities);
@@ -193,9 +177,8 @@ export const useActivityStore = defineStore('activity', () => {
       }
 
       currentPage.value++;
-
-    } catch (e: any) {
-      listError.value = e.message;
+    } catch (e: unknown) {
+      listError.value = e instanceof Error ? e.message : String(e);
     } finally {
       isListLoading.value = false;
     }
@@ -206,108 +189,91 @@ export const useActivityStore = defineStore('activity', () => {
     typeId: number | null,
     subTypeId: number | null
   ): Promise<{ success: boolean; message: string }> {
-
-    const userStore = useUserStore();
     if (!userStore.token) {
       return { success: false, message: 'Not authenticated.' };
     }
 
-    // Use FormData for multipart/form-data requests (file uploads)
     const formData = new FormData();
     formData.append('file', file);
 
-    // Build the URL with optional query parameters
     const params = new URLSearchParams();
-    if (typeId) {
-      params.append('type_id', typeId.toString());
-    }
-    if (subTypeId) {
-      params.append('sub_type_id', subTypeId.toString());
-    }
+    if (typeId) params.append('type_id', typeId.toString());
+    if (subTypeId) params.append('sub_type_id', subTypeId.toString());
+
     const queryString = params.toString();
     const url = `${import.meta.env.VITE_API_BASE_URL}/activity/auto/${queryString ? '?' + queryString : ''}`;
 
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${userStore.token}`
-          // For FormData, the browser sets the Content-Type header automatically with the correct boundary
-        },
+        headers: { Authorization: `Bearer ${userStore.token}` },
         body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: ApiError = await response.json();
         let msg = 'Upload failed.';
         if (errorData.detail) {
-          msg = typeof errorData.detail === 'string'
-            ? errorData.detail
-            : (errorData.detail[0]?.msg || JSON.stringify(errorData.detail));
+          msg =
+            typeof errorData.detail === 'string'
+              ? errorData.detail
+              : errorData.detail[0]?.msg || JSON.stringify(errorData.detail);
         }
         throw new Error(msg);
       }
 
-      // After a successful upload, we should refresh the recent activities list
-      // so the new activity appears in the other widget.
       fetchRecentActivities();
-
       return { success: true, message: 'Activity uploaded successfully!' };
-    } catch (e: any) {
-      return { success: false, message: e.message };
+    } catch (e: unknown) {
+      return { success: false, message: e instanceof Error ? e.message : String(e) };
     }
   }
-  async function updateActivity(activityId: string, payload: ActivityUpdatePayload): Promise<boolean> {
-    const userStore = useUserStore();
-    if (!userStore.token) {
-      // In a real app, you might set an error state here
-      console.error('Not authenticated.');
-      return false;
-    }
+
+  async function updateActivity(
+    activityId: string,
+    payload: ActivityUpdatePayload
+  ): Promise<boolean> {
+    if (!userStore.token) return false;
 
     try {
-      console.log(payload);
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${userStore.token}`,
-          'Content-Type': 'application/json', // IMPORTANT for JSON payloads
+          Authorization: `Bearer ${userStore.token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        // You could parse the error response from the backend here
-        throw new Error('Failed to update activity.');
-      }
-
-      // Optionally, you could update the specific activity in your paginated/recent lists here
-      // for a super slick UI, but for now, we'll let the detail view re-fetch.
-      return true; // Indicate success
-
-    } catch (e: any) {
-      console.error(e.message);
-      return false; // Indicate failure
+      if (!response.ok) throw new Error('Failed to update activity.');
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
     }
   }
 
-  async function createManualActivity(payload: ActivityCreatePayload, file: File | null): Promise<{ success: boolean; message: string }> {
-    const userStore = useUserStore();
+  async function createManualActivity(
+    payload: ActivityCreatePayload,
+    file: File | null
+  ): Promise<{ success: boolean; message: string }> {
     if (!userStore.token) return { success: false, message: 'Not authenticated.' };
 
     try {
-      // Step 1: Create the Activity entity
       const query = new URLSearchParams();
       if (payload.add_default_equipment) query.append('add_default_equipment', 'true');
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?${query.toString()}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${userStore.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/activity/?${query.toString()}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${userStore.token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!response.ok) {
         const err = await response.json();
@@ -316,48 +282,52 @@ export const useActivityStore = defineStore('activity', () => {
 
       const newActivity = await response.json();
 
-      // Step 2: Upload Track (Optional)
       if (file) {
         const formData = new FormData();
         formData.append('file', file);
-
-        const trackResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/track/?activity_id=${newActivity.id}`, {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${userStore.token}` },
-          body: formData
-        });
+        const trackResponse = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/track/?activity_id=${newActivity.id}`,
+          {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${userStore.token}` },
+            body: formData,
+          }
+        );
 
         if (!trackResponse.ok) {
-          // Activity created, but track failed. We return success but with a warning message.
-          return { success: true, message: 'Activity created, but track upload failed.' };
+          return {
+            success: true,
+            message: 'Activity created, but track upload failed.',
+          };
         }
       }
 
-      // Refresh lists
       fetchRecentActivities();
-
       return { success: true, message: 'Activity created successfully!' };
-    } catch (e: any) {
-      return { success: false, message: e.message };
+    } catch (e: unknown) {
+      return { success: false, message: e instanceof Error ? e.message : String(e) };
     }
   }
 
-
-  // 1. Fetch Images (UPDATED)
   async function fetchActivityImages(activityId: string) {
     isImagesLoading.value = true;
-    activityImages.value = []; // Reset
+    activityImages.value = [];
 
-    if (!userStore.token) { isImagesLoading.value = false; return; }
+    if (!userStore.token) {
+      isImagesLoading.value = false;
+      return;
+    }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/media/images/activity/${activityId}`, {
-        headers: { 'Authorization': `Bearer ${userStore.token}` }
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/media/images/activity/${activityId}`,
+        {
+          headers: { Authorization: `Bearer ${userStore.token}` },
+        }
+      );
 
       if (response.ok) {
         const responseData = await response.json();
-        // UPDATED: Now accessing .data instead of .images
         activityImages.value = responseData.data;
       }
     } catch (e) {
@@ -367,7 +337,6 @@ export const useActivityStore = defineStore('activity', () => {
     }
   }
 
-  // 2. Upload Image (Unchanged, ensures consistent path)
   async function uploadActivityImage(activityId: string, file: File) {
     if (!userStore.token) return false;
 
@@ -379,13 +348,12 @@ export const useActivityStore = defineStore('activity', () => {
         `${import.meta.env.VITE_API_BASE_URL}/media/image/activity/${activityId}`,
         {
           method: 'PUT',
-          headers: { 'Authorization': `Bearer ${userStore.token}` },
-          body: formData
+          headers: { Authorization: `Bearer ${userStore.token}` },
+          body: formData,
         }
       );
 
       if (!response.ok) throw new Error('Upload failed');
-
       await fetchActivityImages(activityId);
       return true;
     } catch (e) {
@@ -394,24 +362,17 @@ export const useActivityStore = defineStore('activity', () => {
     }
   }
 
-  // 3. Delete Image (Confirmed path based on your request)
   async function deleteActivityImage(imageId: string, activityId: string) {
     if (!userStore.token) return false;
 
     try {
-      // Endpoint: DELETE /api/v1/media/image/{image_id}
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/media/image/${imageId}`,
-        {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${userStore.token}` }
-        }
-      );
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/media/image/${imageId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${userStore.token}` },
+      });
 
       if (!response.ok) throw new Error('Delete failed');
-
-      // Optimistically remove from UI
-      activityImages.value = activityImages.value.filter(img => img.id !== imageId);
+      activityImages.value = activityImages.value.filter((img) => img.id !== imageId);
       return true;
     } catch (e) {
       console.error(e);
@@ -420,20 +381,17 @@ export const useActivityStore = defineStore('activity', () => {
   }
 
   async function deleteActivity(id: string): Promise<boolean> {
-    const userStore = useUserStore();
     if (!userStore.token) return false;
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${userStore.token}` }
+        headers: { Authorization: `Bearer ${userStore.token}` },
       });
 
       if (!response.ok) throw new Error('Failed to delete activity');
 
-      // Optimistic update: Remove from recent list if it's there
-      recentActivities.value = recentActivities.value.filter(a => a.id !== id);
-
+      recentActivities.value = recentActivities.value.filter((a) => a.id !== id);
       return true;
     } catch (e) {
       console.error(e);
@@ -441,35 +399,25 @@ export const useActivityStore = defineStore('activity', () => {
     }
   }
 
-  // Expose state and actions
   return {
-    // Dashboard Widget
     recentActivities,
-    isRecentLoading, // Use aliases to avoid name clashes
+    isRecentLoading,
     recentError,
     fetchRecentActivities,
-
-    // Activities List View
     paginatedActivities,
     isListLoading,
     listError,
     canLoadMore,
     currentFilters,
     fetchActivities,
-
     createManualActivity,
-    // Upload
     uploadActivity,
-
-    // Update
     updateActivity,
-
     deleteActivity,
-
     activityImages,
     isImagesLoading,
     fetchActivityImages,
     uploadActivityImage,
-    deleteActivityImage
-  }
-})
+    deleteActivityImage,
+  };
+});

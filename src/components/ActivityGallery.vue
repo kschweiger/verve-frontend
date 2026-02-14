@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useActivityStore, type ActivityImage } from '@/stores/activity';
 import { Trash2, Plus } from 'lucide-vue-next';
+
 const props = defineProps<{
   activityId: string;
   images: ActivityImage[];
@@ -39,12 +40,13 @@ const handleDelete = async (imageId: string) => {
 
 <template>
   <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
-
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <h3 class="text-xl font-bold text-verve-brown">Photos</h3>
       <div class="flex items-center space-x-3">
-        <span v-if="isUploading" class="text-xs text-verve-brown/60 animate-pulse font-medium">Uploading...</span>
+        <span v-if="isUploading" class="text-xs text-verve-brown/60 animate-pulse font-medium">
+          Uploading...
+        </span>
 
         <button @click="triggerUpload" :disabled="isUploading"
           class="px-4 py-2 bg-verve-neon text-verve-brown text-sm font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 transition-all flex items-center border border-verve-dark/5">
@@ -57,7 +59,7 @@ const handleDelete = async (imageId: string) => {
 
     <!-- Loading -->
     <div v-if="isLoading" class="flex justify-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-verve-brown"></div>
+      <div class="animate-spin rounded-full size-8 border-b-2 border-verve-brown"></div>
     </div>
 
     <!-- Gallery Grid -->
@@ -67,8 +69,7 @@ const handleDelete = async (imageId: string) => {
         @click="selectedImage = img">
         <!-- Thumbnail Styling -->
         <img :src="img.url" alt="Activity photo" loading="lazy"
-          class="absolute inset-0 transition-transform duration-500 group-hover:scale-105"
-          style="width: 100%; height: 100%; object-fit: cover; max-width: none;" />
+          class="absolute inset-0 transition-transform duration-500 group-hover:scale-105 object-cover size-full" />
       </div>
     </div>
 
@@ -77,14 +78,9 @@ const handleDelete = async (imageId: string) => {
       <p class="text-verve-brown/50 text-sm">No photos added yet.</p>
     </div>
 
-    <!-- Lightbox Modal (Logic Preserved 1:1) -->
+    <!-- Lightbox Modal -->
     <div v-if="selectedImage" class="fixed inset-0 z-[999] flex items-center justify-center bg-black/95 p-4"
       @click="selectedImage = null">
-
-      <!--
-        Updated only the border color to verve-orange.
-        Structure remains exactly as you fixed it.
-      -->
       <img :src="selectedImage.url"
         class="max-h-[80vh] max-w-[95vw] h-auto w-auto object-contain rounded-lg shadow-2xl border-4 border-verve-orange bg-black"
         @click.stop />
@@ -95,6 +91,5 @@ const handleDelete = async (imageId: string) => {
         Delete Photo
       </button>
     </div>
-
   </div>
 </template>

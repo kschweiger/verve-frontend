@@ -3,33 +3,36 @@ import { computed } from 'vue';
 import type { Activity } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
 
-const typeStore = useTypeStore();
-
 const props = defineProps<{
   activity: Activity;
   compact?: boolean;
 }>();
 
+const typeStore = useTypeStore();
+
 const activityType = computed(() => {
-  return typeStore.activityTypes.find(t => t.id === props.activity.type_id);
+  return typeStore.activityTypes.find((t) => t.id === props.activity.type_id);
 });
 
 const activitySubType = computed(() => {
   if (!activityType.value || !props.activity.sub_type_id) {
     return null;
   }
-  return activityType.value.sub_types.find(st => st.id === props.activity.sub_type_id);
+  return activityType.value.sub_types.find((st) => st.id === props.activity.sub_type_id);
 });
 
 const formatDate = (isoDate: string) => {
   return new Date(isoDate).toLocaleDateString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 };
 
 const formatTime = (isoDate: string) => {
   return new Date(isoDate).toLocaleTimeString(undefined, {
-    hour: '2-digit', minute: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 };
 </script>
@@ -37,15 +40,18 @@ const formatTime = (isoDate: string) => {
 <template>
   <router-link :to="{ name: 'activity-detail', params: { id: activity.id } }"
     class="block transition-all duration-200 ease-in-out hover:bg-verve-light border-l-4 border-transparent hover:border-verve-neon"
-    :class="compact ? 'p-3' : 'p-5 bg-white border-b border-verve-medium/10 first:rounded-t-xl last:rounded-b-xl last:border-b-0'">
-
+    :class="compact
+        ? 'p-3'
+        : 'p-5 bg-white border-b border-verve-medium/10 first:rounded-t-xl last:rounded-b-xl last:border-b-0'
+      ">
     <!-- COMPACT LAYOUT (For Sidebar/Widgets) -->
     <div v-if="compact">
       <div class="flex justify-between items-start mb-2">
         <div class="overflow-hidden">
           <p class="font-bold text-verve-brown text-sm truncate">{{ activity.name }}</p>
-          <p class="text-xs text-verve-brown/60">{{ formatDate(activity.start) }} &bull; {{ formatTime(activity.start)
-          }}</p>
+          <p class="text-xs text-verve-brown/60">
+            {{ formatDate(activity.start) }} &bull; {{ formatTime(activity.start) }}
+          </p>
         </div>
         <span v-if="activityType"
           class="text-[10px] uppercase font-bold text-verve-brown/70 bg-verve-light px-1.5 py-0.5 rounded ml-2 whitespace-nowrap">
@@ -55,16 +61,18 @@ const formatTime = (isoDate: string) => {
 
       <div class="grid grid-cols-3 gap-2 border-t border-verve-medium/20 pt-2 text-verve-brown/80">
         <div>
-          <span class="text-sm font-semibold">{{ activity.distance != null ? activity.distance.toFixed(2) : '-'
-          }}</span>
+          <span class="text-sm font-semibold">{{
+            activity.distance != null ? activity.distance.toFixed(2) : '-'
+            }}</span>
           <span v-if="activity.distance != null" class="text-xs font-normal text-verve-brown/50 ml-0.5">km</span>
         </div>
         <div class="text-center">
           <p class="text-sm font-semibold">{{ activity.duration }}</p>
         </div>
         <div class="text-right">
-          <span class="text-sm font-semibold">{{ activity.elevationGain !== null ? activity.elevationGain.toFixed(0) :
-            '-' }}</span>
+          <span class="text-sm font-semibold">{{
+            activity.elevationGain !== null ? activity.elevationGain.toFixed(0) : '-'
+            }}</span>
           <span class="text-xs font-normal text-verve-brown/50 ml-0.5">m</span>
         </div>
       </div>
@@ -98,8 +106,8 @@ const formatTime = (isoDate: string) => {
       <!-- Distance -->
       <div class="text-right">
         <p class="font-bold text-verve-brown">
-          {{ activity.distance != null ? activity.distance.toFixed(2) : '-' }} <span v-if="activity.distance"
-            class="text-xs font-normal text-verve-brown/50">km</span>
+          {{ activity.distance != null ? activity.distance.toFixed(2) : '-' }}
+          <span v-if="activity.distance" class="text-xs font-normal text-verve-brown/50">km</span>
         </p>
         <p class="text-xs text-verve-brown/50 uppercase tracking-wide">Distance</p>
       </div>

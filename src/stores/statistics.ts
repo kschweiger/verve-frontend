@@ -2,11 +2,7 @@ import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 
-// Define an interface for the API response for type safety
-// A type for the nested per_type object
-type StatsPerType = {
-  [key: string]: number; // e.g., { "1": 4242.71, "2": 100.5 }
-};
+type StatsPerType = Record<string, number>;
 
 export interface StatsMetric {
   count: number;
@@ -20,15 +16,15 @@ export interface ActivityCalendarItem {
   name: string | null;
   type_id: number;
   distance: number | null;
-  duration: number;
+  duration: number | string; // API might return ISO string or seconds
   elevation_gain: number | null;
 }
 
 export interface CalendarDay {
-  date: string; // YYYY-MM-DD
+  date: string;
   is_in_month: boolean;
   items: ActivityCalendarItem[];
-  active_type_ids: number[]; // Critical for showing the bike icons
+  active_type_ids: number[];
   total: StatsMetric;
 }
 
@@ -59,7 +55,6 @@ export interface YearStats {
 }
 
 export const useStatisticsStore = defineStore('statistics', () => {
-  // --- STATE ---
   const yearlyStats = ref<YearStats | null>(null);
   const calendarData = ref<CalendarResponse | null>(null);
   const isLoading = ref(false);
@@ -67,12 +62,10 @@ export const useStatisticsStore = defineStore('statistics', () => {
 
   const userStore = useUserStore();
 
-  // --- ACTION ---
   async function fetchYearlyStats(year: number | null) {
     isLoading.value = true;
     error.value = null;
 
-    const userStore = useUserStore();
     if (!userStore.token) {
       error.value = 'Not authenticated.';
       isLoading.value = false;
@@ -80,16 +73,17 @@ export const useStatisticsStore = defineStore('statistics', () => {
     }
 
     try {
-      // Construct the URL. If year is null, no query parameter is added.
       const params = new URLSearchParams();
       if (year) {
         params.append('year', year.toString());
       }
 
       const queryString = params.toString();
-      const url = `${import.meta.env.VITE_API_BASE_URL}/statistics/year${queryString ? '?' + queryString : ''}`; const response = await fetch(url.toString(), {
+      const url = `${import.meta.env.VITE_API_BASE_URL}/statistics/year${queryString ? '?' + queryString : ''}`;
+
+      const response = await fetch(url, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${userStore.token}` }
+        headers: { Authorization: `Bearer ${userStore.token}` },
       });
 
       if (!response.ok) {
@@ -97,10 +91,9 @@ export const useStatisticsStore = defineStore('statistics', () => {
       }
 
       yearlyStats.value = await response.json();
-
-    } catch (e: any) {
-      error.value = e.message;
-      yearlyStats.value = null; // Clear old data on error
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
+      yearlyStats.value = null;
     } finally {
       isLoading.value = false;
     }
@@ -110,23 +103,37 @@ export const useStatisticsStore = defineStore('statistics', () => {
     isLoading.value = true;
     error.value = null;
 
+    if (!userStore.token) {
+      error.value = 'Not authenticated';
+      isLoading.value = false;
+      return;
+    }
+
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/statistics/calender?year=${year}&month=${month}`,
         {
           method: 'GET',
-          headers: { 'Authorization': `Bearer ${userStore.token}` }
+          headers: { Authorization: `Bearer ${userStore.token}` },
         }
       );
 
       if (!response.ok) throw new Error('Failed to load calendar data.');
 
       calendarData.value = await response.json();
-    } catch (e: any) {
-      error.value = e.message;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
     } finally {
       isLoading.value = false;
     }
   }
-  return { yearlyStats, calendarData, isLoading, error, fetchYearlyStats, fetchCalendar };
+
+  return {
+    yearlyStats,
+    calendarData,
+    isLoading,
+    error,
+    fetchYearlyStats,
+    fetchCalendar,
+  };
 });

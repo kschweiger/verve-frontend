@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
-import { useStatisticsStore } from '@/stores/statistics';
+import { useStatisticsStore, type CalendarDay } from '@/stores/statistics';
 import ActivityIcon from '@/components/ActivityIcon.vue';
 
 const statsStore = useStatisticsStore();
@@ -34,8 +34,14 @@ const totalActivitiesInView = computed(() => {
 const changeMonth = (delta: number) => {
   let m = currentMonth.value + delta;
   let y = currentYear.value;
-  if (m > 12) { m = 1; y++; }
-  if (m < 1) { m = 12; y--; }
+  if (m > 12) {
+    m = 1;
+    y++;
+  }
+  if (m < 1) {
+    m = 12;
+    y--;
+  }
   currentMonth.value = m;
   currentYear.value = y;
 };
@@ -44,6 +50,12 @@ const changeMonth = (delta: number) => {
 const loadData = () => statsStore.fetchCalendar(currentYear.value, currentMonth.value);
 watch([currentYear, currentMonth], loadData);
 onMounted(loadData);
+
+// Placeholder handler (logic wasn't in original, added for completeness/type safety)
+function handleDayClick(day: CalendarDay) {
+  // Logic to navigate to day view or list could go here
+  console.log('Clicked day:', day.date);
+}
 </script>
 
 <template>
@@ -51,8 +63,10 @@ onMounted(loadData);
     <!-- Header -->
     <div class="flex justify-between items-end mb-6">
       <div>
-        <div class="text-xs text-verve-brown/60 uppercase font-bold tracking-wider mb-0.5">Activity Log</div>
-        <div class="flex items-baseline space-x-2">
+        <div class="text-xs text-verve-brown/60 uppercase font-bold tracking-wider mb-0.5">
+          Activity Log
+        </div>
+        <div class="flex items-baseline gap-2">
           <h3 class="text-2xl font-bold text-verve-brown">{{ monthName }}</h3>
           <span class="text-lg text-verve-brown/40">{{ currentYear }}</span>
         </div>
@@ -65,23 +79,26 @@ onMounted(loadData);
       </div>
 
       <!-- Controls -->
-      <div class="flex space-x-1">
+      <div class="flex gap-1">
         <button @click="changeMonth(-1)"
-          class="p-1 hover:bg-verve-light rounded text-verve-brown/60 hover:text-verve-brown transition-colors">&lt;</button>
+          class="p-1 hover:bg-verve-light rounded text-verve-brown/60 hover:text-verve-brown transition-colors cursor-pointer">
+          &lt;
+        </button>
         <button @click="changeMonth(1)"
-          class="p-1 hover:bg-verve-light rounded text-verve-brown/60 hover:text-verve-brown transition-colors">&gt;</button>
+          class="p-1 hover:bg-verve-light rounded text-verve-brown/60 hover:text-verve-brown transition-colors cursor-pointer">
+          &gt;
+        </button>
       </div>
     </div>
 
     <div v-if="statsStore.calendarData" class="w-full">
-
-      <!-- Weekday Labels (Reusable Class) -->
+      <!-- Weekday Labels -->
       <div class="grid grid-cols-7 cal-grid-header">
         <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
       </div>
 
       <!-- Main Grid -->
-      <div class="flex flex-col space-y-2">
+      <div class="flex flex-col gap-2">
         <div v-for="(week, wIdx) in statsStore.calendarData.weeks" :key="wIdx" class="grid grid-cols-7">
           <!-- Days -->
           <div v-for="(day, dIdx) in week.days" :key="dIdx" class="cal-day-wrapper">
@@ -89,8 +106,7 @@ onMounted(loadData);
             <button v-if="day.total.count > 0 && day.is_in_month" @click="handleDayClick(day)"
               class="cal-day-circle cal-day-filled group"
               :title="`${day.total.distance.toFixed(1)} km - Click to view`">
-              <div class="w-4 h-4">
-                <!-- Pass a light color class if needed, usually icons inherit currentColor -->
+              <div class="size-4">
                 <ActivityIcon :type-id="day.active_type_ids[0]" />
               </div>
             </button>
@@ -107,7 +123,6 @@ onMounted(loadData);
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- Loading State -->

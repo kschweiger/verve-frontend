@@ -13,12 +13,23 @@ import {
   PointElement,
   Filler,
   ArcElement,
-  type ChartOptions
+  type ChartOptions,
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import type { TrackPoint } from '@/services/api';
 
-ChartJS.register(Title, Tooltip, Legend, ArcElement, LineElement, CategoryScale, LinearScale, PointElement, Filler, annotationPlugin);
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Filler,
+  annotationPlugin
+);
 
 const props = defineProps<{
   trackData: TrackPoint[];
@@ -28,28 +39,32 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'point-hover', index: number | null): void;
 }>();
+
 const isChartHovered = ref(false);
+
 const chartData = computed(() => {
   if (!props.trackData || props.trackData.length === 0) {
     return { labels: [], datasets: [] };
   }
-  const labels = props.trackData.map(p => (p.dist / 1000).toFixed(1));
-  const data = props.trackData.map(p => p.ele ?? 0);
+  const labels = props.trackData.map((p) => (p.dist / 1000).toFixed(1));
+  const data = props.trackData.map((p) => p.ele ?? 0);
+
   return {
     labels,
-    datasets: [{
-      label: 'Elevation',
-      backgroundColor: hexToRgba(VERVE_COLORS.dark, 0.2),
-      borderColor: VERVE_COLORS.dark,
-      data: data,
-      fill: true,
-      pointRadius: 0,
-      tension: 0.1,
-    }]
+    datasets: [
+      {
+        label: 'Elevation',
+        backgroundColor: hexToRgba(VERVE_COLORS.dark, 0.2),
+        borderColor: VERVE_COLORS.dark,
+        data: data,
+        fill: true,
+        pointRadius: 0,
+        tension: 0.1,
+      },
+    ],
   };
 });
 
-// Explicitly typed to ensure Type safety
 const chartOptions = computed<ChartOptions<'line'>>(() => {
   return {
     responsive: true,
@@ -58,16 +73,15 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       intersect: false,
       mode: 'index' as const,
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onHover: (event: any, chartElement: any[]) => {
       if (chartElement.length > 0) {
-        // The mouse is ON our chart.
         isChartHovered.value = true;
         const currentIndex = chartElement[0].index;
         if (currentIndex !== props.hoveredIndex) {
           emit('point-hover', currentIndex);
         }
       } else {
-        // The mouse is NOT on our chart.
         if (isChartHovered.value) {
           isChartHovered.value = false;
           emit('point-hover', null);
@@ -88,25 +102,25 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
             borderColor: hexToRgba(VERVE_COLORS.orange, 0.7),
             borderWidth: 2,
             borderDash: [6, 6],
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
       y: {
         title: {
           display: true,
           text: 'Elevation (m)',
-        }
+        },
       },
       x: {
         title: {
           display: true,
           text: 'Distance (km)',
-        }
-      }
+        },
+      },
     },
-  }
+  };
 });
 </script>
 

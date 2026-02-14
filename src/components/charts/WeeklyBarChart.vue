@@ -1,45 +1,54 @@
 <script setup lang="ts">
 import { Bar } from 'vue-chartjs';
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  type ChartData,
+  type ChartOptions,
+} from 'chart.js';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
-defineProps<{
-  chartData: {
-    labels: string[];
-    datasets: any[];
-  };
-  chartOptions?: any;
+const props = defineProps<{
+  chartData: ChartData<'bar'>;
+  chartOptions?: ChartOptions<'bar'>;
 }>();
 
-
-const defaultOptions = {
+const defaultOptions: ChartOptions<'bar'> = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      display: false
-    }
+      display: false,
+    },
   },
   scales: {
     y: {
       beginAtZero: true,
-      // Hide the vertical grid lines
       grid: {
         display: false,
-        drawBorder: false,
-      }
+      },
+      border: {
+        display: false,
+      },
     },
     x: {
-      // Hide the horizontal grid lines
       grid: {
         display: false,
-        drawBorder: false,
-      }
-    }
-  }
+      },
+      border: {
+        display: false,
+      },
+    },
+  },
 };
 </script>
+
 <template>
   <Bar :data="chartData" :options="chartOptions ?? defaultOptions" />
 </template>

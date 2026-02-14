@@ -9,36 +9,36 @@ import GoalEditModal from '@/components/forms/GoalEditModal.vue';
 const goalStore = useGoalStore();
 const typeStore = useTypeStore();
 
-// --- Helper for current week ---
-function getISOWeek(date: Date) {
+function getISOWeek(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 // Navigation State
 const now = new Date();
 const currentYear = ref(now.getFullYear());
 const currentMonth = ref(now.getMonth() + 1);
-const currentWeek = ref(getISOWeek(now)); // <--- New
+const currentWeek = ref(getISOWeek(now));
 
-const monthName = computed(() => new Date(currentYear.value, currentMonth.value - 1).toLocaleString('default', { month: 'long' }));
+const monthName = computed(() =>
+  new Date(currentYear.value, currentMonth.value - 1).toLocaleString('default', { month: 'long' })
+);
 
 // Modals
 const showCreateModal = ref(false);
 const editingGoal = ref<Goal | null>(null);
 
-// --- Data Loading ---
-const refreshData = () => goalStore.fetchAllGoalsForView(currentYear.value, currentMonth.value, currentWeek.value);
+const refreshData = () =>
+  goalStore.fetchAllGoalsForView(currentYear.value, currentMonth.value, currentWeek.value);
 
 onMounted(() => {
   typeStore.fetchActivityTypes();
   refreshData();
 });
 
-// Watch for any time change
 watch([currentYear, currentMonth, currentWeek], refreshData);
 
 const handleDelete = async (goal: Goal) => {
@@ -53,9 +53,13 @@ const handleManualUpdate = async (goal: Goal, increase: boolean) => {
 };
 
 const successRate = computed(() => {
-  const all = [...goalStore.yearlyGoals, ...goalStore.monthlyGoals, ...goalStore.weeklyGoals];
+  const all = [
+    ...goalStore.yearlyGoals,
+    ...goalStore.monthlyGoals,
+    ...goalStore.weeklyGoals,
+  ];
   if (all.length === 0) return 0;
-  const reached = all.filter(g => g.reached).length;
+  const reached = all.filter((g) => g.reached).length;
   return Math.round((reached / all.length) * 100);
 });
 </script>
@@ -63,7 +67,6 @@ const successRate = computed(() => {
 <template>
   <div class="p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-64px)] bg-verve-medium">
     <div class="max-w-7xl mx-auto space-y-8">
-
       <!-- Header & Navigation -->
       <div
         class="flex flex-col lg:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30 gap-6">
@@ -72,7 +75,7 @@ const successRate = computed(() => {
 
           <div class="flex flex-wrap items-center justify-center gap-3">
             <!-- Year/Month Selector -->
-            <div class="flex items-center space-x-1 bg-verve-light rounded-xl p-1">
+            <div class="flex items-center gap-1 bg-verve-light rounded-xl p-1">
               <button @click="currentMonth > 1 ? currentMonth-- : (currentMonth = 12, currentYear--)"
                 class="p-2 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors">
                 &lt;
@@ -87,7 +90,7 @@ const successRate = computed(() => {
             </div>
 
             <!-- Week Selector -->
-            <div class="flex items-center space-x-1 bg-verve-light rounded-xl p-1">
+            <div class="flex items-center gap-1 bg-verve-light rounded-xl p-1">
               <button @click="currentWeek > 1 ? currentWeek-- : (currentWeek = 53, currentYear--)"
                 class="p-2 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors">
                 &lt;
@@ -101,9 +104,11 @@ const successRate = computed(() => {
           </div>
         </div>
 
-        <div class="flex items-center space-x-8">
+        <div class="flex items-center gap-8">
           <div class="text-right">
-            <div class="text-[10px] text-verve-brown/60 uppercase font-bold tracking-wider">Success Rate</div>
+            <div class="text-[10px] text-verve-brown/60 uppercase font-bold tracking-wider">
+              Success Rate
+            </div>
             <div class="text-2xl font-bold text-verve-orange">{{ successRate }}%</div>
           </div>
           <button @click="showCreateModal = true"
@@ -115,7 +120,6 @@ const successRate = computed(() => {
 
       <!-- Sections -->
       <div class="space-y-12">
-
         <!-- 1. Weekly Section -->
         <section>
           <div class="flex items-center mb-4">
@@ -174,7 +178,6 @@ const successRate = computed(() => {
             No yearly goals set for {{ currentYear }}.
           </div>
         </section>
-
       </div>
     </div>
 
@@ -186,7 +189,11 @@ const successRate = computed(() => {
       </div>
     </div>
 
-    <GoalEditModal v-if="editingGoal" :goal="editingGoal" @close="editingGoal = null"
-      @saved="() => { editingGoal = null; refreshData(); }" />
+    <GoalEditModal v-if="editingGoal" :goal="editingGoal" @close="editingGoal = null" @saved="
+      () => {
+        editingGoal = null;
+        refreshData();
+      }
+    " />
   </div>
 </template>

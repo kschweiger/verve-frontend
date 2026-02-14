@@ -9,7 +9,7 @@ const typeStore = useTypeStore();
 // --- UI State ---
 const showCreateModal = ref(false);
 const newSetName = ref('');
-const expandedSetId = ref<string | null>(null); // Controls which set is open for editing
+const expandedSetId = ref<string | null>(null);
 
 // State for "Add Item to Set"
 const selectedEquipmentIdToAdd = ref<string | null>(null);
@@ -21,30 +21,28 @@ const defaultSubTypeId = ref<number | null>(null);
 
 onMounted(() => {
   equipmentStore.fetchAllSets();
-  equipmentStore.fetchAllEquipment(); // Need items to resolve names
-  typeStore.fetchActivityTypes(); // Need types for default config
+  equipmentStore.fetchAllEquipment();
+  typeStore.fetchActivityTypes();
 });
 
 // --- Computed Helpers ---
-
 const getEquipmentName = (id: string) => {
-  const item = equipmentStore.allEquipment.find(e => e.id === id);
+  const item = equipmentStore.allEquipment.find((e) => e.id === id);
   return item ? item.name : 'Unknown Item';
 };
 
 const getAvailableItemsForSet = (currentSetItems: string[]) => {
   const setIds = new Set(currentSetItems);
-  return equipmentStore.allEquipment.filter(e => !setIds.has(e.id));
+  return equipmentStore.allEquipment.filter((e) => !setIds.has(e.id));
 };
 
 const availableSubTypes = computed(() => {
   if (!defaultTypeId.value) return [];
-  const t = typeStore.activityTypes.find(x => x.id === defaultTypeId.value);
+  const t = typeStore.activityTypes.find((x) => x.id === defaultTypeId.value);
   return t ? t.sub_types : [];
 });
 
 // --- Actions ---
-
 async function handleCreate() {
   if (!newSetName.value.trim()) return;
   await equipmentStore.createSet(newSetName.value);
@@ -55,12 +53,22 @@ async function handleCreate() {
 async function handleAddItem(setId: string) {
   if (!selectedEquipmentIdToAdd.value) return;
   await equipmentStore.addEquipmentToSet(setId, selectedEquipmentIdToAdd.value);
-  selectedEquipmentIdToAdd.value = null; // Reset selection
+  selectedEquipmentIdToAdd.value = null;
+}
+
+function openDefaultModal(setId: string) {
+  configuringDefaultSetId.value = setId;
+  defaultTypeId.value = null;
+  defaultSubTypeId.value = null;
 }
 
 async function handleSaveDefault() {
   if (!configuringDefaultSetId.value || !defaultTypeId.value) return;
-  await equipmentStore.setDefaultSet(configuringDefaultSetId.value, defaultTypeId.value, defaultSubTypeId.value);
+  await equipmentStore.setDefaultSet(
+    configuringDefaultSetId.value,
+    defaultTypeId.value,
+    defaultSubTypeId.value
+  );
   configuringDefaultSetId.value = null;
   defaultTypeId.value = null;
   defaultSubTypeId.value = null;
@@ -83,11 +91,15 @@ async function handleSaveDefault() {
       <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Set Name</label>
       <div class="flex gap-2">
         <input v-model="newSetName" type="text" placeholder="e.g. Winter Hiking Kit"
-          class="flex-grow border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
+          class="grow border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         <button @click="handleCreate"
-          class="px-4 py-2 bg-verve-neon text-verve-brown font-bold rounded-xl text-sm shadow-sm hover:brightness-105">Create</button>
+          class="px-4 py-2 bg-verve-neon text-verve-brown font-bold rounded-xl text-sm shadow-sm hover:brightness-105">
+          Create
+        </button>
         <button @click="showCreateModal = false"
-          class="px-4 py-2 border border-verve-medium/50 bg-white text-verve-brown font-semibold rounded-xl text-sm hover:bg-verve-light">Cancel</button>
+          class="px-4 py-2 border border-verve-medium/50 bg-white text-verve-brown font-semibold rounded-xl text-sm hover:bg-verve-light">
+          Cancel
+        </button>
       </div>
     </div>
 
@@ -98,7 +110,7 @@ async function handleSaveDefault() {
         <!-- Card Header -->
         <div class="p-4 bg-verve-light/10 border-b border-verve-medium/20 flex justify-between items-center">
           <h3 class="font-bold text-verve-brown truncate" :title="set.name">{{ set.name }}</h3>
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center gap-2">
             <button @click="openDefaultModal(set.id)"
               class="text-xs text-verve-brown/60 hover:text-verve-brown font-bold uppercase tracking-wide transition-colors"
               title="Configure Defaults">
@@ -117,7 +129,7 @@ async function handleSaveDefault() {
         </div>
 
         <!-- Items Preview (Collapsed) -->
-        <div v-if="expandedSetId !== set.id" class="p-4 text-sm text-verve-brown/70 flex-grow">
+        <div v-if="expandedSetId !== set.id" class="p-4 text-sm text-verve-brown/70 grow">
           <p v-if="set.items.length === 0" class="italic text-verve-brown/40">Empty set.</p>
           <ul v-else class="list-disc list-inside space-y-1">
             <li v-for="itemId in set.items.slice(0, 3)" :key="itemId" class="truncate">
@@ -130,17 +142,20 @@ async function handleSaveDefault() {
         </div>
 
         <!-- Expanded View (Edit) -->
-        <div v-else class="p-4 bg-white flex-grow flex flex-col">
-          <ul class="space-y-2 mb-4 flex-grow">
+        <div v-else class="p-4 bg-white grow flex flex-col">
+          <ul class="space-y-2 mb-4 grow">
             <li v-for="itemId in set.items" :key="itemId"
               class="flex justify-between items-center bg-verve-light/10 p-2 rounded-xl border border-verve-medium/20">
-              <span class="text-sm text-verve-brown truncate mr-2">{{ getEquipmentName(itemId) }}</span>
+              <span class="text-sm text-verve-brown truncate mr-2">{{
+                getEquipmentName(itemId)
+                }}</span>
               <button @click="equipmentStore.removeEquipmentFromSet(set.id, itemId)"
                 class="text-red-500 hover:text-red-700 text-xs font-medium transition-colors">
                 Remove
               </button>
             </li>
-            <li v-if="set.items.length === 0" class="text-sm text-verve-brown/40 italic text-center py-2">Set is empty.
+            <li v-if="set.items.length === 0" class="text-sm text-verve-brown/40 italic text-center py-2">
+              Set is empty.
             </li>
           </ul>
 
@@ -149,7 +164,7 @@ async function handleSaveDefault() {
             <label class="block text-xs font-bold text-verve-brown/50 mb-1 uppercase">Add Item</label>
             <div class="flex gap-2">
               <select v-model="selectedEquipmentIdToAdd"
-                class="flex-grow text-sm border-verve-medium rounded-xl py-1.5 px-2 text-verve-brown focus:ring-verve-dark">
+                class="grow text-sm border-verve-medium rounded-xl py-1.5 px-2 text-verve-brown focus:ring-verve-dark">
                 <option :value="null">Select item...</option>
                 <option v-for="item in getAvailableItemsForSet(set.items)" :key="item.id" :value="item.id">
                   {{ item.name }}
@@ -170,7 +185,9 @@ async function handleSaveDefault() {
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-verve-brown/20 backdrop-blur-sm">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 border border-verve-medium/30">
         <h3 class="text-lg font-bold text-verve-brown mb-2">Configure Default</h3>
-        <p class="text-sm text-verve-brown/60 mb-4">Automatically add this set when creating activities of type:</p>
+        <p class="text-sm text-verve-brown/60 mb-4">
+          Automatically add this set when creating activities of type:
+        </p>
 
         <div class="space-y-4">
           <div>
@@ -178,7 +195,9 @@ async function handleSaveDefault() {
             <select v-model="defaultTypeId"
               class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
               <option :value="null">Select Type...</option>
-              <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+              <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">
+                {{ t.name }}
+              </option>
             </select>
           </div>
           <div>
@@ -186,19 +205,24 @@ async function handleSaveDefault() {
             <select v-model="defaultSubTypeId" :disabled="!defaultTypeId"
               class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white disabled:bg-gray-50 disabled:text-gray-400">
               <option :value="null">Any Sub-Type</option>
-              <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
+              <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
+                {{ st.name }}
+              </option>
             </select>
           </div>
         </div>
 
-        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-verve-medium/30">
+        <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-verve-medium/30">
           <button @click="configuringDefaultSetId = null"
-            class="px-4 py-2 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors text-sm">Cancel</button>
-          <button @click="saveDefault" :disabled="!defaultTypeId"
-            class="px-4 py-2 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 text-sm">Save</button>
+            class="px-4 py-2 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors text-sm">
+            Cancel
+          </button>
+          <button @click="handleSaveDefault" :disabled="!defaultTypeId"
+            class="px-4 py-2 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 text-sm">
+            Save
+          </button>
         </div>
       </div>
     </div>
-
   </div>
 </template>

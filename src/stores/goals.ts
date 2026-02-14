@@ -8,14 +8,14 @@ export interface Goal {
   description: string | null;
   target: number;
   current: number;
-  progress: number; // 0.0 to 1.0+
+  progress: number;
   reached: boolean;
   temporal_type: 'yearly' | 'monthly' | 'weekly';
   year: number;
   month: number | null;
   type: 'activity' | 'manual' | 'location';
   aggregation: 'count' | 'total_distance' | 'avg_distance' | 'max_distance' | 'duration';
-  constraints: Record<string, any>;
+  constraints: Record<string, unknown>;
 }
 
 export interface GoalCreatePayload {
@@ -27,12 +27,16 @@ export interface GoalCreatePayload {
   temporal_type: string;
   year: number;
   month?: number | null;
-  constraints?: Record<string, any>;
+  week?: number | null;
+  constraints?: Record<string, unknown>;
+}
+
+interface ApiResponse<T> {
+  data: T;
 }
 
 export const useGoalStore = defineStore('goal', () => {
   const goals = ref<Goal[]>([]);
-
   const yearlyGoals = ref<Goal[]>([]);
   const monthlyGoals = ref<Goal[]>([]);
   const weeklyGoals = ref<Goal[]>([]);
@@ -42,12 +46,10 @@ export const useGoalStore = defineStore('goal', () => {
 
   const userStore = useUserStore();
   const getHeaders = () => ({
-    'Authorization': `Bearer ${userStore.token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${userStore.token}`,
+    'Content-Type': 'application/json',
   });
 
-
-  // Update the helper _fetch to support the week param
   async function _fetch(year: number, month?: number | null, week?: number | null) {
     const params = new URLSearchParams();
     params.append('year', year.toString());
@@ -58,19 +60,18 @@ export const useGoalStore = defineStore('goal', () => {
     const queryString = params.toString();
     const url = `${import.meta.env.VITE_API_BASE_URL}/goal/${queryString ? '?' + queryString : ''}`;
 
-
-    const response = await fetch(url.toString(), { headers: getHeaders() });
+    const response = await fetch(url, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch goals');
-    const data = await response.json();
-    return data.data as Goal[];
+    const data: ApiResponse<Goal[]> = await response.json();
+    return data.data;
   }
 
   async function fetchGoals(year: number, month?: number | null) {
     isLoading.value = true;
     try {
       goals.value = await _fetch(year, month);
-    } catch (e: any) {
-      error.value = e.message;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
     } finally {
       isLoading.value = false;
     }
@@ -79,47 +80,47 @@ export const useGoalStore = defineStore('goal', () => {
   async function fetchAllGoalsForView(year: number, month: number, week?: number) {
     isLoading.value = true;
     try {
-      // Parallel fetch for all buckets
-      // Note: Passing year, month, and week to the same endpoint relies on
-      // the backend returning goals relevant to those filters.
       const [yearly, monthly, weekly] = await Promise.all([
         _fetch(year),
         _fetch(year, month),
-        week ? _fetch(year, null, week) : Promise.resolve([])
+        week ? _fetch(year, null, week) : Promise.resolve([]),
       ]);
 
-      yearlyGoals.value = yearly.filter(g => g.temporal_type === 'yearly');
-      monthlyGoals.value = monthly.filter(g => g.temporal_type === 'monthly');
-      weeklyGoals.value = weekly.filter(g => g.temporal_type === 'weekly');
-
-    } catch (e: any) {
-      error.value = e.message;
+      yearlyGoals.value = yearly.filter((g) => g.temporal_type === 'yearly');
+      monthlyGoals.value = monthly.filter((g) => g.temporal_type === 'monthly');
+      weeklyGoals.value = weekly.filter((g) => g.temporal_type === 'weekly');
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
     } finally {
       isLoading.value = false;
     }
   }
+
   async function createGoal(payload: GoalCreatePayload) {
     isLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/goal/`, {
         method: 'PUT',
         headers: getHeaders(),
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error('Failed to create goal');
 
-      // Refresh the list after creation
       await fetchGoals(payload.year, payload.month);
       return true;
-    } catch (e: any) {
-      error.value = e.message;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
       return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  async function updateGoal(id: string, attribute: 'name' | 'description' | 'target', value: string | number) {
+  async function updateGoal(
+    id: string,
+    attribute: 'name' | 'description' | 'target',
+    value: string | number
+  ) {
     try {
       const params = new URLSearchParams();
       params.append('attribute', attribute);
@@ -127,61 +128,76 @@ export const useGoalStore = defineStore('goal', () => {
 
       const url = `${import.meta.env.VITE_API_BASE_URL}/goal/${id}/update?${params.toString()}`;
 
-      const response = await fetch(url.toString(), {
-        method: 'POST', // Changed to POST based on your latest OpenAPI spec
-        headers: getHeaders()
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: getHeaders(),
       });
       if (!response.ok) throw new Error('Failed to update goal');
       return true;
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       return false;
     }
   }
+
   async function deleteGoal(id: string) {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/goal/?id=${id}`, {
         method: 'DELETE',
-        headers: getHeaders()
+        headers: getHeaders(),
       });
       if (!response.ok) throw new Error('Failed to delete goal');
 
-      // Optimistically remove from list
-      goals.value = goals.value.filter(g => g.id !== id);
+      goals.value = goals.value.filter((g) => g.id !== id);
       return true;
-    } catch (e: any) {
-      error.value = e.message;
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : String(e);
       return false;
     }
   }
-  async function modifyManualGoal(id: string, increase: boolean, amount: number = 1) {
+
+  async function modifyManualGoal(id: string, increase: boolean, amount = 1) {
     try {
       const params = new URLSearchParams();
       params.append('id', id);
+      // NOTE: Assuming the backend handles logic via specific endpoint or params for manual update.
+      // Based on original code, it seemed to just re-fetch or call a specific GET.
+      // Adjusting to what looks like a fetch-refresh pattern or specific update command.
+      // For now, retaining original logic structure but adding types.
 
       const url = `${import.meta.env.VITE_API_BASE_URL}/goal/?${params.toString()}`;
-      const response = await fetch(url.toString(), {
-        method: 'GET', // Following your OpenAPI spec
-        headers: getHeaders()
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders(),
       });
 
       if (!response.ok) throw new Error('Failed to update goal');
 
-      const updatedGoal = await response.json();
+      const updatedGoal: Goal = await response.json();
 
-      // Update the specific goal in the local list instantly
-      const index = goals.value.findIndex(g => g.id === id);
+      const index = goals.value.findIndex((g) => g.id === id);
       if (index !== -1) {
         goals.value[index] = updatedGoal;
       }
       return true;
-    } catch (e: any) {
-      console.error(e); // Log error but don't break UI
+    } catch (e) {
+      console.error(e);
       return false;
     }
   }
+
   return {
-    goals, yearlyGoals, monthlyGoals, weeklyGoals, isLoading, error,
-    fetchGoals, fetchAllGoalsForView, createGoal, updateGoal, deleteGoal, modifyManualGoal
+    goals,
+    yearlyGoals,
+    monthlyGoals,
+    weeklyGoals,
+    isLoading,
+    error,
+    fetchGoals,
+    fetchAllGoalsForView,
+    createGoal,
+    updateGoal,
+    deleteGoal,
+    modifyManualGoal,
   };
 });

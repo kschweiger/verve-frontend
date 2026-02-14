@@ -11,30 +11,44 @@ const currentYear = new Date().getFullYear();
 const selectedYear = ref<number | 'all'>(currentYear);
 const availableYears = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
-const statsByType = computed(() => {
+interface YearlyStatRow {
+  id: number;
+  name: string;
+  distance: number;
+  duration: number;
+  count: number;
+}
+
+const statsByType = computed<YearlyStatRow[]>(() => {
   const stats = statisticsStore.yearlyStats;
   if (!stats) return [];
 
   const typeIds = Object.keys(stats.count.per_type);
 
-  return typeIds.map(typeIdStr => {
-    const typeId = parseInt(typeIdStr, 10);
-    const typeInfo = typeStore.activityTypes.find(t => t.id === typeId);
-    const name = typeInfo ? typeInfo.name : `Type #${typeId}`;
+  return typeIds
+    .map((typeIdStr) => {
+      const typeId = parseInt(typeIdStr, 10);
+      const typeInfo = typeStore.activityTypes.find((t) => t.id === typeId);
+      const name = typeInfo ? typeInfo.name : `Type #${typeId}`;
 
-    return {
-      id: typeId,
-      name: name,
-      distance: stats.distance.per_type[typeId] || 0,
-      duration: stats.duration.per_type[typeId] || 0,
-      count: stats.count.per_type[typeId] || 0,
-    };
-  }).sort((a, b) => b.distance - a.distance);
+      return {
+        id: typeId,
+        name: name,
+        distance: stats.distance.per_type[typeId] || 0,
+        duration: stats.duration.per_type[typeId] || 0,
+        count: stats.count.per_type[typeId] || 0,
+      };
+    })
+    .sort((a, b) => b.distance - a.distance);
 });
 
-watch(selectedYear, (newYear) => {
-  statisticsStore.fetchYearlyStats(newYear === 'all' ? null : newYear);
-}, { immediate: true });
+watch(
+  selectedYear,
+  (newYear) => {
+    statisticsStore.fetchYearlyStats(newYear === 'all' ? null : newYear);
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   typeStore.fetchActivityTypes();
@@ -65,18 +79,30 @@ onMounted(() => {
       <table class="w-full text-left">
         <thead>
           <tr class="border-b border-verve-medium/20">
-            <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider">Activity Type</th>
-            <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider text-right">Distance</th>
-            <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider text-right">Duration</th>
-            <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider text-right">Count</th>
+            <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider">
+              Activity Type
+            </th>
+            <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider text-right">
+              Distance
+            </th>
+            <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider text-right">
+              Duration
+            </th>
+            <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider text-right">
+              Count
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="stat in statsByType" :key="stat.id"
             class="border-b border-verve-medium/10 last:border-b-0 hover:bg-verve-light/10 transition-colors">
             <td class="py-3 font-bold text-verve-brown text-sm">{{ stat.name }}</td>
-            <td class="py-3 text-verve-brown/80 text-right text-sm font-mono">{{ stat.distance.toFixed(0) }} km</td>
-            <td class="py-3 text-verve-brown/80 text-right text-sm font-mono">{{ formatDuration(stat.duration) }}</td>
+            <td class="py-3 text-verve-brown/80 text-right text-sm font-mono">
+              {{ stat.distance.toFixed(0) }} km
+            </td>
+            <td class="py-3 text-verve-brown/80 text-right text-sm font-mono">
+              {{ formatDuration(stat.duration) }}
+            </td>
             <td class="py-3 text-verve-brown/80 text-right text-sm font-mono">{{ stat.count }}</td>
           </tr>
         </tbody>
@@ -84,12 +110,15 @@ onMounted(() => {
         <tfoot v-if="statsByType.length > 1">
           <tr class="border-t-2 border-verve-medium/20">
             <td class="pt-3 font-bold text-verve-brown">Total</td>
-            <td class="pt-3 font-bold text-verve-brown text-right font-mono">{{
-              statisticsStore.yearlyStats?.distance.total.toFixed(0) }} km</td>
-            <td class="pt-3 font-bold text-verve-brown text-right font-mono">{{
-              formatDuration(statisticsStore.yearlyStats?.duration.total ?? 0) }}</td>
-            <td class="pt-3 font-bold text-verve-brown text-right font-mono">{{ statisticsStore.yearlyStats?.count.total
-              }}</td>
+            <td class="pt-3 font-bold text-verve-brown text-right font-mono">
+              {{ statisticsStore.yearlyStats?.distance.total.toFixed(0) }} km
+            </td>
+            <td class="pt-3 font-bold text-verve-brown text-right font-mono">
+              {{ formatDuration(statisticsStore.yearlyStats?.duration.total ?? 0) }}
+            </td>
+            <td class="pt-3 font-bold text-verve-brown text-right font-mono">
+              {{ statisticsStore.yearlyStats?.count.total }}
+            </td>
           </tr>
         </tfoot>
       </table>

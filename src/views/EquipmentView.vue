@@ -6,15 +6,25 @@ import EquipmentSetsManager from '@/components/EquipmentSetsManager.vue';
 const equipmentStore = useEquipmentStore();
 const activeTab = ref<'items' | 'sets'>('items');
 
-// --- Existing Logic for Individual Items Tab ---
+// --- Item Form State ---
+interface NewItemState {
+  name: string;
+  equipment_type: string;
+  brand: string;
+  model: string;
+  description: string;
+  purchase_date: string;
+}
+
 const showCreateForm = ref(false);
-const newEquipment = ref({
+const newEquipment = ref<NewItemState>({
   name: '',
   equipment_type: '',
   brand: '',
   model: '',
   description: '',
-  purchase_date: new Date().toISOString().split('T')[0]
+  // Fix: Ensure strictly string
+  purchase_date: new Date().toISOString().split('T')[0] ?? '',
 });
 
 async function handleSaveItem() {
@@ -24,16 +34,25 @@ async function handleSaveItem() {
   }
   await equipmentStore.createEquipment(newEquipment.value);
   showCreateForm.value = false;
+
   // Reset form
-  newEquipment.value = { name: '', equipment_type: equipmentStore.equipmentTypes[0] || '', brand: '', model: '', description: '', purchase_date: new Date().toISOString().split('T')[0] };
+  newEquipment.value = {
+    name: '',
+    equipment_type: equipmentStore.equipmentTypes[0] || '',
+    brand: '',
+    model: '',
+    description: '',
+    // Fix: Ensure strictly string
+    purchase_date: new Date().toISOString().split('T')[0] ?? '',
+  };
 }
 
 onMounted(async () => {
   await Promise.all([
     equipmentStore.fetchAllEquipment(),
-    equipmentStore.fetchEquipmentTypes()
+    equipmentStore.fetchEquipmentTypes(),
   ]);
-  // Set default type for the dropdown
+
   const firstType = equipmentStore.equipmentTypes[0];
   if (firstType) {
     newEquipment.value.equipment_type = firstType;
@@ -44,18 +63,25 @@ onMounted(async () => {
 <template>
   <div class="p-4 sm:p-6 lg:p-8 bg-verve-medium min-h-[calc(100vh-64px)]">
     <div class="max-w-4xl mx-auto">
-
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <h1 class="text-3xl font-bold text-verve-brown mb-4 sm:mb-0">My Gear</h1>
 
         <!-- Tab Navigation -->
-        <div class="bg-verve-light p-1 rounded-xl flex space-x-1 shadow-inner">
-          <button @click="activeTab = 'items'"
-            :class="['px-5 py-2 text-sm font-bold rounded-lg transition-all', activeTab === 'items' ? 'bg-white shadow-sm text-verve-brown' : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50']">
+        <div class="bg-verve-light p-1 rounded-xl flex gap-1 shadow-inner">
+          <button @click="activeTab = 'items'" :class="[
+            'px-5 py-2 text-sm font-bold rounded-lg transition-all',
+            activeTab === 'items'
+              ? 'bg-white shadow-sm text-verve-brown'
+              : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50',
+          ]">
             Individual Items
           </button>
-          <button @click="activeTab = 'sets'"
-            :class="['px-5 py-2 text-sm font-bold rounded-lg transition-all', activeTab === 'sets' ? 'bg-white shadow-sm text-verve-brown' : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50']">
+          <button @click="activeTab = 'sets'" :class="[
+            'px-5 py-2 text-sm font-bold rounded-lg transition-all',
+            activeTab === 'sets'
+              ? 'bg-white shadow-sm text-verve-brown'
+              : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50',
+          ]">
             Equipment Sets
           </button>
         </div>
@@ -73,7 +99,9 @@ onMounted(async () => {
         <!-- Create Form -->
         <div v-if="showCreateForm"
           class="bg-white p-6 rounded-xl shadow-sm mb-6 space-y-4 border border-verve-medium/30">
-          <h2 class="text-lg font-bold text-verve-brown border-b border-verve-medium/30 pb-3">Add New Gear</h2>
+          <h2 class="text-lg font-bold text-verve-brown border-b border-verve-medium/30 pb-3">
+            Add New Gear
+          </h2>
 
           <div>
             <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Name</label>
@@ -113,14 +141,15 @@ onMounted(async () => {
 
           <div class="flex justify-end pt-2">
             <button @click="handleSaveItem"
-              class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all">Save
-              Item</button>
+              class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all">
+              Save Item
+            </button>
           </div>
         </div>
 
         <!-- List -->
         <div v-if="equipmentStore.isLoading" class="text-center text-verve-brown/60 py-16">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-verve-brown mx-auto mb-3"></div>
+          <div class="animate-spin rounded-full size-8 border-b-2 border-verve-brown mx-auto mb-3"></div>
           Loading gear...
         </div>
 
@@ -148,7 +177,6 @@ onMounted(async () => {
       <div v-else-if="activeTab === 'sets'">
         <EquipmentSetsManager />
       </div>
-
     </div>
   </div>
 </template>
