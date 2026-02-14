@@ -37,6 +37,8 @@ export interface ActivityUpdatePayload {
   name?: string;
   type_id?: number | null;
   sub_type_id?: number | null;
+  distance?: number | null; // Added
+  duration?: string;        // Added
 }
 
 export interface ActivityCreatePayload {

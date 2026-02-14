@@ -32,3 +32,18 @@ export function formatDuration(seconds: number): string {
   }
   return `${minutes}m ${secs}s`;
 }
+
+/**
+ * Converts hours, minutes, and seconds to ISO 8601 duration string (e.g. PT1H30M).
+ * @param h Hours
+ * @param m Minutes
+ * @param s Seconds
+ * @returns ISO 8601 Duration String
+ */
+export function toISODuration(h: number, m: number, s: number): string {
+  let iso = 'PT';
+  if (h > 0) iso += `${h}H`;
+  if (m > 0) iso += `${m}M`;
+  if (s > 0 || iso === 'PT') iso += `${s}S`;
+  return iso;
+}
