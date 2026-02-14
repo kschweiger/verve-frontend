@@ -1,4 +1,13 @@
 <!-- insertion marker -->
+<a name="0.3.0"></a>
+
+## [0.3.0](https://github.com/kschweiger/verve-frontend/compare/0.2.1...0.3.0) (2026-02-14)
+
+### Code Refactoring
+
+- Update all code according to new system prompt ([784e14a](https://github.com/kschweiger/verve-frontend/commit/784e14ad1e56bcc6b20fb41cf65b691d9e20ee32))
+- User lucide-vue-next for icons ([b435161](https://github.com/kschweiger/verve-frontend/commit/b4351617b6a536463e7dd0b86d63cb269ff338a6))
+
 <a name="0.2.1"></a>
 
 ## [0.2.1](https://github.com/kschweiger/verve-frontend/compare/0.2.0...0.2.1) (2026-01-26)
