@@ -32,6 +32,7 @@ export interface MapBounds {
 export const useLocationStore = defineStore('location', () => {
   // --- State ---
   const visibleLocations = ref<Location[]>([]);
+  const availableLocations = ref<Location[]>([]); // For selection dropdowns
   const selectedLocation = ref<Location | null>(null);
   const selectedLocationActivities = ref<Activity[]>([]);
   const currentActivityLocations = ref<Location[]>([]);
@@ -88,6 +89,21 @@ export const useLocationStore = defineStore('location', () => {
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  async function fetchAllLocations() {
+    // Fetches a list of locations for dropdowns, limited to most recent 100 for now
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?limit=100`, {
+        headers: getHeaders(),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        availableLocations.value = data.data;
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -175,6 +191,48 @@ export const useLocationStore = defineStore('location', () => {
     }
   }
 
+  async function addLocationToActivity(activityId: string, locationId: string): Promise<boolean> {
+    try {
+      const params = new URLSearchParams();
+      params.append('location_id', locationId);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/add_location?${params.toString()}`,
+        {
+          method: 'PATCH',
+          headers: getHeaders(),
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to add location.');
+
+      await fetchLocationsForActivity(activityId);
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  async function removeLocationFromActivity(activityId: string, locationId: string): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/locations/${locationId}`,
+        {
+          method: 'DELETE',
+          headers: getHeaders(),
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to remove location.');
+
+      await fetchLocationsForActivity(activityId);
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
   async function _getMostRecentCoordinates(): Promise<[number, number] | null> {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?limit=1`, {
@@ -199,16 +257,20 @@ export const useLocationStore = defineStore('location', () => {
 
   return {
     visibleLocations,
+    availableLocations,
     selectedLocation,
     selectedLocationActivities,
     currentActivityLocations,
     isLoading,
     error,
     fetchLocationsInBounds,
+    fetchAllLocations,
     selectLocation,
     createLocation,
     deleteLocation,
     fetchLocationsForActivity,
+    addLocationToActivity,
+    removeLocationFromActivity,
     findLocationMapCenter,
   };
 });
