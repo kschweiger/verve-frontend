@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useLocationStore, type Location } from '@/stores/location';
-import { VERVE_COLORS } from '@/utils/colors'; // <--- Import Colors
+import { useTypeStore } from '@/stores/types';
+import { VERVE_COLORS } from '@/utils/colors';
 import ActivityListItem from '@/components/ActivityListItem.vue';
-import { Trash2, Plus } from 'lucide-vue-next';
+import { Trash2, Plus, Edit2, Check, X as IconX } from 'lucide-vue-next';
 import LocationCreateModal from '@/components/forms/LocationCreateModal.vue';
 import LocationGoalCreateForm from '@/components/forms/LocationGoalCreateForm.vue';
 
 const route = useRoute();
 const router = useRouter();
 const locationStore = useLocationStore();
+const typeStore = useTypeStore();
 
 // Map State
 const mapContainer = ref<HTMLElement | null>(null);
@@ -24,6 +26,11 @@ const isAddingLocation = ref(false);
 const showCreateModal = ref(false);
 const showGoalModal = ref(false);
 const newLocationCoords = ref<{ lat: number, lng: number } | undefined>(undefined);
+
+// Edit Type State
+const isEditingType = ref(false);
+const editTypeId = ref<number | null>(null);
+const editSubTypeId = ref<number | null>(null);
 
 watch(isAddingLocation, (val) => {
   if (mapContainer.value) {
@@ -37,6 +44,8 @@ async function determineInitialCenter(): Promise<L.LatLngExpression> {
 }
 
 onMounted(async () => {
+  typeStore.fetchLocationTypes();
+
   if (mapContainer.value) {
     let center: L.LatLngExpression;
     let initialZoom = 10;
@@ -100,7 +109,6 @@ watch(() => locationStore.visibleLocations, (newLocations) => {
   markersLayer.clearLayers();
 
   newLocations.forEach(loc => {
-    // UPDATED: Use CircleMarker with Verve Orange
     const marker = L.circleMarker([loc.latitude, loc.longitude], {
       radius: 8,
       color: '#ffffff',
@@ -123,6 +131,9 @@ async function handleMarkerClick(location: Location) {
   if (map) map.panTo([location.latitude, location.longitude], { animate: true });
   await locationStore.selectLocation(location.id);
   isSidebarOpen.value = true;
+
+  // Reset edit state
+  isEditingType.value = false;
 }
 
 function handleMapBackgroundClick(e: L.LeafletMouseEvent) {
@@ -170,6 +181,49 @@ function handleCreateGoal() {
 function handleGoalSaved() {
   showGoalModal.value = false;
 }
+
+// --- Type Editing Logic ---
+const currentLocationTypeName = computed(() => {
+  const loc = locationStore.selectedLocation;
+  if (!loc || !loc.type_id) return 'Uncategorized';
+  const type = typeStore.locationTypes.find(t => t.id === loc.type_id);
+  if (!type) return 'Unknown Type';
+
+  let label = type.name;
+  if (loc.sub_type_id) {
+    const sub = type.sub_types.find(s => s.id === loc.sub_type_id);
+    if (sub) label += ` • ${sub.name}`;
+  }
+  return label;
+});
+
+const editAvailableSubTypes = computed(() => {
+  if (!editTypeId.value) return [];
+  const found = typeStore.locationTypes.find(t => t.id === editTypeId.value);
+  return found ? found.sub_types : [];
+});
+
+watch(editTypeId, () => {
+  editSubTypeId.value = null;
+});
+
+function startEditingType() {
+  if (!locationStore.selectedLocation) return;
+  editTypeId.value = locationStore.selectedLocation.type_id || null;
+  editSubTypeId.value = locationStore.selectedLocation.sub_type_id || null;
+  isEditingType.value = true;
+}
+
+async function saveTypeChange() {
+  if (!locationStore.selectedLocation || !editTypeId.value) return;
+
+  await locationStore.updateLocationType(
+    locationStore.selectedLocation.id,
+    editTypeId.value,
+    editSubTypeId.value
+  );
+  isEditingType.value = false;
+}
 </script>
 
 <template>
@@ -189,9 +243,7 @@ function handleGoalSaved() {
       <button v-else @click="cancelAddMode"
         class="bg-white p-2 rounded-xl shadow-md border-2 border-verve-orange text-verve-orange hover:bg-verve-light transition-colors animate-pulse"
         title="Cancel">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <IconX class="size-6" />
       </button>
     </div>
 
@@ -212,25 +264,59 @@ function handleGoalSaved() {
       leave-from-class="translate-x-0" leave-to-class="translate-x-full">
       <aside v-if="isSidebarOpen && locationStore.selectedLocation"
         class="absolute top-0 right-0 h-full w-full sm:w-96 bg-white shadow-2xl z-[1000] flex flex-col border-l border-verve-medium/30">
+
         <!-- Sidebar Header -->
-        <div class="p-6 bg-white border-b border-verve-medium/30 flex justify-between items-start">
-          <div>
+        <div class="p-6 bg-white border-b border-verve-medium/30">
+          <div class="flex justify-between items-start mb-2">
             <h2 class="text-2xl font-bold text-verve-brown leading-tight">{{ locationStore.selectedLocation.name }}</h2>
-            <p class="text-verve-brown/60 text-sm mt-1" v-if="locationStore.selectedLocation.description">
-              {{ locationStore.selectedLocation.description }}
-            </p>
-            <div class="text-xs text-verve-brown/40 mt-2 font-mono">
-              {{ locationStore.selectedLocation.latitude.toFixed(4) }}, {{
-                locationStore.selectedLocation.longitude.toFixed(4) }}
+            <button @click="closeSidebar"
+              class="text-verve-brown/40 hover:text-verve-brown p-1 hover:bg-verve-light rounded-lg transition-colors">
+              <IconX class="size-6" />
+            </button>
+          </div>
+
+          <!-- Type Display / Edit -->
+          <div class="mb-3">
+            <div v-if="!isEditingType" class="flex items-center gap-2 group">
+              <span
+                class="text-xs font-bold uppercase tracking-wider text-verve-brown/60 bg-verve-light/50 px-2 py-0.5 rounded">
+                {{ currentLocationTypeName }}
+              </span>
+              <button @click="startEditingType"
+                class="text-verve-brown/30 hover:text-verve-brown opacity-0 group-hover:opacity-100 transition-all"
+                title="Edit Category">
+                <Edit2 class="size-3" />
+              </button>
+            </div>
+
+            <div v-else class="flex flex-col gap-2 bg-verve-light/20 p-2 rounded-lg border border-verve-medium/20">
+              <select v-model="editTypeId" class="text-xs border-verve-medium rounded-md py-1 text-verve-brown">
+                <option :value="null">No Category</option>
+                <option v-for="t in typeStore.locationTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+              </select>
+              <select v-model="editSubTypeId" :disabled="!editTypeId || editAvailableSubTypes.length === 0"
+                class="text-xs border-verve-medium rounded-md py-1 text-verve-brown disabled:opacity-50">
+                <option :value="null">No Sub-Category</option>
+                <option v-for="st in editAvailableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
+              </select>
+              <div class="flex gap-2 justify-end mt-1">
+                <button @click="isEditingType = false" class="p-1 text-red-500 hover:bg-red-50 rounded">
+                  <IconX class="size-3" />
+                </button>
+                <button @click="saveTypeChange" class="p-1 text-green-600 hover:bg-green-50 rounded">
+                  <Check class="size-3" />
+                </button>
+              </div>
             </div>
           </div>
-          <button @click="closeSidebar"
-            class="text-verve-brown/40 hover:text-verve-brown p-1 hover:bg-verve-light rounded-lg transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+
+          <p class="text-verve-brown/60 text-sm mt-1" v-if="locationStore.selectedLocation.description">
+            {{ locationStore.selectedLocation.description }}
+          </p>
+          <div class="text-xs text-verve-brown/40 mt-2 font-mono">
+            {{ locationStore.selectedLocation.latitude.toFixed(4) }}, {{
+              locationStore.selectedLocation.longitude.toFixed(4) }}
+          </div>
         </div>
 
         <!-- Scrollable Content -->

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { useLocationStore, type LocationCreatePayload } from '@/stores/location';
+import { useTypeStore } from '@/stores/types';
 
 const props = defineProps<{
   initialLat?: number;
@@ -13,16 +14,23 @@ const emit = defineEmits<{
 }>();
 
 const locationStore = useLocationStore();
+const typeStore = useTypeStore();
 
 const form = ref({
   name: '',
   description: '',
   latitude: props.initialLat || 0,
   longitude: props.initialLng || 0,
+  typeId: null as number | null,
+  subTypeId: null as number | null,
 });
 
 const isSaving = ref(false);
 const error = ref<string | null>(null);
+
+onMounted(() => {
+  typeStore.fetchLocationTypes();
+});
 
 watch(
   () => props.initialLat,
@@ -36,6 +44,17 @@ watch(
     if (val) form.value.longitude = val;
   }
 );
+
+// Reset sub-type when main type changes
+watch(() => form.value.typeId, () => {
+  form.value.subTypeId = null;
+});
+
+const availableSubTypes = computed(() => {
+  if (!form.value.typeId) return [];
+  const found = typeStore.locationTypes.find(t => t.id === form.value.typeId);
+  return found ? found.sub_types : [];
+});
 
 async function handleSubmit() {
   if (!form.value.name) {
@@ -51,6 +70,8 @@ async function handleSubmit() {
     description: form.value.description ? form.value.description : null,
     latitude: Number(form.value.latitude),
     longitude: Number(form.value.longitude),
+    type_id: form.value.typeId,
+    sub_type_id: form.value.subTypeId,
   };
 
   const success = await locationStore.createLocation(payload);
@@ -93,6 +114,30 @@ async function handleSubmit() {
           <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Description</label>
           <textarea v-model="form.description" rows="2"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-brown/30"></textarea>
+        </div>
+
+        <!-- Types Row -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Category</label>
+            <select v-model="form.typeId"
+              class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
+              <option :value="null">None</option>
+              <option v-for="t in typeStore.locationTypes" :key="t.id" :value="t.id">
+                {{ t.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Sub Category</label>
+            <select v-model="form.subTypeId" :disabled="!form.typeId || availableSubTypes.length === 0"
+              class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white disabled:bg-gray-50 disabled:text-gray-400">
+              <option :value="null">None</option>
+              <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
+                {{ st.name }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">

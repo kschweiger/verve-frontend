@@ -13,6 +13,8 @@ export interface Location {
   latitude: number;
   longitude: number;
   created_at: string;
+  type_id?: number | null;      // Added
+  sub_type_id?: number | null;  // Added
 }
 
 export interface LocationCreatePayload {
@@ -20,6 +22,8 @@ export interface LocationCreatePayload {
   description?: string | null;
   latitude: number;
   longitude: number;
+  type_id?: number | null;      // Added
+  sub_type_id?: number | null;  // Added
 }
 
 export interface MapBounds {
@@ -32,7 +36,7 @@ export interface MapBounds {
 export const useLocationStore = defineStore('location', () => {
   // --- State ---
   const visibleLocations = ref<Location[]>([]);
-  const availableLocations = ref<Location[]>([]); // For selection dropdowns
+  const availableLocations = ref<Location[]>([]);
   const selectedLocation = ref<Location | null>(null);
   const selectedLocationActivities = ref<Activity[]>([]);
   const currentActivityLocations = ref<Location[]>([]);
@@ -93,7 +97,6 @@ export const useLocationStore = defineStore('location', () => {
   }
 
   async function fetchAllLocations() {
-    // Fetches a list of locations for dropdowns, limited to most recent 100 for now
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?limit=100`, {
         headers: getHeaders(),
@@ -113,14 +116,12 @@ export const useLocationStore = defineStore('location', () => {
     selectedLocationActivities.value = [];
 
     try {
-      // 1. Fetch Location Details
       const locResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/${locationId}`, {
         headers: getHeaders(),
       });
       if (!locResponse.ok) throw new Error('Failed to load location details.');
       selectedLocation.value = await locResponse.json();
 
-      // 2. Fetch Matched Activities
       const actResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/${locationId}/activities`, {
         headers: getHeaders(),
       });
@@ -163,11 +164,38 @@ export const useLocationStore = defineStore('location', () => {
 
       if (!response.ok) throw new Error('Failed to delete location.');
 
-      // Optimistic update
       visibleLocations.value = visibleLocations.value.filter((l) => l.id !== locationId);
       if (selectedLocation.value?.id === locationId) {
         selectedLocation.value = null;
         selectedLocationActivities.value = [];
+      }
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
+  async function updateLocationType(id: string, typeId: number, subTypeId: number | null): Promise<boolean> {
+    try {
+      const params = new URLSearchParams();
+      params.append('type_id', typeId.toString());
+      if (subTypeId !== null) params.append('sub_type_id', subTypeId.toString());
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/location/${id}/replace_type?${params.toString()}`,
+        {
+          method: 'PATCH',
+          headers: getHeaders(),
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to update location type');
+
+      // Update local state if currently selected
+      if (selectedLocation.value?.id === id) {
+        selectedLocation.value.type_id = typeId;
+        selectedLocation.value.sub_type_id = subTypeId;
       }
       return true;
     } catch (e) {
@@ -252,7 +280,7 @@ export const useLocationStore = defineStore('location', () => {
   async function findLocationMapCenter(): Promise<[number, number]> {
     const recent = await _getMostRecentCoordinates();
     if (recent) return recent;
-    return [48.13, 11.58]; // Fallback
+    return [48.13, 11.58];
   }
 
   return {
@@ -268,6 +296,7 @@ export const useLocationStore = defineStore('location', () => {
     selectLocation,
     createLocation,
     deleteLocation,
+    updateLocationType, // Exported
     fetchLocationsForActivity,
     addLocationToActivity,
     removeLocationFromActivity,
