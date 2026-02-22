@@ -38,8 +38,8 @@ export function getCategoryColor(id: number | null | undefined): string {
   if (id === null || id === undefined) {
     return UNCATEGORIZED_COLOR;
   }
-  // Use modulo to cycle through the palette so it loops if we have many types
-  return CATEGORY_PALETTE[id % CATEGORY_PALETTE.length];
+  const index = Math.abs(id) % CATEGORY_PALETTE.length;
+  return CATEGORY_PALETTE[index] ?? UNCATEGORIZED_COLOR;
 }
 
 /**
