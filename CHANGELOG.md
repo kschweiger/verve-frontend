@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="0.4.1"></a>
+
+## [0.4.1](https://github.com/kschweiger/verve-frontend/compare/0.4.0...0.4.1) (2026-02-22)
+
+### Bug Fixes
+
+- **utils:** resolve type safety and indexing issues in category color helper ([13eb0f7](https://github.com/kschweiger/verve-frontend/commit/13eb0f7d33700bba0ee62998607ffc0b728c69a5))
+
 <a name="0.4.0"></a>
 
 ## [0.4.0](https://github.com/kschweiger/verve-frontend/compare/0.3.0...0.4.0) (2026-02-22)
