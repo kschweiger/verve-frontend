@@ -1,4 +1,16 @@
 <!-- insertion marker -->
+<a name="0.4.0"></a>
+
+## [0.4.0](https://github.com/kschweiger/verve-frontend/compare/0.3.0...0.4.0) (2026-02-22)
+
+### Features
+
+- 🎨 Add location filtering and color-coded markers (#10) ([8a38e98](https://github.com/kschweiger/verve-frontend/commit/8a38e984bc57603d3668cfa69340094f7d0ff784))
+- 🏷️ Add location categorization with types and subtypes (#10) ([7e207e3](https://github.com/kschweiger/verve-frontend/commit/7e207e3c2faf4dce753cc5bcb453601a6e8ebb09))
+- 📤 Add batch file upload with progress tracking (#12) ([85d58b0](https://github.com/kschweiger/verve-frontend/commit/85d58b0781d53e160841ef9a1a8a44da49277033))
+- 🎯 Add location management to activity detail view ([3c10353](https://github.com/kschweiger/verve-frontend/commit/3c10353d51d44a1b3a8d65b2b00ea70542008740))
+- ⏱️ Add distance and duration fields to activity editing (#9) ([37a7a90](https://github.com/kschweiger/verve-frontend/commit/37a7a90cd485835067650aa6b5a81ff81a983b67))
+
 <a name="0.3.0"></a>
 
 ## [0.3.0](https://github.com/kschweiger/verve-frontend/compare/0.2.1...0.3.0) (2026-02-14)
