@@ -13,8 +13,8 @@ export interface Location {
   latitude: number;
   longitude: number;
   created_at: string;
-  type_id?: number | null;      // Added
-  sub_type_id?: number | null;  // Added
+  type_id?: number | null;
+  sub_type_id?: number | null;
 }
 
 export interface LocationCreatePayload {
@@ -22,8 +22,8 @@ export interface LocationCreatePayload {
   description?: string | null;
   latitude: number;
   longitude: number;
-  type_id?: number | null;      // Added
-  sub_type_id?: number | null;  // Added
+  type_id?: number | null;
+  sub_type_id?: number | null;
 }
 
 export interface MapBounds {
@@ -31,6 +31,11 @@ export interface MapBounds {
   latMax: number;
   lngMin: number;
   lngMax: number;
+}
+
+export interface LocationFilters {
+  typeId?: number | null;
+  subTypeId?: number | null;
 }
 
 export const useLocationStore = defineStore('location', () => {
@@ -70,7 +75,7 @@ export const useLocationStore = defineStore('location', () => {
   };
 
   // --- Actions ---
-  async function fetchLocationsInBounds(bounds: MapBounds) {
+  async function fetchLocationsInBounds(bounds: MapBounds, filters?: LocationFilters) {
     isLoading.value = true;
     error.value = null;
     try {
@@ -80,6 +85,14 @@ export const useLocationStore = defineStore('location', () => {
       params.append('longitude_lower_bound', bounds.lngMin.toString());
       params.append('longitude_upper_bound', bounds.lngMax.toString());
       params.append('limit', '100');
+
+      // Apply Filters
+      if (filters?.typeId) {
+        params.append('type_id', filters.typeId.toString());
+      }
+      if (filters?.subTypeId) {
+        params.append('sub_type_id', filters.subTypeId.toString());
+      }
 
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?${params.toString()}`, {
         headers: getHeaders(),
@@ -192,7 +205,6 @@ export const useLocationStore = defineStore('location', () => {
 
       if (!response.ok) throw new Error('Failed to update location type');
 
-      // Update local state if currently selected
       if (selectedLocation.value?.id === id) {
         selectedLocation.value.type_id = typeId;
         selectedLocation.value.sub_type_id = subTypeId;
@@ -296,7 +308,7 @@ export const useLocationStore = defineStore('location', () => {
     selectLocation,
     createLocation,
     deleteLocation,
-    updateLocationType, // Exported
+    updateLocationType,
     fetchLocationsForActivity,
     addLocationToActivity,
     removeLocationFromActivity,

@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useLocationStore, type Location } from '@/stores/location';
 import { useTypeStore } from '@/stores/types';
-import { VERVE_COLORS } from '@/utils/colors';
+import { VERVE_COLORS, getCategoryColor } from '@/utils/colors'; // Import helper
 import ActivityListItem from '@/components/ActivityListItem.vue';
 import { Trash2, Plus, Edit2, Check, X as IconX } from 'lucide-vue-next';
 import LocationCreateModal from '@/components/forms/LocationCreateModal.vue';
@@ -32,6 +32,25 @@ const isEditingType = ref(false);
 const editTypeId = ref<number | null>(null);
 const editSubTypeId = ref<number | null>(null);
 
+// Global Filters State
+const filterTypeId = ref<number | null>(null);
+const filterSubTypeId = ref<number | null>(null);
+
+const filterAvailableSubTypes = computed(() => {
+  if (!filterTypeId.value) return [];
+  const found = typeStore.locationTypes.find(t => t.id === filterTypeId.value);
+  return found ? found.sub_types : [];
+});
+
+watch(filterTypeId, () => {
+  filterSubTypeId.value = null;
+  handleMapMove();
+});
+
+watch(filterSubTypeId, () => {
+  handleMapMove();
+});
+
 watch(isAddingLocation, (val) => {
   if (mapContainer.value) {
     mapContainer.value.style.cursor = val ? 'crosshair' : '';
@@ -44,7 +63,7 @@ async function determineInitialCenter(): Promise<L.LatLngExpression> {
 }
 
 onMounted(async () => {
-  typeStore.fetchLocationTypes();
+  await typeStore.fetchLocationTypes();
 
   if (mapContainer.value) {
     let center: L.LatLngExpression;
@@ -96,24 +115,32 @@ onUnmounted(() => {
 function handleMapMove() {
   if (!map) return;
   const bounds = map.getBounds();
+
   locationStore.fetchLocationsInBounds({
     latMin: bounds.getSouth(),
     latMax: bounds.getNorth(),
     lngMin: bounds.getWest(),
     lngMax: bounds.getEast()
+  }, {
+    typeId: filterTypeId.value,
+    subTypeId: filterSubTypeId.value
   });
 }
 
+// --- UPDATED: Color Coded Markers ---
 watch(() => locationStore.visibleLocations, (newLocations) => {
   if (!map || !markersLayer) return;
   markersLayer.clearLayers();
 
   newLocations.forEach(loc => {
+    // Determine color based on Type ID
+    const color = getCategoryColor(loc.type_id);
+
     const marker = L.circleMarker([loc.latitude, loc.longitude], {
       radius: 8,
-      color: '#ffffff',
+      color: '#ffffff', // White stroke for contrast
       weight: 2,
-      fillColor: VERVE_COLORS.orange,
+      fillColor: color,
       fillOpacity: 1
     });
 
@@ -131,8 +158,6 @@ async function handleMarkerClick(location: Location) {
   if (map) map.panTo([location.latitude, location.longitude], { animate: true });
   await locationStore.selectLocation(location.id);
   isSidebarOpen.value = true;
-
-  // Reset edit state
   isEditingType.value = false;
 }
 
@@ -182,7 +207,6 @@ function handleGoalSaved() {
   showGoalModal.value = false;
 }
 
-// --- Type Editing Logic ---
 const currentLocationTypeName = computed(() => {
   const loc = locationStore.selectedLocation;
   if (!loc || !loc.type_id) return 'Uncategorized';
@@ -223,6 +247,9 @@ async function saveTypeChange() {
     editSubTypeId.value
   );
   isEditingType.value = false;
+
+  // Refresh visible markers to update colors immediately
+  handleMapMove();
 }
 </script>
 
@@ -231,6 +258,24 @@ async function saveTypeChange() {
 
     <!-- Map Container -->
     <div ref="mapContainer" class="h-full w-full z-0"></div>
+
+    <!-- Filter Controls (Top Right) -->
+    <div
+      class="absolute top-4 right-4 z-[500] flex gap-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-xl shadow-md border border-verve-medium/30">
+      <select v-model="filterTypeId"
+        class="text-xs border-transparent bg-transparent font-bold text-verve-brown focus:ring-0 cursor-pointer hover:bg-verve-light/50 rounded-lg py-1 px-2 transition-colors">
+        <option :value="null">All Categories</option>
+        <option v-for="t in typeStore.locationTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+      </select>
+
+      <div v-if="filterTypeId && filterAvailableSubTypes.length > 0" class="w-px bg-verve-medium/30 mx-1"></div>
+
+      <select v-if="filterTypeId && filterAvailableSubTypes.length > 0" v-model="filterSubTypeId"
+        class="text-xs border-transparent bg-transparent text-verve-brown focus:ring-0 cursor-pointer hover:bg-verve-light/50 rounded-lg py-1 px-2 transition-colors">
+        <option :value="null">All Sub-Categories</option>
+        <option v-for="st in filterAvailableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
+      </select>
+    </div>
 
     <!-- Toolbar (Top-Left) -->
     <div class="absolute top-4 left-14 z-[500] flex flex-col space-y-2">
@@ -278,6 +323,11 @@ async function saveTypeChange() {
           <!-- Type Display / Edit -->
           <div class="mb-3">
             <div v-if="!isEditingType" class="flex items-center gap-2 group">
+              <!-- ADDED: Dynamic Color Dot -->
+              <div class="size-3 rounded-full shrink-0"
+                :style="{ backgroundColor: getCategoryColor(locationStore.selectedLocation.type_id) }"
+                :title="currentLocationTypeName">
+              </div>
               <span
                 class="text-xs font-bold uppercase tracking-wider text-verve-brown/60 bg-verve-light/50 px-2 py-0.5 rounded">
                 {{ currentLocationTypeName }}
@@ -290,12 +340,13 @@ async function saveTypeChange() {
             </div>
 
             <div v-else class="flex flex-col gap-2 bg-verve-light/20 p-2 rounded-lg border border-verve-medium/20">
-              <select v-model="editTypeId" class="text-xs border-verve-medium rounded-md py-1 text-verve-brown">
+              <select v-model="editTypeId"
+                class="text-xs border-verve-medium rounded-md py-1 text-verve-brown bg-white">
                 <option :value="null">No Category</option>
                 <option v-for="t in typeStore.locationTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
               </select>
               <select v-model="editSubTypeId" :disabled="!editTypeId || editAvailableSubTypes.length === 0"
-                class="text-xs border-verve-medium rounded-md py-1 text-verve-brown disabled:opacity-50">
+                class="text-xs border-verve-medium rounded-md py-1 text-verve-brown disabled:opacity-50 bg-white">
                 <option :value="null">No Sub-Category</option>
                 <option v-for="st in editAvailableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
               </select>

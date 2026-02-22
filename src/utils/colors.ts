@@ -14,6 +14,34 @@ export const VERVE_COLORS = {
   chartGray: '#9ca3af',
 };
 
+// Distinct palette for Categories (using Chart colors + Verve accents)
+export const CATEGORY_PALETTE = [
+  VERVE_COLORS.orange,
+  VERVE_COLORS.dark,
+  VERVE_COLORS.brown,
+  VERVE_COLORS.neon,
+  VERVE_COLORS.chartBlue,
+  VERVE_COLORS.chartRed,
+  VERVE_COLORS.chartPurple,
+  '#06b6d4',           // Cyan-500
+  '#eab308',           // Yellow-500
+  '#ec4899',           // Pink-500
+];
+
+export const UNCATEGORIZED_COLOR = '#9ca3af'; // Gray-400
+
+/**
+ * Returns a consistent color for a given ID.
+ * Useful for mapping Category IDs to map markers or charts.
+ */
+export function getCategoryColor(id: number | null | undefined): string {
+  if (id === null || id === undefined) {
+    return UNCATEGORIZED_COLOR;
+  }
+  // Use modulo to cycle through the palette so it loops if we have many types
+  return CATEGORY_PALETTE[id % CATEGORY_PALETTE.length];
+}
+
 /**
  * Converts a Hex color (#RRGGBB) to an RGBA string.
  * @param hex The hex code (e.g. #778332)
