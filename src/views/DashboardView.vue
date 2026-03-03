@@ -13,10 +13,11 @@ const userStore = useUserStore();
 </script>
 
 <template>
-  <div class="min-h-full flex flex-col">
-    <!-- SECTION 1: White Background (Header & Statistics) -->
-    <div class="bg-white pt-8 pb-12 px-4 sm:px-6 lg:px-8 border-b border-verve-medium/20">
-      <div class="max-w-7xl mx-auto">
+  <div class="min-h-full flex flex-col bg-verve-medium">
+
+    <!-- SECTION 1: Header & Statistics -->
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white rounded-b-2xl shadow-sm border border-verve-medium/30 p-6 sm:p-8">
         <!-- Header -->
         <div class="flex justify-between items-end mb-8">
           <div>
@@ -35,41 +36,38 @@ const userStore = useUserStore();
       </div>
     </div>
 
-    <!-- SECTION 2: Medium Green Background (Widget Grid) -->
-    <div class="bg-verve-medium grow px-4 sm:px-6 lg:px-8 py-8">
-      <div class="max-w-7xl mx-auto">
-        <!-- Widget Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <CalendarWidget />
-          <LastActivitiesWidget />
-          <GoalsWidget />
+    <!-- SECTION 2: Widget Grid -->
+    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grow">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <CalendarWidget />
+        <LastActivitiesWidget />
+        <GoalsWidget />
 
-          <HighlightsWidget />
-          <UploadActivityWidget />
-          <QuickAddWidget />
+        <HighlightsWidget />
+        <UploadActivityWidget />
+        <QuickAddWidget />
 
-          <!-- Placeholders -->
-          <div
-            class="bg-white/50 border-2 border-dashed border-verve-brown/10 rounded-xl shadow-sm h-48 flex items-center justify-center hover:bg-white/60 transition-colors cursor-pointer group">
-            <p class="text-verve-brown/40 font-bold group-hover:text-verve-brown/60">
-              Future Widget Spot
-            </p>
-          </div>
-          <div
-            class="bg-white/50 border-2 border-dashed border-verve-brown/10 rounded-xl shadow-sm h-48 flex items-center justify-center hover:bg-white/60 transition-colors cursor-pointer group">
-            <p class="text-verve-brown/40 font-bold group-hover:text-verve-brown/60">
-              Future Widget Spot
-            </p>
-          </div>
+        <!-- Placeholders -->
+        <div
+          class="bg-white/50 border-2 border-dashed border-verve-brown/10 rounded-xl shadow-sm h-48 flex items-center justify-center hover:bg-white/60 transition-colors cursor-pointer group">
+          <p class="text-verve-brown/40 font-bold group-hover:text-verve-brown/60">
+            Future Widget Spot
+          </p>
         </div>
-
-        <!-- Add Widget Button -->
-        <div class="flex justify-center pt-12 pb-4">
-          <button
-            class="px-6 py-3 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all flex items-center gap-2">
-            <span class="text-xl leading-none">+</span> Add Widget
-          </button>
+        <div
+          class="bg-white/50 border-2 border-dashed border-verve-brown/10 rounded-xl shadow-sm h-48 flex items-center justify-center hover:bg-white/60 transition-colors cursor-pointer group">
+          <p class="text-verve-brown/40 font-bold group-hover:text-verve-brown/60">
+            Future Widget Spot
+          </p>
         </div>
+      </div>
+
+      <!-- Add Widget Button -->
+      <div class="flex justify-center pt-12 pb-4">
+        <button
+          class="px-6 py-3 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all flex items-center gap-2">
+          <span class="text-xl leading-none">+</span> Add Widget
+        </button>
       </div>
     </div>
   </div>
