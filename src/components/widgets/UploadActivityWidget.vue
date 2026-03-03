@@ -166,9 +166,15 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
       <!-- MODE B: Selection Form -->
       <form v-else @submit.prevent="handleBatchUpload" class="space-y-4 flex flex-col h-full">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            GPX/FIT/GeoJSON Files
-          </label>
+          <div class="flex justify-between items-center mb-1">
+            <label class="block text-sm font-medium text-gray-700">
+              GPX/FIT/GeoJSON Files
+            </label>
+            <router-link to="/help#formats" class="text-verve-brown/40 hover:text-verve-orange transition-colors"
+              title="View supported formats">
+              <HelpCircle class="size-4" />
+            </router-link>
+          </div>
           <div class="relative">
             <input id="file-upload" type="file" @change="handleFileChange" multiple required
               class="file-input w-full" />
