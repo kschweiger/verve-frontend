@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useGoalStore, type Goal } from '@/stores/goals';
+import { useActivityStore } from '@/stores/activity'; // Import
 import GoalCreateForm from '@/components/forms/GoalCreateForm.vue';
 
 const goalStore = useGoalStore();
+const activityStore = useActivityStore(); // Init
 const showCreateModal = ref(false);
 
-// --- Time State ---
 const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonth = now.getMonth() + 1;
@@ -20,15 +21,18 @@ function getISOWeek(date: Date) {
 }
 const currentWeek = getISOWeek(now);
 
-// --- Tabs State ---
 type Tab = 'weekly' | 'monthly' | 'yearly';
 const activeTab = ref<Tab>('monthly');
 
 const tabs: Tab[] = ['weekly', 'monthly', 'yearly'];
 
-onMounted(() => {
+const refreshGoals = () => {
   goalStore.fetchAllGoalsForView(currentYear, currentMonth, currentWeek);
-});
+};
+
+onMounted(refreshGoals);
+
+watch(() => activityStore.lastUpdate, refreshGoals);
 
 const currentGoals = computed(() => {
   switch (activeTab.value) {
@@ -91,8 +95,8 @@ const getProgressBarColor = (goal: Goal) => {
     <div class="flex border-b border-verve-medium/30 mb-4">
       <button v-for="tab in tabs" :key="tab" @click="activeTab = tab"
         class="pb-2 px-3 text-sm font-bold transition-colors relative capitalize cursor-pointer" :class="activeTab === tab
-            ? 'text-verve-brown'
-            : 'text-verve-brown/50 hover:text-verve-brown/80'
+          ? 'text-verve-brown'
+          : 'text-verve-brown/50 hover:text-verve-brown/80'
           ">
         {{ tab }}
         <!-- Active Indicator -->

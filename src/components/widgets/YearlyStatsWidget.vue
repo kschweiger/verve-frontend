@@ -2,10 +2,12 @@
 import { ref, watch, computed, onMounted } from 'vue';
 import { useStatisticsStore } from '@/stores/statistics';
 import { useTypeStore } from '@/stores/types';
+import { useActivityStore } from '@/stores/activity'; // Import
 import { formatDuration } from '@/utils/datetime';
 
 const statisticsStore = useStatisticsStore();
 const typeStore = useTypeStore();
+const activityStore = useActivityStore();
 
 const currentYear = new Date().getFullYear();
 const selectedYear = ref<number | 'all'>(currentYear);
@@ -42,13 +44,13 @@ const statsByType = computed<YearlyStatRow[]>(() => {
     .sort((a, b) => b.distance - a.distance);
 });
 
-watch(
-  selectedYear,
-  (newYear) => {
-    statisticsStore.fetchYearlyStats(newYear === 'all' ? null : newYear);
-  },
-  { immediate: true }
-);
+const loadStats = () => {
+  statisticsStore.fetchYearlyStats(selectedYear.value === 'all' ? null : selectedYear.value);
+};
+
+watch(selectedYear, loadStats, { immediate: true });
+
+watch(() => activityStore.lastUpdate, loadStats);
 
 onMounted(() => {
   typeStore.fetchActivityTypes();

@@ -37,8 +37,8 @@ export interface ActivityUpdatePayload {
   name?: string;
   type_id?: number | null;
   sub_type_id?: number | null;
-  distance?: number | null; // Added
-  duration?: string;        // Added
+  distance?: number | null;
+  duration?: string;
 }
 
 export interface ActivityCreatePayload {
@@ -94,9 +94,16 @@ export const useActivityStore = defineStore('activity', () => {
   const activityImages = ref<ActivityImage[]>([]);
   const isImagesLoading = ref(false);
 
+  // Signal for other components to refresh data
+  const lastUpdate = ref<number>(Date.now());
+
   const userStore = useUserStore();
 
   // --- ACTIONS ---
+  function notifyUpdate() {
+    lastUpdate.value = Date.now();
+  }
+
   async function fetchRecentActivities() {
     if (isRecentLoading.value) return;
 
@@ -225,6 +232,7 @@ export const useActivityStore = defineStore('activity', () => {
       }
 
       fetchRecentActivities();
+      notifyUpdate();
       return { success: true, message: 'Activity uploaded successfully!' };
     } catch (e: unknown) {
       return { success: false, message: e instanceof Error ? e.message : String(e) };
@@ -248,6 +256,8 @@ export const useActivityStore = defineStore('activity', () => {
       });
 
       if (!response.ok) throw new Error('Failed to update activity.');
+
+      notifyUpdate();
       return true;
     } catch (e) {
       console.error(e);
@@ -305,6 +315,7 @@ export const useActivityStore = defineStore('activity', () => {
       }
 
       fetchRecentActivities();
+      notifyUpdate();
       return { success: true, message: 'Activity created successfully!' };
     } catch (e: unknown) {
       return { success: false, message: e instanceof Error ? e.message : String(e) };
@@ -394,6 +405,7 @@ export const useActivityStore = defineStore('activity', () => {
       if (!response.ok) throw new Error('Failed to delete activity');
 
       recentActivities.value = recentActivities.value.filter((a) => a.id !== id);
+      notifyUpdate();
       return true;
     } catch (e) {
       console.error(e);
@@ -421,5 +433,6 @@ export const useActivityStore = defineStore('activity', () => {
     fetchActivityImages,
     uploadActivityImage,
     deleteActivityImage,
+    lastUpdate,
   };
 });

@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted } from 'vue';
 import { useWeeklyStore } from '@/stores/weekly';
 import { useTypeStore } from '@/stores/types';
+import { useActivityStore } from '@/stores/activity'; // Import
 import { formatDuration } from '@/utils/datetime';
 import WeeklyBarChart from '@/components/charts/WeeklyBarChart.vue';
 import SubTypePieChart from '@/components/charts/SubTypePieChart.vue';
@@ -10,13 +11,12 @@ import { CHART_COLORS, CHART_HOVER_COLORS, VERVE_COLORS } from '@/utils/colors';
 // Get store instances
 const weeklyStore = useWeeklyStore();
 const typeStore = useTypeStore();
+const activityStore = useActivityStore(); // Init
 
-// --- LOCAL UI STATE ---
 const selectedActivityTypeId = ref<number | null>(null);
 const selectedMetric = ref<'distance' | 'duration' | 'elevation_gain'>('distance');
 const currentDate = ref(new Date());
 
-// --- COMPUTED PROPERTIES ---
 const selectedMetricTotal = computed(() => {
   const stats = weeklyStore.weeklyData;
   const metric = selectedMetric.value;
@@ -67,7 +67,6 @@ const barChartData = computed(() => {
   };
 });
 
-// Format data for the pie chart
 const pieChartData = computed(() => {
   const data = weeklyStore.weeklyData?.[selectedMetric.value]?.pie_data;
   const primaryType = typeStore.activityTypes.find((t) => t.id === selectedActivityTypeId.value);
@@ -79,7 +78,6 @@ const pieChartData = computed(() => {
     return subType?.name ?? `Sub-Type #${subTypeIdStr}`;
   });
 
-  // Ensure arrays are long enough or cycle colors if needed
   const pieColors = [...CHART_COLORS.slice(1), CHART_COLORS[0]];
   const pieHoverColors = [...CHART_HOVER_COLORS.slice(1), CHART_HOVER_COLORS[0]];
 
@@ -96,7 +94,6 @@ const pieChartData = computed(() => {
   };
 });
 
-// --- METHODS ---
 const goToPreviousWeek = () =>
   (currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() - 7)));
 const goToNextWeek = () =>
@@ -112,6 +109,12 @@ watch(
   },
   { immediate: true }
 );
+
+watch(() => activityStore.lastUpdate, () => {
+  if (selectedActivityTypeId.value) {
+    weeklyStore.fetchWeeklyStats(weekAndYear.value.year, weekAndYear.value.week, selectedActivityTypeId.value);
+  }
+});
 
 watch(
   () => typeStore.activityTypes,

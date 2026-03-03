@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
 import { useStatisticsStore, type CalendarDay } from '@/stores/statistics';
+import { useActivityStore } from '@/stores/activity'; // Import Activity Store
 import ActivityIcon from '@/components/ActivityIcon.vue';
 
 const statsStore = useStatisticsStore();
+const activityStore = useActivityStore(); // Init store
 
 // Navigation State
 const now = new Date();
 const currentYear = ref(now.getFullYear());
 const currentMonth = ref(now.getMonth() + 1);
 
-// Formatting
 const monthName = computed(() => {
   const date = new Date(currentYear.value, currentMonth.value - 1);
   return date.toLocaleString('default', { month: 'long' });
@@ -22,7 +23,6 @@ function isToday(dateStr: string) {
   return dateStr === todayString;
 }
 
-// Calculate total activities for the header
 const totalActivitiesInView = computed(() => {
   if (!statsStore.calendarData) return 0;
   return statsStore.calendarData.weeks.reduce((acc, week) => {
@@ -49,11 +49,14 @@ const changeMonth = (delta: number) => {
 // Fetch data
 const loadData = () => statsStore.fetchCalendar(currentYear.value, currentMonth.value);
 watch([currentYear, currentMonth], loadData);
+
+watch(() => activityStore.lastUpdate, () => {
+  loadData();
+});
+
 onMounted(loadData);
 
-// Placeholder handler (logic wasn't in original, added for completeness/type safety)
 function handleDayClick(day: CalendarDay) {
-  // Logic to navigate to day view or list could go here
   console.log('Clicked day:', day.date);
 }
 </script>
