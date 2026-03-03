@@ -1,4 +1,20 @@
 <!-- insertion marker -->
+<a name="0.5.0"></a>
+
+## [0.5.0](https://github.com/kschweiger/verve-frontend/compare/0.4.1...0.5.0) (2026-03-03)
+
+### Features
+
+- add helpe view with faq ([5454fd5](https://github.com/kschweiger/verve-frontend/commit/5454fd5e1994fb9fa551fdc15c1a248a99dfeb26))
+
+### Bug Fixes
+
+- navbar works on mobile (#13) ([68da7e2](https://github.com/kschweiger/verve-frontend/commit/68da7e2aebabfd77c9980b148323effa208c922d))
+
+### Code Refactoring
+
+- Improve dashboard widget reloading on activity insertion (#7) ([7e11e80](https://github.com/kschweiger/verve-frontend/commit/7e11e80f122de6d73f94c5bee90696fd7c075cb1))
+
 <a name="0.4.1"></a>
 
 ## [0.4.1](https://github.com/kschweiger/verve-frontend/compare/0.4.0...0.4.1) (2026-02-22)
