@@ -1,3 +1,4 @@
+// src/stores/location.ts
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
@@ -36,6 +37,12 @@ export interface MapBounds {
 export interface LocationFilters {
   typeId?: number | null;
   subTypeId?: number | null;
+}
+
+export interface LocationSearchResult {
+  id: string;
+  phrase: string;
+  score: number;
 }
 
 export const useLocationStore = defineStore('location', () => {
@@ -120,6 +127,23 @@ export const useLocationStore = defineStore('location', () => {
       }
     } catch (e) {
       console.error(e);
+    }
+  }
+
+  async function searchLocations(query: string, limit = 20): Promise<LocationSearchResult[]> {
+    if (!query) return [];
+    try {
+      const params = new URLSearchParams({ query, limit: limit.toString() });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/find?${params.toString()}`, {
+        headers: getHeaders(),
+      });
+      if (!response.ok) throw new Error('Search failed');
+
+      const data = await response.json();
+      return data.data;
+    } catch (e) {
+      console.error(e);
+      return [];
     }
   }
 
@@ -305,6 +329,7 @@ export const useLocationStore = defineStore('location', () => {
     error,
     fetchLocationsInBounds,
     fetchAllLocations,
+    searchLocations,
     selectLocation,
     createLocation,
     deleteLocation,

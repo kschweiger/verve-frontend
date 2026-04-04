@@ -1,46 +1,105 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { useLocationStore } from '@/stores/location';
-import { Plus, X } from 'lucide-vue-next';
+import { useLocationStore, type LocationSearchResult } from '@/stores/location';
+import { Plus, X, Search, Loader2 } from 'lucide-vue-next';
 
 const route = useRoute();
 const locationStore = useLocationStore();
 
-// The activity ID is in the route params 'id' because this widget is used in ActivityDetailView
 const activityId = computed(() => route.params.id as string);
 
-// UI State for Adding Location
 const showAddMode = ref(false);
-const selectedLocationId = ref<string | null>(null);
 const isAdding = ref(false);
 
-// Helper to format coordinates nicely
+const dropdownRef = ref<HTMLElement | null>(null);
+const searchQuery = ref('');
+const isDropdownOpen = ref(false);
+const isSearching = ref(false);
+const searchResults = ref<LocationSearchResult[]>([]);
+const selectedLocationId = ref<string | null>(null);
+
 const formatCoords = (lat: number, lng: number) => `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 
-// Filter available locations to exclude those already assigned
-const selectableLocations = computed(() => {
+const displayList = computed(() => {
   const currentIds = new Set(locationStore.currentActivityLocations.map((l) => l.id));
-  return locationStore.availableLocations.filter((l) => !currentIds.has(l.id));
+
+  if (!searchQuery.value.trim()) {
+    // If input is empty, show all available locations from standard fetch
+    return locationStore.availableLocations
+      .filter((l) => !currentIds.has(l.id))
+      .map((l) => ({ id: l.id, phrase: l.name }));
+  }
+
+  // If typing, show fuzzy search results
+  return searchResults.value.filter((r) => !currentIds.has(r.id));
+});
+
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function handleSearchInput() {
+  selectedLocationId.value = null; // Clear strict selection on text change
+  isDropdownOpen.value = true;
+
+  if (searchTimeout) clearTimeout(searchTimeout);
+
+  const q = searchQuery.value.trim();
+  if (!q) {
+    searchResults.value = [];
+    isSearching.value = false;
+    return;
+  }
+
+  isSearching.value = true;
+  searchTimeout = setTimeout(async () => {
+    searchResults.value = await locationStore.searchLocations(q);
+    isSearching.value = false;
+  }, 300);
+}
+
+function selectOption(item: { id: string; phrase: string }) {
+  selectedLocationId.value = item.id;
+  searchQuery.value = item.phrase;
+  isDropdownOpen.value = false;
+}
+
+function handleClickOutside(event: MouseEvent) {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
+    isDropdownOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside);
 });
 
 function toggleAddMode() {
   if (!showAddMode.value) {
-    // Fetch options when opening
     locationStore.fetchAllLocations();
   }
   showAddMode.value = !showAddMode.value;
   selectedLocationId.value = null;
+  searchQuery.value = '';
+  searchResults.value = [];
+  isDropdownOpen.value = false;
 }
 
 async function handleAdd() {
   if (!selectedLocationId.value || !activityId.value) return;
   isAdding.value = true;
+
   const success = await locationStore.addLocationToActivity(activityId.value, selectedLocationId.value);
   isAdding.value = false;
+
   if (success) {
     showAddMode.value = false;
     selectedLocationId.value = null;
+    searchQuery.value = '';
+    searchResults.value = [];
   } else {
     alert('Failed to add location.');
   }
@@ -53,7 +112,7 @@ async function handleRemove(locationId: string) {
 </script>
 
 <template>
-  <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30 overflow-visible">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-xl font-bold text-verve-brown">Matched Locations</h3>
       <button @click="toggleAddMode"
@@ -63,28 +122,49 @@ async function handleRemove(locationId: string) {
       </button>
     </div>
 
-    <!-- Add Location Form -->
+    <!-- Hybrid Add Location Form -->
     <div v-if="showAddMode" class="mb-4 p-3 bg-verve-light/20 rounded-xl border border-verve-medium/20">
-      <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-2">Select Location</label>
+      <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-2">Find or Select Location</label>
+
       <div class="flex gap-2">
-        <select v-model="selectedLocationId"
-          class="grow text-sm border-verve-medium rounded-xl py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white">
-          <option :value="null">Choose...</option>
-          <option v-for="loc in selectableLocations" :key="loc.id" :value="loc.id">
-            {{ loc.name }}
-          </option>
-        </select>
+        <div class="relative grow" ref="dropdownRef">
+          <!-- Search Input -->
+          <div class="relative">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-verve-brown/40 pointer-events-none" />
+            <input v-model="searchQuery" @focus="isDropdownOpen = true" @input="handleSearchInput" type="text"
+              placeholder="Search database..."
+              class="w-full text-sm border-verve-medium rounded-xl py-2 pl-9 pr-3 text-verve-brown focus:ring-verve-dark bg-white" />
+            <Loader2 v-if="isSearching"
+              class="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-verve-orange" />
+          </div>
+
+          <!-- Dropdown List -->
+          <transition enter-active-class="transition ease-out duration-100" enter-from-class="opacity-0 translate-y-1"
+            enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-75"
+            leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
+            <div v-if="isDropdownOpen"
+              class="absolute z-50 w-full mt-1 bg-white border border-verve-medium/30 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+              <div v-if="displayList.length === 0 && !isSearching"
+                class="p-3 text-xs text-verve-brown/50 text-center italic">
+                No matching locations found.
+              </div>
+              <ul v-else class="py-1">
+                <li v-for="loc in displayList" :key="loc.id" @click="selectOption(loc)"
+                  class="px-3 py-2 text-sm text-verve-brown hover:bg-verve-light cursor-pointer transition-colors">
+                  {{ loc.phrase }}
+                </li>
+              </ul>
+            </div>
+          </transition>
+        </div>
+
         <button @click="handleAdd" :disabled="!selectedLocationId || isAdding"
-          class="px-4 py-2 bg-verve-neon text-verve-brown text-sm font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed">
+          class="px-4 py-2 bg-verve-neon text-verve-brown text-sm font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed border border-verve-dark/5 transition-all">
           {{ isAdding ? 'Adding...' : 'Add' }}
         </button>
       </div>
-      <p v-if="selectableLocations.length === 0" class="text-xs text-verve-brown/50 mt-2 italic">
-        No other locations available.
-      </p>
     </div>
 
-    <!-- List -->
     <div v-if="locationStore.isLoading && !isAdding" class="text-verve-brown/60 text-sm animate-pulse py-2">
       Checking locations...
     </div>
