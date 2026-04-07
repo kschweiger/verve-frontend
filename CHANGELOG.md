@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="0.6.1"></a>
+
+## [0.6.1](https://github.com/kschweiger/verve-frontend/compare/0.6.0...0.6.1) (2026-04-07)
+
+### Bug Fixes
+
+- **location:** add missing attribute ([ec07328](https://github.com/kschweiger/verve-frontend/commit/ec073281a72f613fcdfe34743289d466f7b1864d))
+
 <a name="0.6.0"></a>
 
 ## [0.6.0](https://github.com/kschweiger/verve-frontend/compare/0.5.0...0.6.0) (2026-04-07)
