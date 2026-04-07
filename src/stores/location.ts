@@ -78,6 +78,7 @@ export const useLocationStore = defineStore('location', () => {
       max_speed: apiActivity.max_speed ?? null,
       type_id: apiActivity.type_id,
       sub_type_id: apiActivity.sub_type_id ?? null,
+      tags: apiActivity.tags ?? [],
     };
   };
 
