@@ -14,6 +14,12 @@ export interface ActivityTagPublic {
   category_id: number | null;
 }
 
+export interface TagSearchResult {
+  id: number;
+  phrase: string;
+  score?: number;
+}
+
 interface UserTagResponse {
   tags: ActivityTagPublic[];
   categories: ActivityTagCategoryPublic[];
@@ -45,6 +51,40 @@ export const useTagsStore = defineStore('tags', () => {
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  async function searchTags(query: string, limit = 20): Promise<TagSearchResult[]> {
+    if (!query) return [];
+    try {
+      const params = new URLSearchParams({ query, limit: limit.toString() });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/search?${params.toString()}`, {
+        headers: getHeaders(),
+      });
+      if (!response.ok) throw new Error('Tag search failed');
+
+      const data = await response.json();
+      return data.data;
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
+  }
+
+  async function searchCategories(query: string, limit = 20): Promise<TagSearchResult[]> {
+    if (!query) return [];
+    try {
+      const params = new URLSearchParams({ query, limit: limit.toString() });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/category/find?${params.toString()}`, {
+        headers: getHeaders(),
+      });
+      if (!response.ok) throw new Error('Category search failed');
+
+      const data = await response.json();
+      return data.data;
+    } catch (e) {
+      console.error(e);
+      return [];
     }
   }
 
@@ -138,12 +178,15 @@ export const useTagsStore = defineStore('tags', () => {
     }
   }
 
+
   return {
     tags,
     categories,
     isLoading,
     error,
     fetchAll,
+    searchTags,
+    searchCategories,
     createCategory,
     createTag,
     deleteCategory,
