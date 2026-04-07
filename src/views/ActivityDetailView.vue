@@ -14,6 +14,7 @@ import { Trash2 } from 'lucide-vue-next';
 import ActivityLocationsWidget from '@/components/widgets/ActivityLocationsWidget.vue';
 import CombinedMetricsChart from '@/components/CombinedMetricsChart.vue';
 import { useLocationStore } from '@/stores/location';
+import ActivityTagsWidget from '@/components/widgets/ActivityTagsWidget.vue';
 
 const props = defineProps<{
   id: string;
@@ -37,7 +38,7 @@ function handlePointHover(index: number | null) {
 const showDeleteModal = ref(false);
 const isDeleting = ref(false);
 
-onMounted(async () => {
+async function loadData() {
   try {
     const [summaryResponse, trackResponse] = await Promise.all([
       fetchActivitySummary(props.id),
@@ -52,6 +53,10 @@ onMounted(async () => {
   } finally {
     isLoading.value = false;
   }
+}
+
+onMounted(() => {
+  loadData();
 });
 
 watch(
@@ -61,9 +66,17 @@ watch(
   }
 );
 
+// Callback to refresh just the summary when tags are edited
+async function refreshActivity() {
+  try {
+    activity.value = await fetchActivitySummary(props.id);
+  } catch (e) {
+    console.error("Failed to refresh activity summary", e);
+  }
+}
+
 const hasLocationData = computed(() => {
   if (!trackData.value || trackData.value.length === 0) return false;
-  // Check if at least one point has lat/lon
   return trackData.value.some((p) => p.lat !== null && p.lon !== null);
 });
 
@@ -72,7 +85,6 @@ async function handleDeleteConfirm() {
   const success = await activityStore.deleteActivity(props.id);
 
   if (success) {
-    // Redirect to dashboard (replace prevents going back to deleted item)
     router.replace({ name: 'dashboard' });
   } else {
     isDeleting.value = false;
@@ -185,7 +197,12 @@ async function handleDeleteConfirm() {
         <ActivityGallery :activity-id="id" :images="activityStore.activityImages"
           :is-loading="activityStore.isImagesLoading" />
 
-        <ActivityLocationsWidget />
+        <div class="space-y-8">
+          <ActivityLocationsWidget />
+
+          <!-- Tags Widget -->
+          <ActivityTagsWidget :activity-id="id" :current-tags="activity.tags" @updated="refreshActivity" />
+        </div>
       </div>
 
       <ActivityEquipment :activity-id="id" />

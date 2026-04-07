@@ -1,8 +1,9 @@
+// src/services/api.ts
 import { useUserStore } from '@/stores/auth';
 import type { Activity } from '@/stores/activity';
+import type { ActivityTagPublic } from '@/stores/tags';
 import { parseISODuration, formatDuration } from '@/utils/datetime';
 
-// Raw API Response Interface
 export interface ApiActivity {
   id: string;
   start: string;
@@ -15,6 +16,7 @@ export interface ApiActivity {
   name?: string | null;
   avg_speed?: number | null;
   max_speed?: number | null;
+  tags?: ActivityTagPublic[];
 }
 
 export interface TrackPoint {
@@ -51,6 +53,7 @@ const mapApiActivity = (apiActivity: ApiActivity): Activity => {
     name: apiActivity.name ?? null,
     avg_speed: apiActivity.avg_speed ?? null,
     max_speed: apiActivity.max_speed ?? null,
+    tags: apiActivity.tags ?? [],
   };
 };
 
@@ -80,7 +83,6 @@ export async function fetchActivityTrack(activityId: string): Promise<TrackPoint
     return [];
   }
 
-  // Explicit mapping ensures type safety for TrackPoint[]
   return responseData.data.map((p: any) => ({
     lat: p.latitude ?? null,
     lon: p.longitude ?? null,

@@ -190,6 +190,10 @@ const toggleMenu = (menu: string) => {
                     class="block px-4 py-2 text-sm text-verve-brown/80 hover:bg-verve-light hover:text-verve-brown">
                     My Gear
                   </router-link>
+                  <router-link to="/tags"
+                    class="block px-4 py-2 text-sm text-verve-brown/80 hover:bg-verve-light hover:text-verve-brown">
+                    Tags & Categories
+                  </router-link>
 
                   <div class="border-t border-verve-light my-1"></div>
 

@@ -3,14 +3,13 @@ import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 import { parseISODuration, formatDuration } from '@/utils/datetime';
 import type { ApiActivity } from '@/services/api';
+import type { ActivityTagPublic } from './tags';
 
-// --- Helper Types ---
 type ApiError = {
   message: string;
   detail?: string | Array<{ msg: string }>;
 };
 
-// --- Interfaces ---
 export interface Activity {
   id: string;
   start: string;
@@ -24,6 +23,7 @@ export interface Activity {
   name: string | null;
   avg_speed: number | null;
   max_speed: number | null;
+  tags: ActivityTagPublic[];
 }
 
 export interface ActivityFilters {
@@ -31,6 +31,8 @@ export interface ActivityFilters {
   month?: number | null;
   type_id?: number | null;
   sub_type_id?: number | null;
+  category_id?: number | null;
+  tag_id?: number | null;
 }
 
 export interface ActivityUpdatePayload {
@@ -75,11 +77,11 @@ const mapApiActivity = (apiActivity: ApiActivity): Activity => {
     max_speed: apiActivity.max_speed ?? null,
     type_id: apiActivity.type_id,
     sub_type_id: apiActivity.sub_type_id ?? null,
+    tags: apiActivity.tags ?? [],
   };
 };
 
 export const useActivityStore = defineStore('activity', () => {
-  // --- STATE ---
   const recentActivities = ref<Activity[]>([]);
   const isRecentLoading = ref(false);
   const recentError = ref<string | null>(null);
@@ -93,20 +95,16 @@ export const useActivityStore = defineStore('activity', () => {
 
   const activityImages = ref<ActivityImage[]>([]);
   const isImagesLoading = ref(false);
-
-  // Signal for other components to refresh data
   const lastUpdate = ref<number>(Date.now());
 
   const userStore = useUserStore();
 
-  // --- ACTIONS ---
   function notifyUpdate() {
     lastUpdate.value = Date.now();
   }
 
   async function fetchRecentActivities() {
     if (isRecentLoading.value) return;
-
     isRecentLoading.value = true;
     recentError.value = null;
 
@@ -157,10 +155,11 @@ export const useActivityStore = defineStore('activity', () => {
 
       if (currentFilters.value.year) params.append('year', currentFilters.value.year.toString());
       if (currentFilters.value.month) params.append('month', currentFilters.value.month.toString());
-      if (currentFilters.value.type_id)
-        params.append('type_id', currentFilters.value.type_id.toString());
-      if (currentFilters.value.sub_type_id)
-        params.append('sub_type_id', currentFilters.value.sub_type_id.toString());
+      if (currentFilters.value.type_id) params.append('type_id', currentFilters.value.type_id.toString());
+      if (currentFilters.value.sub_type_id) params.append('sub_type_id', currentFilters.value.sub_type_id.toString());
+
+      if (currentFilters.value.category_id) params.append('category_id', currentFilters.value.category_id.toString());
+      if (currentFilters.value.tag_id) params.append('tag_id', currentFilters.value.tag_id.toString());
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/activity/?${params.toString()}`,
@@ -181,10 +180,7 @@ export const useActivityStore = defineStore('activity', () => {
         paginatedActivities.value = newActivities;
       }
 
-      if (data.data.length < ACTIVITIES_PER_PAGE) {
-        canLoadMore.value = false;
-      }
-
+      if (data.data.length < ACTIVITIES_PER_PAGE) canLoadMore.value = false;
       currentPage.value++;
     } catch (e: unknown) {
       listError.value = e instanceof Error ? e.message : String(e);
@@ -192,6 +188,7 @@ export const useActivityStore = defineStore('activity', () => {
       isListLoading.value = false;
     }
   }
+
 
   async function uploadActivity(
     file: File,

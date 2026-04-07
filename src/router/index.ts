@@ -81,6 +81,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/SettingsView.vue'),
       },
       {
+        path: 'tags',
+        name: 'tags',
+        component: () => import('@/views/TagsView.vue'),
+      },
+      {
         path: 'help',
         name: 'help',
         component: () => import('@/views/HelpView.vue'),
