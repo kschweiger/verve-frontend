@@ -1,4 +1,17 @@
 <!-- insertion marker -->
+<a name="0.6.0"></a>
+
+## [0.6.0](https://github.com/kschweiger/verve-frontend/compare/0.5.0...0.6.0) (2026-04-07)
+
+### Features
+
+- add tag support ([703dbec](https://github.com/kschweiger/verve-frontend/commit/703dbecfc839f78af84fcbb69e8bb0c4c0e87fdc))
+- Add fuzzy search to widget adding location to activities ([229d3c6](https://github.com/kschweiger/verve-frontend/commit/229d3c61e451561308f6f966296d453f28a16d6f))
+
+### Code Refactoring
+
+- tags can be selected by fuzzy searching ([0cdda49](https://github.com/kschweiger/verve-frontend/commit/0cdda490ca8e5b5caf195b90de2a75bb0e88dfd6))
+
 <a name="0.5.0"></a>
 
 ## [0.5.0](https://github.com/kschweiger/verve-frontend/compare/0.4.1...0.5.0) (2026-03-03)
