@@ -371,7 +371,7 @@ async function saveTypeChange() {
         </div>
 
         <!-- Scrollable Content -->
-        <div class="flex-grow overflow-y-auto p-6 bg-verve-light/30">
+        <div class="grow overflow-y-auto p-6 bg-verve-light/30">
 
           <div class="flex space-x-3 mb-8">
             <button @click="handleCreateGoal"

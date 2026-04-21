@@ -1,0 +1,1102 @@
+{
+  "schemaVersion": 1,
+  "source": "backend_openapi.json",
+  "sourceSha256": "1d2f9796074e4f0156f6d3ed23c63cbe407443e58edc597b48d9de5a17c44553",
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Verve Outdoors Backend",
+    "version": "0.1.0"
+  },
+  "pathCount": 65,
+  "schemaCount": 77,
+  "paths": [
+    {
+      "path": "/api/v1/activity/",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_activities",
+          "summary": "Get Activities",
+          "tags": [
+            "activity"
+          ]
+        },
+        {
+          "method": "post",
+          "operationId": "activity-create_activity",
+          "summary": "Create Activity",
+          "tags": [
+            "activity"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/activity/{id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-read_activity",
+          "summary": "Read Activity",
+          "tags": [
+            "activity"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "activity-delete_activity",
+          "summary": "Delete Activity",
+          "tags": [
+            "activity"
+          ]
+        },
+        {
+          "method": "patch",
+          "operationId": "activity-update_activity",
+          "summary": "Update Activity",
+          "tags": [
+            "activity"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/activity/{id}/add_location",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "activity-add_locations_to_activity",
+          "summary": "Add Locations To Activity",
+          "tags": [
+            "activity",
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/activity/{id}/add_tag",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "activity-add_tag_to_activity",
+          "summary": "Add Tag To Activity",
+          "tags": [
+            "activity",
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/activity/{id}/locations",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_locations_for_activity",
+          "summary": "Get Locations For Activity",
+          "tags": [
+            "activity",
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/activity/{id}/locations/{location_id}",
+      "methods": [
+        {
+          "method": "delete",
+          "operationId": "activity-delete_location_from_activity",
+          "summary": "Delete Location From Activity",
+          "tags": [
+            "activity",
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/activity/{id}/tag/{tag_id}",
+      "methods": [
+        {
+          "method": "delete",
+          "operationId": "activity-delete_tag_from_activity",
+          "summary": "Delete Tag From Activity",
+          "tags": [
+            "activity",
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/activity/auto/",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "activity-create_auto_activity",
+          "summary": "Create Auto Activity",
+          "tags": [
+            "activity"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/activity/import/",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "activity-import_verve_file",
+          "summary": "Import Verve File",
+          "tags": [
+            "activity"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/admin/recalculat_hightlights",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "admin-recalculate_highlights",
+          "summary": "Recalculate Highlights",
+          "tags": [
+            "admin"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "equipment-get_equipment",
+          "summary": "Get Equipment",
+          "tags": [
+            "equipment"
+          ]
+        },
+        {
+          "method": "post",
+          "operationId": "equipment-create_equipment",
+          "summary": "Create Equipment",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/{equipment_id}/activity/{activity_id}",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "equipment-add_equipment_to_activity",
+          "summary": "Add Equipment To Activity",
+          "tags": [
+            "equipment"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "equipment-remove_equipment_to_activity",
+          "summary": "Remove Equipment To Activity",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/activity/{activity_id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "equipment-get_equipment_for_activity",
+          "summary": "Get Equipment For Activity",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/set/",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "equipment-get_sets",
+          "summary": "Get Sets",
+          "tags": [
+            "equipment"
+          ]
+        },
+        {
+          "method": "post",
+          "operationId": "equipment-create_set",
+          "summary": "Create Set",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/set/{set_id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "equipment-get_set",
+          "summary": "Get Set",
+          "tags": [
+            "equipment"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "equipment-delete_set",
+          "summary": "Delete Set",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/set/{set_id}/activity/{activity_id}",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "equipment-add_set_to_activity",
+          "summary": "Add Set To Activity",
+          "tags": [
+            "equipment"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "equipment-remove_set_from_activity",
+          "summary": "Remove Set From Activity",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/set/{set_id}/equipment/{equipment_id}",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "equipment-add_equipment_to_set",
+          "summary": "Add Equipment To Set",
+          "tags": [
+            "equipment"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "equipment-remove_equipment_from_set",
+          "summary": "Remove Equipment From Set",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/set/default/{set_id}",
+      "methods": [
+        {
+          "method": "put",
+          "operationId": "equipment-set_default_set",
+          "summary": "Set Default Set",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/set/default/all",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "equipment-get_default_sets",
+          "summary": "Get Default Sets",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/equipment/types",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "equipment-get_equipment_types",
+          "summary": "Get Equipment Types",
+          "tags": [
+            "equipment"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/goal/",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "goal-get_goals",
+          "summary": "Get Goals",
+          "tags": [
+            "goal"
+          ]
+        },
+        {
+          "method": "put",
+          "operationId": "goal-add_goal",
+          "summary": "Add Goal",
+          "tags": [
+            "goal"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "goal-remove_goal",
+          "summary": "Remove Goal",
+          "tags": [
+            "goal"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/goal/{id}/modify_amount",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "goal-modify_manual_goal",
+          "summary": "Modify Manual Goal",
+          "tags": [
+            "goal"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/goal/{id}/update",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "goal-update_goal",
+          "summary": "Update Goal",
+          "tags": [
+            "goal"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/health",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "Health-health_check",
+          "summary": "Health Check",
+          "tags": [
+            "Health"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/heatmap/activities",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "track-get_heatmap",
+          "summary": "Get Heatmap",
+          "tags": [
+            "track",
+            "activity",
+            "heatmap"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/highlights/",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_highlights",
+          "summary": "Get Highlights",
+          "tags": [
+            "activity",
+            "highlights"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/highlights/activity/{id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_highlights_for_activity",
+          "summary": "Get Highlights For Activity",
+          "tags": [
+            "activity",
+            "highlights"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/highlights/metric/{metric}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_highlights_by_metric",
+          "summary": "Get Highlights By Metric",
+          "tags": [
+            "activity",
+            "highlights"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/highlights/metrics",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_metrics",
+          "summary": "Get Metrics",
+          "tags": [
+            "activity",
+            "highlights"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/location/",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "location-get_all_locations",
+          "summary": "Get All Locations",
+          "tags": [
+            "location"
+          ]
+        },
+        {
+          "method": "put",
+          "operationId": "location-create_location",
+          "summary": "Create Location",
+          "tags": [
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/location/{id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "location-get_location",
+          "summary": "Get Location",
+          "tags": [
+            "location"
+          ]
+        },
+        {
+          "method": "post",
+          "operationId": "location-update_location",
+          "summary": "Update Location",
+          "tags": [
+            "location"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "location-delete_location",
+          "summary": "Delete Location",
+          "tags": [
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/location/{id}/activities",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "location-get_activities_with_location",
+          "summary": "Get Activities With Location",
+          "tags": [
+            "location",
+            "activity",
+            "track"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/location/{id}/replace_type",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "location-updated_location_type",
+          "summary": "Updated Location Type",
+          "tags": [
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/location/activities",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "location-get_all_activities",
+          "summary": "Get All Activities",
+          "tags": [
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/location/find",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "location-find_location_by_name",
+          "summary": "Find Location By Name",
+          "tags": [
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/login/access-token",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "auth-login_access_token",
+          "summary": "Login Access Token",
+          "tags": [
+            "auth"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/login/test-token",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "auth-test_token",
+          "summary": "Test Token",
+          "tags": [
+            "auth"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/media/image/{image_id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "media-get_image",
+          "summary": "Get Image",
+          "tags": [
+            "media",
+            "image"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "media-delete_image",
+          "summary": "Delete Image",
+          "tags": [
+            "media",
+            "image"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/media/image/activity/{activity_id}",
+      "methods": [
+        {
+          "method": "put",
+          "operationId": "media-add_image",
+          "summary": "Add Image",
+          "tags": [
+            "media",
+            "image",
+            "upload"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/media/images/activity/{activity_id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "media-get_activity_images",
+          "summary": "Get Activity Images",
+          "tags": [
+            "media",
+            "image"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/resolve/activity_types",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_all_activity_types",
+          "summary": "Get All Activity Types",
+          "tags": [
+            "activity"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/resolve/location_types",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "location-get_all_location_types",
+          "summary": "Get All Location Types",
+          "tags": [
+            "location"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/resolve/types",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "get_all_activity_types_deprecated",
+          "summary": "Get All Activity Types",
+          "tags": [
+            "activity"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/statistics/calender",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "statistics-get_calendar",
+          "summary": "Get Calendar",
+          "tags": [
+            "statistics"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/statistics/week",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "statistics-get_week_stats",
+          "summary": "Get Week Stats",
+          "tags": [
+            "statistics"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/statistics/weekly",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "statistics-get_weekly_stats",
+          "summary": "Get Weekly Stats",
+          "tags": [
+            "statistics"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/statistics/year",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "statistics-get_year_stats",
+          "summary": "Get Year Stats",
+          "tags": [
+            "statistics"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/{id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "tagging-get_tag",
+          "summary": "Get Tag",
+          "tags": [
+            "tagging"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "tagging-remove_tag",
+          "summary": "Remove Tag",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/{id}/activities",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "tagging-get_activities_for_tag",
+          "summary": "Get Activities For Tag",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/add",
+      "methods": [
+        {
+          "method": "put",
+          "operationId": "tagging-add_tag",
+          "summary": "Add Tag",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/all",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "tagging-get_all_tags",
+          "summary": "Get All Tags",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/category/{category_id}/add/{tag_id}",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "tagging-add_tag_to_category",
+          "summary": "Add Tag To Category",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/category/{category_id}/remove/{tag_id}",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "tagging-rm_tag_to_category",
+          "summary": "Rm Tag To Category",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/category/{id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "tagging-get_all_tags_in_category",
+          "summary": "Get All Tags In Category",
+          "tags": [
+            "tagging"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "tagging-remove_category",
+          "summary": "Remove Category",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/category/add",
+      "methods": [
+        {
+          "method": "put",
+          "operationId": "tagging-add_tag_category",
+          "summary": "Add Tag Category",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/category/find",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "tagging-find_category_by_name",
+          "summary": "Find Category By Name",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/tag/search",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "tagging-find_tag_by_name",
+          "summary": "Find Tag By Name",
+          "tags": [
+            "tagging"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/track/",
+      "methods": [
+        {
+          "method": "put",
+          "operationId": "track-add_track",
+          "summary": "Add Track",
+          "tags": [
+            "track",
+            "upload"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/track/{activity_id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "track-get_track_data",
+          "summary": "Get Track Data",
+          "tags": [
+            "track"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/users/create",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "user-create_user",
+          "summary": "Create User",
+          "tags": [
+            "user",
+            "admin"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/users/me",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "user-read_user_me",
+          "summary": "Read User Me",
+          "tags": [
+            "user"
+          ]
+        },
+        {
+          "method": "patch",
+          "operationId": "user-update_user_details",
+          "summary": "Update User Details",
+          "tags": [
+            "user"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/users/me/heatmap_settings",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "user-replace_heatmap_settings",
+          "summary": "Replace Heatmap Settings",
+          "tags": [
+            "user"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/users/me/password",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "user-update_password",
+          "summary": "Update Password",
+          "tags": [
+            "user"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/users/me/set_default_activity_type",
+      "methods": [
+        {
+          "method": "put",
+          "operationId": "user-set_default_activity_type",
+          "summary": "Set Default Activity Type",
+          "tags": [
+            "user"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/users/me/settings",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "user-get_user_settings",
+          "summary": "Get User Settings",
+          "tags": [
+            "user"
+          ]
+        }
+      ]
+    }
+  ],
+  "schemas": [
+    "ActivitiesPublic",
+    "ActivityCalendarItem",
+    "ActivityCreate",
+    "ActivityHighlightPublic",
+    "ActivityPublic",
+    "ActivityTagCategoryCreate",
+    "ActivityTagCategoryPublic",
+    "ActivityTagCreate",
+    "ActivityTagPublic",
+    "ActivityUpdate",
+    "Body_activity-create_auto_activity",
+    "Body_activity-import_verve_file",
+    "Body_auth-login_access_token",
+    "Body_media-add_image",
+    "Body_track-add_track",
+    "CalendarDay",
+    "CalendarResponse",
+    "CalendarWeek",
+    "DictResponse_HighlightMetric_list_ActivityHighlightPublic__",
+    "DictResponse_tuple_int__Union_int__NoneType___UUID_",
+    "DictResponse_UUID_set_UUID__",
+    "EquipmentCreate",
+    "EquipmentPublic",
+    "EquipmentSetCreate",
+    "EquipmentSetPublic",
+    "EquipmentType",
+    "GoalAggregation",
+    "GoalCreate",
+    "GoalPublic",
+    "GoalsPublic",
+    "GoalType",
+    "HeatMapResponse",
+    "HeatmapSettings",
+    "HighlightMetric",
+    "HighlightTimeScope",
+    "HTTPValidationError",
+    "ImageURLResponse",
+    "ListResponse_ActivityHighlightPublic_",
+    "ListResponse_ActivityPublic_",
+    "ListResponse_ActivityTagPublic_",
+    "ListResponse_EquipmentPublic_",
+    "ListResponse_EquipmentSetPublic_",
+    "ListResponse_EquipmentType_",
+    "ListResponse_GoalPublic_",
+    "ListResponse_HighlightMetric_",
+    "ListResponse_ImageURLResponse_",
+    "ListResponse_LocationPublic_",
+    "ListResponse_PhraseCandidate_int__",
+    "ListResponse_PhraseCandidate_UUID__",
+    "ListResponse_TrackPointResponse_",
+    "LocationCreate",
+    "LocationPublic",
+    "MetricSummary_float_",
+    "MetricSummary_int_",
+    "PasswordChangeRequest",
+    "PhraseCandidate_int_",
+    "PhraseCandidate_UUID_",
+    "ResolvedSubType",
+    "ResolvedType",
+    "ResolvedTypes",
+    "StatsMetric",
+    "SupportedLocale",
+    "TemporalType",
+    "Token",
+    "TrackPointResponse",
+    "TypeStats",
+    "UserCreate",
+    "UserPublic",
+    "UserSettingsCollection",
+    "UserSettingsPublic",
+    "UserTagResponse",
+    "UserUpdate",
+    "ValidationError",
+    "WeekMetric_float_",
+    "WeekMetric_int_",
+    "WeekStatsResponse",
+    "YearStatsResponse"
+  ]
+}
