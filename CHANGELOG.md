@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="0.6.2"></a>
+
+## [0.6.2](https://github.com/kschweiger/verve-frontend/compare/0.6.1...0.6.2) (2026-04-25)
+
+### Bug Fixes
+
+- **api:** use correct name for speed in track response ([44dbbe2](https://github.com/kschweiger/verve-frontend/commit/44dbbe226579cc358efa07f7ebebf9f01c337291))
+
 <a name="0.6.1"></a>
 
 ## [0.6.1](https://github.com/kschweiger/verve-frontend/compare/0.6.0...0.6.1) (2026-04-07)
