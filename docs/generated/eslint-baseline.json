@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "command": "bunx eslint . --format json",
-  "issueCount": 20,
+  "issueCount": 19,
   "issues": [
     {
       "filePath": "src/components/ActivityHighlights.vue",
@@ -90,14 +90,6 @@
       "severity": 2,
       "ruleId": "@typescript-eslint/no-empty-object-type",
       "message": "The `{}` (\"empty object\") type allows any non-nullish value, including literals like `0` and `\"\"`.\n- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.\n- If you want a type meaning \"any object\", you probably want `object` instead.\n- If you want a type meaning \"any value\", you probably want `unknown` instead."
-    },
-    {
-      "filePath": "src/services/api.ts",
-      "line": 86,
-      "column": 36,
-      "severity": 2,
-      "ruleId": "@typescript-eslint/no-explicit-any",
-      "message": "Unexpected any. Specify a different type."
     },
     {
       "filePath": "src/stores/activity.ts",
