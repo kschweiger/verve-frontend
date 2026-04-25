@@ -31,6 +31,18 @@ export interface TrackPoint {
   power?: number | null;
 }
 
+interface ApiTrackPointResponse {
+  latitude?: number | null;
+  longitude?: number | null;
+  elevation?: number | null;
+  cum_distance?: number | null;
+  time?: string;
+  speed?: number | null;
+  heartrate?: number | null;
+  cadence?: number | null;
+  power?: number | null;
+}
+
 const getAuthHeaders = (): HeadersInit => {
   const userStore = useUserStore();
   if (!userStore.token) throw new Error('Not authenticated');
@@ -57,6 +69,28 @@ const mapApiActivity = (apiActivity: ApiActivity): Activity => {
   };
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const toNullableNumber = (value: unknown): number | null =>
+  typeof value === 'number' ? value : null;
+
+const mapApiTrackPoint = (point: ApiTrackPointResponse): TrackPoint | null => {
+  if (typeof point.time !== 'string') return null;
+
+  return {
+    lat: point.latitude ?? null,
+    lon: point.longitude ?? null,
+    ele: point.elevation ?? null,
+    dist: point.cum_distance ?? 0,
+    time: point.time,
+    speed: point.speed ?? null,
+    hr: point.heartrate ?? null,
+    cad: point.cadence ?? null,
+    power: point.power ?? null,
+  };
+};
+
 export async function fetchActivitySummary(activityId: string): Promise<Activity> {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}`, {
     method: 'GET',
@@ -77,21 +111,26 @@ export async function fetchActivityTrack(activityId: string): Promise<TrackPoint
 
   if (!response.ok) throw new Error('Failed to fetch activity track data.');
 
-  const responseData = await response.json();
+  const responseData: unknown = await response.json();
 
-  if (!responseData.data || !Array.isArray(responseData.data)) {
+  if (!isRecord(responseData) || !Array.isArray(responseData.data)) {
     return [];
   }
 
-  return responseData.data.map((p: any) => ({
-    lat: p.latitude ?? null,
-    lon: p.longitude ?? null,
-    ele: p.elevation ?? null,
-    dist: p.cum_distance ?? 0,
-    time: p.time,
-    speed: p.speed_m_s ?? null,
-    hr: p.heartrate ?? null,
-    cad: p.cadence ?? null,
-    power: p.power ?? null,
-  }));
+  return responseData.data
+    .filter(isRecord)
+    .map((point) =>
+      mapApiTrackPoint({
+        latitude: toNullableNumber(point.latitude),
+        longitude: toNullableNumber(point.longitude),
+        elevation: toNullableNumber(point.elevation),
+        cum_distance: toNullableNumber(point.cum_distance),
+        time: typeof point.time === 'string' ? point.time : undefined,
+        speed: toNullableNumber(point.speed),
+        heartrate: toNullableNumber(point.heartrate),
+        cadence: toNullableNumber(point.cadence),
+        power: toNullableNumber(point.power),
+      })
+    )
+    .filter((point): point is TrackPoint => point !== null);
 }
