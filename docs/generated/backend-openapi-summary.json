@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "1d2f9796074e4f0156f6d3ed23c63cbe407443e58edc597b48d9de5a17c44553",
+  "sourceSha256": "66673d0c69179271c90e0f9d9a3e1685b759b7cb642cc69028796db8fa7da8f5",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
     "version": "0.1.0"
   },
-  "pathCount": 65,
-  "schemaCount": 77,
+  "pathCount": 68,
+  "schemaCount": 84,
   "paths": [
     {
       "path": "/api/v1/activity/",
@@ -933,6 +933,66 @@
       ]
     },
     {
+      "path": "/api/v1/track/segments/set",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "track-add_segment_set",
+          "summary": "Add Segment Set",
+          "tags": [
+            "track",
+            "segments"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/track/segments/set/{segment_set_id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "track-segment_statistics",
+          "summary": "Segment Statistics",
+          "tags": [
+            "track",
+            "segments"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "track-delete_segment_set",
+          "summary": "Delete Segment Set",
+          "tags": [
+            "track",
+            "segments"
+          ]
+        },
+        {
+          "method": "patch",
+          "operationId": "track-update_segment_set",
+          "summary": "Update Segment Set",
+          "tags": [
+            "track",
+            "segments"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/track/segments/sets/{activity_id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "track-get_user_segment_sets",
+          "summary": "Get User Segment Sets",
+          "tags": [
+            "track",
+            "segments"
+          ]
+        }
+      ]
+    },
+    {
       "path": "/api/v1/users/create",
       "methods": [
         {
@@ -1071,6 +1131,7 @@
     "ListResponse_PhraseCandidate_int__",
     "ListResponse_PhraseCandidate_UUID__",
     "ListResponse_TrackPointResponse_",
+    "ListResponse_UUID_",
     "LocationCreate",
     "LocationPublic",
     "MetricSummary_float_",
@@ -1081,12 +1142,18 @@
     "ResolvedSubType",
     "ResolvedType",
     "ResolvedTypes",
+    "SegementSetCreate",
+    "SegmentMetrics",
+    "SegmentResponse",
+    "SegmentSetPublic",
+    "SegmentStatisticsResponse",
     "StatsMetric",
     "SupportedLocale",
     "TemporalType",
     "Token",
     "TrackPointResponse",
     "TypeStats",
+    "UpdateSegmentSet",
     "UserCreate",
     "UserPublic",
     "UserSettingsCollection",

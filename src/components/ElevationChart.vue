@@ -34,6 +34,7 @@ ChartJS.register(
 const props = defineProps<{
   trackData: TrackPoint[];
   hoveredIndex: number | null;
+  cutIndices?: number[];
 }>();
 
 const emit = defineEmits<{
@@ -66,6 +67,21 @@ const chartData = computed(() => {
 });
 
 const chartOptions = computed<ChartOptions<'line'>>(() => {
+  const cutAnnotations = Object.fromEntries(
+    (props.cutIndices ?? []).map((cutIndex, index) => [
+      `cut${index}`,
+      {
+        type: 'line' as const,
+        display: true,
+        scaleID: 'x',
+        value: cutIndex,
+        borderColor: hexToRgba(VERVE_COLORS.brown, 0.6),
+        borderWidth: 1,
+        borderDash: [2, 4],
+      },
+    ])
+  );
+
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -94,6 +110,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       },
       annotation: {
         annotations: {
+          ...cutAnnotations,
           line1: {
             type: 'line',
             display: props.hoveredIndex !== null,
