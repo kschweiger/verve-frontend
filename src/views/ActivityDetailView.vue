@@ -235,28 +235,21 @@ function secondsBetweenTrackPoints(startPoint: TrackPoint | null, endPoint: Trac
 }
 
 function durationBeforeCut(cutIndex: number) {
-  const currentCutId = sortedEditableSegmentCuts.value[cutIndex];
+  const currentCutId = editableSegmentCuts.value[cutIndex];
   if (currentCutId === undefined) return null;
 
   const startPoint =
     cutIndex === 0
       ? (trackData.value[0] ?? null)
-      : trackPointForCut(sortedEditableSegmentCuts.value[cutIndex - 1] ?? currentCutId);
+      : trackPointForCut(editableSegmentCuts.value[cutIndex - 1] ?? currentCutId);
 
   return secondsBetweenTrackPoints(startPoint, trackPointForCut(currentCutId));
 }
 
-function durationBeforeCutId(cutId: number) {
-  const cutIndex = sortedEditableSegmentCuts.value.indexOf(cutId);
-  if (cutIndex === -1) return null;
-
-  return durationBeforeCut(cutIndex);
-}
-
 const finalEditableSegmentDuration = computed(() => {
-  if (sortedEditableSegmentCuts.value.length === 0) return null;
+  if (editableSegmentCuts.value.length === 0) return null;
 
-  const lastCutId = sortedEditableSegmentCuts.value[sortedEditableSegmentCuts.value.length - 1];
+  const lastCutId = editableSegmentCuts.value[editableSegmentCuts.value.length - 1];
   if (lastCutId === undefined) return null;
 
   return secondsBetweenTrackPoints(trackPointForCut(lastCutId), trackData.value[trackData.value.length - 1] ?? null);
@@ -301,26 +294,53 @@ function clampTrackIndex(index: number) {
   return Math.min(Math.max(index, 0), Math.max(trackData.value.length - 1, 0));
 }
 
-function setEditableCutByTrackIndex(cutIndex: number, trackIndex: number) {
-  const point = trackData.value[clampTrackIndex(trackIndex)];
+function minTrackIndexForCutPosition(cutPosition: number) {
+  const previousCutId = editableSegmentCuts.value[cutPosition - 1];
+  if (previousCutId === undefined) return 0;
+
+  return trackIndexForCut(previousCutId) + 1;
+}
+
+function maxTrackIndexForCutPosition(cutPosition: number) {
+  const nextCutId = editableSegmentCuts.value[cutPosition + 1];
+  if (nextCutId === undefined) return Math.max(trackData.value.length - 1, 0);
+
+  return trackIndexForCut(nextCutId) - 1;
+}
+
+function clampTrackIndexForCutPosition(cutPosition: number, trackIndex: number) {
+  const minIndex = minTrackIndexForCutPosition(cutPosition);
+  const maxIndex = maxTrackIndexForCutPosition(cutPosition);
+
+  return Math.min(Math.max(clampTrackIndex(trackIndex), minIndex), maxIndex);
+}
+
+function setEditableCutByTrackIndex(cutPosition: number, trackIndex: number) {
+  const point = trackData.value[clampTrackIndexForCutPosition(cutPosition, trackIndex)];
   if (!point) return;
 
   const nextCuts = [...editableSegmentCuts.value];
-  nextCuts[cutIndex] = point.id;
+  nextCuts[cutPosition] = point.id;
   editableSegmentCuts.value = nextCuts;
 }
 
-function nudgeEditableCutByPoints(cutIndex: number, deltaPoints: number) {
+function nudgeEditableCutByPoints(cutPosition: number, deltaPoints: number) {
+  const currentCutId = editableSegmentCuts.value[cutPosition];
+  if (currentCutId === undefined) return;
+
   setEditableCutByTrackIndex(
-    cutIndex,
-    trackIndexForCut(editableSegmentCuts.value[cutIndex] ?? 0) + deltaPoints
+    cutPosition,
+    trackIndexForCut(currentCutId) + deltaPoints
   );
 }
 
-function nudgeEditableCutBySeconds(cutIndex: number, deltaSeconds: number) {
-  const currentIndex = trackIndexForCut(editableSegmentCuts.value[cutIndex] ?? 0);
+function nudgeEditableCutBySeconds(cutPosition: number, deltaSeconds: number) {
+  const currentCutId = editableSegmentCuts.value[cutPosition];
+  if (currentCutId === undefined) return;
+
+  const currentIndex = trackIndexForCut(currentCutId);
   const targetSeconds = elapsedSecondsForTrackIndex(currentIndex) + deltaSeconds;
-  setEditableCutByTrackIndex(cutIndex, nearestTrackIndexForElapsedSeconds(targetSeconds));
+  setEditableCutByTrackIndex(cutPosition, nearestTrackIndexForElapsedSeconds(targetSeconds));
 }
 
 function formatElapsedTrackTime(index: number) {
@@ -334,26 +354,36 @@ function trackLabelForIndex(index: number) {
   return `${formatElapsedTrackTime(index)} · ${formatDistanceMeters(point.dist)} · Point ${point.id}`;
 }
 
-function updateEditableCut(cutIndex: number, event: Event) {
+function updateEditableCut(cutPosition: number, event: Event) {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) return;
 
   const trackIndex = Number.parseInt(target.value, 10);
-  setEditableCutByTrackIndex(cutIndex, trackIndex);
+  setEditableCutByTrackIndex(cutPosition, trackIndex);
 }
 
 function addEditableCut() {
-  if (trackData.value.length === 0) return;
+  if (trackData.value.length === 0 || editableSegmentCuts.value.length >= trackData.value.length) return;
 
   const preferredIndex = hoveredPointIndex.value ?? Math.floor(trackData.value.length / 2);
-  const point = trackData.value[preferredIndex] ?? trackData.value[0];
+  const occupiedIndices = new Set(visibleSegmentCutIndices.value);
+  const availableIndex = trackData.value.reduce<number | null>((bestIndex, _, index) => {
+    if (occupiedIndices.has(index)) return bestIndex;
+    if (bestIndex === null) return index;
+
+    return Math.abs(index - preferredIndex) < Math.abs(bestIndex - preferredIndex) ? index : bestIndex;
+  }, null);
+
+  if (availableIndex === null) return;
+
+  const point = trackData.value[availableIndex];
   if (!point) return;
 
   editableSegmentCuts.value = [...editableSegmentCuts.value, point.id];
 }
 
-function removeEditableCut(cutIndex: number) {
-  editableSegmentCuts.value = editableSegmentCuts.value.filter((_, index) => index !== cutIndex);
+function removeEditableCut(cutPosition: number) {
+  editableSegmentCuts.value = editableSegmentCuts.value.filter((_, index) => index !== cutPosition);
 }
 
 async function saveSegmentCutChanges() {
@@ -637,8 +667,9 @@ async function handleDeleteConfirm() {
             </div>
             <button
               type="button"
+              :disabled="editableSegmentCuts.length >= trackData.length"
               @click="addEditableCut"
-              class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-verve-medium text-sm font-semibold text-verve-brown hover:bg-verve-light/60 transition-colors"
+              class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-verve-medium text-sm font-semibold text-verve-brown hover:bg-verve-light/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus class="size-4" />
               <span>Add cut</span>
@@ -707,7 +738,7 @@ async function handleDeleteConfirm() {
               </p>
 
               <p class="mt-2 text-xs font-semibold text-verve-brown/70">
-                Segment duration: {{ durationBeforeCutId(cutId) === null ? '-' : formatSeconds(durationBeforeCutId(cutId)!) }}
+                Segment duration: {{ durationBeforeCut(cutIndex) === null ? '-' : formatSeconds(durationBeforeCut(cutIndex)!) }}
               </p>
 
               <input
@@ -723,7 +754,7 @@ async function handleDeleteConfirm() {
               <div class="mt-3 grid grid-cols-4 gap-2">
                 <button
                   type="button"
-                  :disabled="trackIndexForCut(cutId) === 0"
+                  :disabled="trackIndexForCut(cutId) <= minTrackIndexForCutPosition(cutIndex)"
                   class="cut-nudge-button"
                   :aria-label="`Move cut ${cutIndex + 1} back one minute`"
                   @click="nudgeEditableCutBySeconds(cutIndex, -60)"
@@ -733,7 +764,7 @@ async function handleDeleteConfirm() {
                 </button>
                 <button
                   type="button"
-                  :disabled="trackIndexForCut(cutId) === 0"
+                  :disabled="trackIndexForCut(cutId) <= minTrackIndexForCutPosition(cutIndex)"
                   class="cut-nudge-button"
                   :aria-label="`Move cut ${cutIndex + 1} back one track point`"
                   @click="nudgeEditableCutByPoints(cutIndex, -1)"
@@ -743,7 +774,7 @@ async function handleDeleteConfirm() {
                 </button>
                 <button
                   type="button"
-                  :disabled="trackIndexForCut(cutId) >= trackData.length - 1"
+                  :disabled="trackIndexForCut(cutId) >= maxTrackIndexForCutPosition(cutIndex)"
                   class="cut-nudge-button"
                   :aria-label="`Move cut ${cutIndex + 1} forward one track point`"
                   @click="nudgeEditableCutByPoints(cutIndex, 1)"
@@ -753,7 +784,7 @@ async function handleDeleteConfirm() {
                 </button>
                 <button
                   type="button"
-                  :disabled="trackIndexForCut(cutId) >= trackData.length - 1"
+                  :disabled="trackIndexForCut(cutId) >= maxTrackIndexForCutPosition(cutIndex)"
                   class="cut-nudge-button"
                   :aria-label="`Move cut ${cutIndex + 1} forward one minute`"
                   @click="nudgeEditableCutBySeconds(cutIndex, 60)"
