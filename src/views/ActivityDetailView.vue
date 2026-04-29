@@ -158,6 +158,10 @@ const canUseSegmentCutEdit = computed(() => {
   );
 });
 
+const canStartNewSegmentSet = computed(() => {
+  return trackData.value.length >= 2 && !isEditingSegmentCuts.value && !isSavingSegmentSet.value;
+});
+
 const hasValidSegmentSetName = computed(() => {
   return !isCreatingSegmentSet.value || draftSegmentSetName.value.trim().length > 0;
 });
@@ -551,7 +555,7 @@ async function handleDeleteConfirm() {
               {{ isEditingSegmentCuts ? 'Cancel edit' : 'Edit cuts' }}
             </button>
 
-            <button type="button" :disabled="trackData.length < 2 || isSavingSegmentSet" @click="startNewSegmentSet"
+            <button type="button" :disabled="!canStartNewSegmentSet" @click="startNewSegmentSet"
               class="px-4 py-2 rounded-xl text-sm font-semibold bg-verve-orange text-white hover:bg-verve-orange/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               New set
             </button>
