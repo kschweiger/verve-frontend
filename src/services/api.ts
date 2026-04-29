@@ -52,10 +52,10 @@ export interface SegmentMetrics {
 }
 
 export interface SegmentStats {
-  distanceM: number;
+  distanceM: number | null;
   durationS: number;
-  elevationGain: number;
-  elevationLoss: number;
+  elevationGain: number | null;
+  elevationLoss: number | null;
   avgPaceSPerKm: number | null;
   speed: SegmentMetrics | null;
   heartrate: SegmentMetrics | null;
@@ -154,7 +154,7 @@ const mapSegmentStats = (value: unknown): SegmentStats | null => {
   const elevationGain = toNumber(value.elevation_gain);
   const elevationLoss = toNumber(value.elevation_loss);
 
-  if (distanceM === null || durationS === null || elevationGain === null || elevationLoss === null) {
+  if (durationS === null) {
     return null;
   }
 

@@ -83,7 +83,6 @@ const metricDefinitions: Record<string, MetricConfig> = {
 const selectedMetricKey = ref<string>('');
 const availableMetrics = ref<string[]>([]);
 const hasElevation = ref(false);
-const xAxisMode = ref<'distance' | 'time'>('distance');
 
 onMounted(() => {
   analyzeData();
@@ -98,7 +97,6 @@ watch(
 
 function analyzeData() {
   const found: Set<string> = new Set();
-  let maxDist = 0;
   let hasEle = false;
 
   if (!props.trackData || props.trackData.length === 0) return;
@@ -109,11 +107,8 @@ function analyzeData() {
     if (point.cad != null) found.add('cad');
     if (point.power != null) found.add('power');
     if (point.ele !== null) hasEle = true;
-    if (point.dist > maxDist) maxDist = point.dist;
   }
 
-  // Decide X-Axis: If total distance is negligible (< 100m), assume stationary -> Time
-  xAxisMode.value = maxDist > 100 ? 'distance' : 'time';
   hasElevation.value = hasEle;
 
   const list = Array.from(found);
@@ -143,6 +138,18 @@ const formatTimeLabel = (seconds: number) => {
   return `${m}m`;
 };
 
+const elapsedSecondsAtIndex = (index: number) => {
+  const firstPoint = props.trackData[0];
+  const point = props.trackData[index];
+  if (!firstPoint || !point) return index;
+
+  const start = Date.parse(firstPoint.time);
+  const current = Date.parse(point.time);
+  if (Number.isNaN(start) || Number.isNaN(current)) return index;
+
+  return Math.max(0, (current - start) / 1000);
+};
+
 const chartData = computed(() => {
   const metricConf = metricDefinitions[selectedMetricKey.value];
 
@@ -151,19 +158,7 @@ const chartData = computed(() => {
     return { labels: [], datasets: [] };
   }
 
-  let labels: string[] = [];
-
-  if (xAxisMode.value === 'distance') {
-    labels = props.trackData.map((p) => (p.dist / 1000).toFixed(1));
-  } else {
-    // Time Mode: Calculate elapsed time relative to start
-    // Fix: Non-null assertion (!) is safe here because of the early return guard above
-    const startTime = new Date(props.trackData[0]!.time).getTime();
-    labels = props.trackData.map((p) => {
-      const elapsedSec = (new Date(p.time).getTime() - startTime) / 1000;
-      return formatTimeLabel(elapsedSec);
-    });
-  }
+  const labels = props.trackData.map((_, index) => formatTimeLabel(elapsedSecondsAtIndex(index)));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const datasets: any[] = [];
@@ -217,9 +212,22 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         display: true,
         scaleID: 'x',
         value: cutIndex,
-        borderColor: hexToRgba(VERVE_COLORS.brown, 0.5),
-        borderWidth: 1,
-        borderDash: [2, 4],
+        borderColor: VERVE_COLORS.dark,
+        borderWidth: 2,
+        borderDash: [],
+        label: {
+          display: true,
+          content: `Cut ${index + 1}`,
+          position: 'start',
+          backgroundColor: hexToRgba(VERVE_COLORS.dark, 0.9),
+          color: '#ffffff',
+          padding: 4,
+          borderRadius: 4,
+          font: {
+            size: 10,
+            weight: 'bold',
+          },
+        },
       },
     ])
   );
@@ -251,9 +259,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
             return label;
           },
           title: (tooltipItems: TooltipItem<'line'>[]) => {
-            // Fix: Optional chaining and fallback for safety
-            const val = tooltipItems[0]?.label ?? '';
-            return xAxisMode.value === 'distance' ? `${val} km` : val;
+            return tooltipItems[0]?.label ?? '';
           },
         },
       },
@@ -265,9 +271,9 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
             display: props.hoveredIndex !== null,
             scaleID: 'x',
             value: props.hoveredIndex ?? 0,
-            borderColor: 'rgba(107, 114, 128, 0.5)',
+            borderColor: 'rgba(17, 24, 39, 0.42)',
             borderWidth: 1,
-            borderDash: [4, 4],
+            borderDash: [6, 6],
           },
         },
       },
@@ -278,7 +284,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         grid: { display: false },
         title: {
           display: true,
-          text: xAxisMode.value === 'distance' ? 'Distance (km)' : 'Time',
+          text: 'Elapsed time',
         },
       },
       yMetric: {
@@ -303,11 +309,17 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
 <template>
   <div v-if="availableMetrics.length > 0 && trackData.length > 0" class="flex flex-col h-full">
     <div class="flex justify-end space-x-2 mb-2">
-      <button v-for="m in availableMetrics" :key="m" @click="selectedMetricKey = m"
-        class="px-3 py-1 text-xs font-semibold rounded-full border transition-colors" :class="selectedMetricKey === m
+      <button
+        v-for="m in availableMetrics"
+        :key="m"
+        @click="selectedMetricKey = m"
+        class="px-3 py-1 text-xs font-semibold rounded-full border transition-colors"
+        :class="
+          selectedMetricKey === m
             ? `bg-gray-800 text-white border-gray-800`
             : `bg-white text-gray-600 border-gray-200 hover:border-gray-400`
-          ">
+        "
+      >
         {{ metricDefinitions[m]?.label.split(' ')[0] }}
       </button>
     </div>

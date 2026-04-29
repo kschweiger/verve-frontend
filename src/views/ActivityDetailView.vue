@@ -20,7 +20,14 @@ import LeafletMap from '@/components/LeafletMap.vue';
 import ElevationChart from '@/components/ElevationChart.vue';
 import ActivityGallery from '@/components/ActivityGallery.vue';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue';
-import { Trash2 } from 'lucide-vue-next';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Plus,
+  Trash2,
+} from 'lucide-vue-next';
 import ActivityLocationsWidget from '@/components/widgets/ActivityLocationsWidget.vue';
 import CombinedMetricsChart from '@/components/CombinedMetricsChart.vue';
 import { useLocationStore } from '@/stores/location';
@@ -145,7 +152,10 @@ const hasDuplicateSegmentCuts = computed(() => {
 });
 
 const canUseSegmentCutEdit = computed(() => {
-  return trackData.value.length > 1 && (selectedSegmentStatistics.value !== null || isCreatingSegmentSet.value);
+  return (
+    trackData.value.length > 1 &&
+    (selectedSegmentStatistics.value !== null || isCreatingSegmentSet.value)
+  );
 });
 
 const hasValidSegmentSetName = computed(() => {
@@ -206,15 +216,76 @@ function trackIndexForCut(cutId: number) {
   return trackIndexByPointId.value.get(cutId) ?? 0;
 }
 
+const trackStartTimestamp = computed(() => {
+  const firstPoint = trackData.value[0];
+  if (!firstPoint) return null;
+
+  const timestamp = Date.parse(firstPoint.time);
+  return Number.isNaN(timestamp) ? null : timestamp;
+});
+
+function elapsedSecondsForTrackIndex(index: number) {
+  const point = trackData.value[index];
+  if (!point || trackStartTimestamp.value === null) return index;
+
+  const timestamp = Date.parse(point.time);
+  if (Number.isNaN(timestamp)) return index;
+
+  return Math.max(0, (timestamp - trackStartTimestamp.value) / 1000);
+}
+
+function nearestTrackIndexForElapsedSeconds(targetSeconds: number) {
+  if (trackData.value.length === 0) return 0;
+
+  let bestIndex = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  trackData.value.forEach((_, index) => {
+    const distance = Math.abs(elapsedSecondsForTrackIndex(index) - targetSeconds);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
+function clampTrackIndex(index: number) {
+  return Math.min(Math.max(index, 0), Math.max(trackData.value.length - 1, 0));
+}
+
+function setEditableCutByTrackIndex(cutIndex: number, trackIndex: number) {
+  const point = trackData.value[clampTrackIndex(trackIndex)];
+  if (!point) return;
+
+  const nextCuts = [...editableSegmentCuts.value];
+  nextCuts[cutIndex] = point.id;
+  editableSegmentCuts.value = nextCuts;
+}
+
+function nudgeEditableCutByPoints(cutIndex: number, deltaPoints: number) {
+  setEditableCutByTrackIndex(
+    cutIndex,
+    trackIndexForCut(editableSegmentCuts.value[cutIndex] ?? 0) + deltaPoints
+  );
+}
+
+function nudgeEditableCutBySeconds(cutIndex: number, deltaSeconds: number) {
+  const currentIndex = trackIndexForCut(editableSegmentCuts.value[cutIndex] ?? 0);
+  const targetSeconds = elapsedSecondsForTrackIndex(currentIndex) + deltaSeconds;
+  setEditableCutByTrackIndex(cutIndex, nearestTrackIndexForElapsedSeconds(targetSeconds));
+}
+
+function formatElapsedTrackTime(index: number) {
+  return formatSeconds(elapsedSecondsForTrackIndex(index));
+}
+
 function trackLabelForIndex(index: number) {
   const point = trackData.value[index];
   if (!point) return 'Unknown point';
 
-  return `${formatDistanceMeters(point.dist)} · ${new Date(point.time).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })}`;
+  return `${formatElapsedTrackTime(index)} · ${formatDistanceMeters(point.dist)} · Point ${point.id}`;
 }
 
 function updateEditableCut(cutIndex: number, event: Event) {
@@ -222,12 +293,7 @@ function updateEditableCut(cutIndex: number, event: Event) {
   if (!(target instanceof HTMLInputElement)) return;
 
   const trackIndex = Number.parseInt(target.value, 10);
-  const point = trackData.value[trackIndex];
-  if (!point) return;
-
-  const nextCuts = [...editableSegmentCuts.value];
-  nextCuts[cutIndex] = point.id;
-  editableSegmentCuts.value = nextCuts;
+  setEditableCutByTrackIndex(cutIndex, trackIndex);
 }
 
 function addEditableCut() {
@@ -294,7 +360,8 @@ async function deleteSelectedSegmentSet() {
   }
 }
 
-function formatDistanceMeters(meters: number) {
+function formatDistanceMeters(meters: number | null) {
+  if (meters === null) return '-';
   if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
   return `${meters.toFixed(0)} m`;
 }
@@ -325,6 +392,14 @@ function formatSpeedMetersPerSecond(speed: number | null) {
 function formatNullableMetric(value: number | null, unit: string) {
   if (value === null) return '-';
   return `${value.toFixed(0)} ${unit}`;
+}
+
+function formatSegmentElevation(gain: number | null, loss: number | null) {
+  if (gain === null && loss === null) return '-';
+
+  const gainLabel = gain === null ? '-' : `+${gain.toFixed(0)}`;
+  const lossLabel = loss === null ? '-' : `-${loss.toFixed(0)}`;
+  return `${gainLabel} / ${lossLabel} m`;
 }
 
 onMounted(() => {
@@ -503,51 +578,140 @@ async function handleDeleteConfirm() {
           {{ segmentMutationError }}
         </div>
 
-        <div v-if="isEditingSegmentCuts" class="mt-6 p-4 rounded-xl bg-verve-light/20 border border-verve-medium/30">
+        <div
+          v-if="isEditingSegmentCuts"
+          class="mt-6 p-4 rounded-xl bg-verve-light/20 border border-verve-medium/30"
+        >
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 class="font-bold text-verve-brown">
                 {{ isCreatingSegmentSet ? 'Create segment set' : 'Edit cut points' }}
               </h3>
-              <p class="text-sm text-verve-brown/60 mt-1">
-                Move each slider to the track point where the next segment should start.
-              </p>
+              <p class="text-sm text-verve-brown/60 mt-1">{{ trackData.length }} track points</p>
             </div>
-            <button type="button" @click="addEditableCut"
-              class="px-3 py-2 rounded-xl bg-white border border-verve-medium text-sm font-semibold text-verve-brown hover:bg-verve-light/60 transition-colors">
-              Add cut
+            <button
+              type="button"
+              @click="addEditableCut"
+              class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white border border-verve-medium text-sm font-semibold text-verve-brown hover:bg-verve-light/60 transition-colors"
+            >
+              <Plus class="size-4" />
+              <span>Add cut</span>
             </button>
           </div>
 
-          <label v-if="isCreatingSegmentSet" class="block mt-4 text-sm font-semibold text-verve-brown">
+          <label
+            v-if="isCreatingSegmentSet"
+            class="block mt-4 text-sm font-semibold text-verve-brown"
+          >
             Name
-            <input v-model="draftSegmentSetName" type="text"
+            <input
+              v-model="draftSegmentSetName"
+              type="text"
               class="mt-2 w-full px-3 py-2 border border-verve-medium rounded-xl text-sm text-verve-brown bg-white focus:outline-none focus:ring-2 focus:ring-verve-orange/30"
-              placeholder="Interval set">
+              placeholder="Interval set"
+            />
           </label>
 
-          <div v-if="editableSegmentCuts.length === 0" class="mt-4 text-sm text-verve-brown/60 italic">
+          <div
+            v-if="editableSegmentCuts.length === 0"
+            class="mt-4 text-sm text-verve-brown/60 italic"
+          >
             No cuts selected yet.
           </div>
 
-          <div v-else class="mt-4 space-y-4">
-            <div v-for="(cutId, cutIndex) in editableSegmentCuts" :key="`${cutIndex}-${cutId}`"
-              class="p-3 rounded-xl bg-white border border-verve-medium/30">
+          <div v-else class="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <div
+              v-for="(cutId, cutIndex) in editableSegmentCuts"
+              :key="cutIndex"
+              class="rounded-lg bg-white border border-verve-medium/40 p-4 shadow-sm"
+            >
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-sm font-bold text-verve-brown">Cut {{ cutIndex + 1 }}</p>
-                  <p class="text-xs text-verve-brown/60 mt-1">
-                    Track ID {{ cutId }} · {{ trackLabelForIndex(trackIndexForCut(cutId)) }}
-                  </p>
+                  <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span
+                      class="rounded-md bg-verve-brown px-2 py-1 font-mono font-bold text-white"
+                    >
+                      {{ formatElapsedTrackTime(trackIndexForCut(cutId)) }}
+                    </span>
+                    <span
+                      class="rounded-md bg-verve-light px-2 py-1 font-semibold text-verve-brown/80"
+                    >
+                      {{ formatDistanceMeters(trackData[trackIndexForCut(cutId)]?.dist ?? 0) }}
+                    </span>
+                    <span
+                      class="rounded-md bg-white px-2 py-1 font-semibold text-verve-brown/50 ring-1 ring-verve-medium/40"
+                    >
+                      ID {{ cutId }}
+                    </span>
+                  </div>
                 </div>
-                <button type="button" @click="removeEditableCut(cutIndex)"
-                  class="text-xs font-semibold text-red-600 hover:text-red-700">
-                  Remove
+                <button
+                  type="button"
+                  @click="removeEditableCut(cutIndex)"
+                  class="inline-flex items-center justify-center rounded-md p-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  :aria-label="`Remove cut ${cutIndex + 1}`"
+                >
+                  <Trash2 class="size-4" />
                 </button>
               </div>
-              <input type="range" min="0" :max="Math.max(trackData.length - 1, 0)" step="1"
-                :value="trackIndexForCut(cutId)" class="mt-3 w-full accent-verve-orange"
-                @input="updateEditableCut(cutIndex, $event)">
+
+              <p class="mt-3 text-xs text-verve-brown/55">
+                {{ trackLabelForIndex(trackIndexForCut(cutId)) }}
+              </p>
+
+              <input
+                type="range"
+                min="0"
+                :max="Math.max(trackData.length - 1, 0)"
+                step="1"
+                :value="trackIndexForCut(cutId)"
+                class="cut-range mt-4 w-full"
+                @input="updateEditableCut(cutIndex, $event)"
+              />
+
+              <div class="mt-3 grid grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  :disabled="trackIndexForCut(cutId) === 0"
+                  class="cut-nudge-button"
+                  :aria-label="`Move cut ${cutIndex + 1} back one minute`"
+                  @click="nudgeEditableCutBySeconds(cutIndex, -60)"
+                >
+                  <ChevronsLeft class="size-4" />
+                  <span>-1m</span>
+                </button>
+                <button
+                  type="button"
+                  :disabled="trackIndexForCut(cutId) === 0"
+                  class="cut-nudge-button"
+                  :aria-label="`Move cut ${cutIndex + 1} back one track point`"
+                  @click="nudgeEditableCutByPoints(cutIndex, -1)"
+                >
+                  <ChevronLeft class="size-4" />
+                  <span>-1</span>
+                </button>
+                <button
+                  type="button"
+                  :disabled="trackIndexForCut(cutId) >= trackData.length - 1"
+                  class="cut-nudge-button"
+                  :aria-label="`Move cut ${cutIndex + 1} forward one track point`"
+                  @click="nudgeEditableCutByPoints(cutIndex, 1)"
+                >
+                  <span>+1</span>
+                  <ChevronRight class="size-4" />
+                </button>
+                <button
+                  type="button"
+                  :disabled="trackIndexForCut(cutId) >= trackData.length - 1"
+                  class="cut-nudge-button"
+                  :aria-label="`Move cut ${cutIndex + 1} forward one minute`"
+                  @click="nudgeEditableCutBySeconds(cutIndex, 60)"
+                >
+                  <span>+1m</span>
+                  <ChevronsRight class="size-4" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -604,7 +768,7 @@ async function handleDeleteConfirm() {
                 <td class="py-3 px-4">{{ formatNullableMetric(segment.power?.avg ?? null, 'W') }}</td>
                 <td class="py-3 px-4">{{ formatNullableMetric(segment.cadence?.avg ?? null, 'rpm') }}</td>
                 <td class="py-3 pl-4">
-                  +{{ segment.elevationGain.toFixed(0) }} / -{{ segment.elevationLoss.toFixed(0) }} m
+                  {{ formatSegmentElevation(segment.elevationGain, segment.elevationLoss) }}
                 </td>
               </tr>
             </tbody>
@@ -661,3 +825,39 @@ async function handleDeleteConfirm() {
     message="Are you sure you want to delete this activity? This action cannot be undone and will remove all associated data."
     @close="showDeleteModal = false" @confirm="handleDeleteConfirm" />
 </template>
+
+<style scoped>
+.cut-range {
+  min-height: 2rem;
+  accent-color: var(--color-verve-orange);
+  cursor: pointer;
+}
+
+.cut-nudge-button {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  border: 1px solid rgb(205 212 164 / 70%);
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 92%);
+  color: var(--color-verve-brown);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.cut-nudge-button:hover:not(:disabled) {
+  background: rgb(239 243 219 / 80%);
+  border-color: var(--color-verve-medium);
+}
+
+.cut-nudge-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+</style>
