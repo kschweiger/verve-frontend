@@ -220,6 +220,48 @@ function trackIndexForCut(cutId: number) {
   return trackIndexByPointId.value.get(cutId) ?? 0;
 }
 
+function trackPointForCut(cutId: number) {
+  return trackData.value[trackIndexForCut(cutId)] ?? null;
+}
+
+function secondsBetweenTrackPoints(startPoint: TrackPoint | null, endPoint: TrackPoint | null) {
+  if (!startPoint || !endPoint) return null;
+
+  const startMs = new Date(startPoint.time).getTime();
+  const endMs = new Date(endPoint.time).getTime();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+
+  return Math.max(0, (endMs - startMs) / 1000);
+}
+
+function durationBeforeCut(cutIndex: number) {
+  const currentCutId = sortedEditableSegmentCuts.value[cutIndex];
+  if (currentCutId === undefined) return null;
+
+  const startPoint =
+    cutIndex === 0
+      ? (trackData.value[0] ?? null)
+      : trackPointForCut(sortedEditableSegmentCuts.value[cutIndex - 1] ?? currentCutId);
+
+  return secondsBetweenTrackPoints(startPoint, trackPointForCut(currentCutId));
+}
+
+function durationBeforeCutId(cutId: number) {
+  const cutIndex = sortedEditableSegmentCuts.value.indexOf(cutId);
+  if (cutIndex === -1) return null;
+
+  return durationBeforeCut(cutIndex);
+}
+
+const finalEditableSegmentDuration = computed(() => {
+  if (sortedEditableSegmentCuts.value.length === 0) return null;
+
+  const lastCutId = sortedEditableSegmentCuts.value[sortedEditableSegmentCuts.value.length - 1];
+  if (lastCutId === undefined) return null;
+
+  return secondsBetweenTrackPoints(trackPointForCut(lastCutId), trackData.value[trackData.value.length - 1] ?? null);
+});
+
 const trackStartTimestamp = computed(() => {
   const firstPoint = trackData.value[0];
   if (!firstPoint) return null;
@@ -664,6 +706,10 @@ async function handleDeleteConfirm() {
                 {{ trackLabelForIndex(trackIndexForCut(cutId)) }}
               </p>
 
+              <p class="mt-2 text-xs font-semibold text-verve-brown/70">
+                Segment duration: {{ durationBeforeCutId(cutId) === null ? '-' : formatSeconds(durationBeforeCutId(cutId)!) }}
+              </p>
+
               <input
                 type="range"
                 min="0"
@@ -718,6 +764,13 @@ async function handleDeleteConfirm() {
               </div>
             </div>
           </div>
+
+          <p
+            v-if="finalEditableSegmentDuration !== null"
+            class="mt-4 text-sm font-semibold text-verve-brown/70"
+          >
+            Final segment duration: {{ formatSeconds(finalEditableSegmentDuration) }}
+          </p>
 
           <div class="mt-4 flex flex-col gap-2 text-sm">
             <p v-if="hasInvalidSegmentCuts" class="text-red-600">
