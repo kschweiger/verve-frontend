@@ -65,6 +65,12 @@ repos:
   # Vue.js template validation
   - repo: local
     hooks:
+      - id: generate-api-summary
+        name: Generate OpenAPI summary
+        entry: bun run generate:api-summary
+        language: system
+        files: ^backend_openapi\.json$
+        pass_filenames: false
       - id: vue-tsc
         name: Vue TypeScript check
         entry: bun run vue-tsc --noEmit
