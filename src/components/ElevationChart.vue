@@ -34,6 +34,7 @@ ChartJS.register(
 const props = defineProps<{
   trackData: TrackPoint[];
   hoveredIndex: number | null;
+  cutIndices?: number[];
 }>();
 
 const emit = defineEmits<{
@@ -42,11 +43,30 @@ const emit = defineEmits<{
 
 const isChartHovered = ref(false);
 
+const formatTimeLabel = (seconds: number) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}h`;
+  return `${m}m`;
+};
+
+const elapsedSecondsAtIndex = (index: number) => {
+  const firstPoint = props.trackData[0];
+  const point = props.trackData[index];
+  if (!firstPoint || !point) return index;
+
+  const start = Date.parse(firstPoint.time);
+  const current = Date.parse(point.time);
+  if (Number.isNaN(start) || Number.isNaN(current)) return index;
+
+  return Math.max(0, (current - start) / 1000);
+};
+
 const chartData = computed(() => {
   if (!props.trackData || props.trackData.length === 0) {
     return { labels: [], datasets: [] };
   }
-  const labels = props.trackData.map((p) => (p.dist / 1000).toFixed(1));
+  const labels = props.trackData.map((_, index) => formatTimeLabel(elapsedSecondsAtIndex(index)));
   const data = props.trackData.map((p) => p.ele ?? 0);
 
   return {
@@ -66,6 +86,34 @@ const chartData = computed(() => {
 });
 
 const chartOptions = computed<ChartOptions<'line'>>(() => {
+  const cutAnnotations = Object.fromEntries(
+    (props.cutIndices ?? []).map((cutIndex, index) => [
+      `cut${index}`,
+      {
+        type: 'line' as const,
+        display: true,
+        scaleID: 'x',
+        value: cutIndex,
+        borderColor: VERVE_COLORS.dark,
+        borderWidth: 2,
+        borderDash: [],
+        label: {
+          display: true,
+          content: `Cut ${index + 1}`,
+          position: 'start',
+          backgroundColor: hexToRgba(VERVE_COLORS.dark, 0.9),
+          color: '#ffffff',
+          padding: 4,
+          borderRadius: 4,
+          font: {
+            size: 10,
+            weight: 'bold',
+          },
+        },
+      },
+    ])
+  );
+
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -94,13 +142,14 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       },
       annotation: {
         annotations: {
+          ...cutAnnotations,
           line1: {
             type: 'line',
             display: props.hoveredIndex !== null,
             scaleID: 'x',
             value: props.hoveredIndex ?? 0,
-            borderColor: hexToRgba(VERVE_COLORS.orange, 0.7),
-            borderWidth: 2,
+            borderColor: 'rgba(17, 24, 39, 0.42)',
+            borderWidth: 1,
             borderDash: [6, 6],
           },
         },
@@ -116,7 +165,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       x: {
         title: {
           display: true,
-          text: 'Distance (km)',
+          text: 'Elapsed time',
         },
       },
     },

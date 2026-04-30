@@ -8,6 +8,7 @@ import { VERVE_COLORS } from '@/utils/colors';
 const props = defineProps<{
   trackData: TrackPoint[];
   hoveredIndex: number | null;
+  cutIndices?: number[];
 }>();
 
 const emit = defineEmits<{
@@ -18,6 +19,33 @@ const mapContainer = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
 let hoverMarker: L.CircleMarker | null = null;
 let trackPolyline: L.Polyline | null = null;
+let cutMarkers: L.CircleMarker[] = [];
+
+const clearCutMarkers = () => {
+  cutMarkers.forEach((marker) => marker.remove());
+  cutMarkers = [];
+};
+
+const drawCutMarkers = () => {
+  if (!map) return;
+
+  clearCutMarkers();
+
+  for (const cutIndex of props.cutIndices ?? []) {
+    const point = props.trackData[cutIndex];
+    if (!point || point.lat === null || point.lon === null) continue;
+
+    const marker = L.circleMarker([point.lat, point.lon], {
+      radius: 6,
+      color: VERVE_COLORS.brown,
+      weight: 2,
+      fillColor: '#ffffff',
+      fillOpacity: 1,
+    }).addTo(map);
+
+    cutMarkers.push(marker);
+  }
+};
 
 const drawTrackOnMap = () => {
   if (!map || !props.trackData || props.trackData.length === 0) return;
@@ -61,6 +89,7 @@ const drawTrackOnMap = () => {
   }
 
   map.fitBounds(trackPolyline.getBounds());
+  drawCutMarkers();
 };
 
 onMounted(() => {
@@ -86,6 +115,14 @@ watch(
   () => {
     drawTrackOnMap();
   }
+);
+
+watch(
+  () => props.cutIndices,
+  () => {
+    drawCutMarkers();
+  },
+  { deep: true }
 );
 
 watch(
