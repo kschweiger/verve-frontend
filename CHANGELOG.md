@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="0.7.0"></a>
+
+## [0.7.0](https://github.com/kschweiger/verve-frontend/compare/0.6.2...0.7.0) (2026-04-30)
+
+### Features
+
+- segment sets (#14) ([39733e7](https://github.com/kschweiger/verve-frontend/commit/39733e7ad8842a94f7a44742d9bcc06fb57bfdd2))
+
 <a name="0.6.2"></a>
 
 ## [0.6.2](https://github.com/kschweiger/verve-frontend/compare/0.6.1...0.6.2) (2026-04-25)
