@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "c5adde01e234411e4ae7c4cc709cafe19efeaa3b0134fb6a17c5972f07b96320",
+  "sourceSha256": "1dcfc1cbe68f27f241adfd41e73012dc31f5976d0942c47c97eefddf29fc3ffb",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
     "version": "0.1.0"
   },
   "pathCount": 68,
-  "schemaCount": 84,
+  "schemaCount": 86,
   "paths": [
     {
       "path": "/api/v1/activity/",
@@ -1143,6 +1143,8 @@
     "ResolvedType",
     "ResolvedTypes",
     "SegementSetCreate",
+    "SegmentDisplayMetadata",
+    "SegmentMetric",
     "SegmentMetrics",
     "SegmentResponse",
     "SegmentSetPublic",

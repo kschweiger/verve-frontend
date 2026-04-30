@@ -47,8 +47,17 @@ interface ApiTrackPointResponse {
 
 export interface SegmentMetrics {
   avg: number;
-  min: number;
-  max: number;
+  min: number | null;
+  max: number | null;
+}
+
+export type SegmentMetric = 'pace' | 'heartrate' | 'power' | 'speed' | 'cadence';
+
+export interface SegmentDisplayMetadata {
+  primaryMetric: SegmentMetric;
+  displayMetrics: SegmentMetric[];
+  speedUnit: 'm/s' | 'km/h' | 'miles/h';
+  paceUnit: 's/km' | 's/mile' | 'min/km' | 'min/mile';
 }
 
 export interface SegmentStats {
@@ -56,7 +65,7 @@ export interface SegmentStats {
   durationS: number;
   elevationGain: number | null;
   elevationLoss: number | null;
-  avgPaceSPerKm: number | null;
+  pace: SegmentMetrics | null;
   speed: SegmentMetrics | null;
   heartrate: SegmentMetrics | null;
   power: SegmentMetrics | null;
@@ -67,6 +76,7 @@ export interface SegmentStatistics {
   segmentSetId: string;
   name: string;
   cuts: number[];
+  displayMetadata: SegmentDisplayMetadata;
   segments: SegmentStats[];
 }
 
@@ -134,6 +144,23 @@ const toNumberArray = (value: unknown): number[] =>
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 
+const segmentMetrics = ['pace', 'heartrate', 'power', 'speed', 'cadence'] as const;
+const speedUnits = ['m/s', 'km/h', 'miles/h'] as const;
+const paceUnits = ['s/km', 's/mile', 'min/km', 'min/mile'] as const;
+
+const isSegmentMetric = (value: unknown): value is SegmentMetric =>
+  typeof value === 'string' && segmentMetrics.includes(value as SegmentMetric);
+
+const toSpeedUnit = (value: unknown): SegmentDisplayMetadata['speedUnit'] =>
+  typeof value === 'string' && speedUnits.includes(value as SegmentDisplayMetadata['speedUnit'])
+    ? (value as SegmentDisplayMetadata['speedUnit'])
+    : 'km/h';
+
+const toPaceUnit = (value: unknown): SegmentDisplayMetadata['paceUnit'] =>
+  typeof value === 'string' && paceUnits.includes(value as SegmentDisplayMetadata['paceUnit'])
+    ? (value as SegmentDisplayMetadata['paceUnit'])
+    : 'min/km';
+
 const mapSegmentMetrics = (value: unknown): SegmentMetrics | null => {
   if (!isRecord(value)) return null;
 
@@ -141,9 +168,29 @@ const mapSegmentMetrics = (value: unknown): SegmentMetrics | null => {
   const min = toNumber(value.min);
   const max = toNumber(value.max);
 
-  if (avg === null || min === null || max === null) return null;
+  if (avg === null) return null;
 
   return { avg, min, max };
+};
+
+const mapSegmentDisplayMetadata = (value: unknown): SegmentDisplayMetadata => {
+  if (!isRecord(value)) throw new Error('Invalid segment display metadata response.');
+
+  const primaryMetric = isSegmentMetric(value.primary_metric) ? value.primary_metric : null;
+  const displayMetrics = Array.isArray(value.display_metrics)
+    ? value.display_metrics.filter(isSegmentMetric)
+    : [];
+
+  if (primaryMetric === null || displayMetrics.length === 0) {
+    throw new Error('Invalid segment display metadata response.');
+  }
+
+  return {
+    primaryMetric,
+    displayMetrics: displayMetrics.includes(primaryMetric) ? displayMetrics : [primaryMetric, ...displayMetrics],
+    speedUnit: toSpeedUnit(value.speed_unit),
+    paceUnit: toPaceUnit(value.pace_unit),
+  };
 };
 
 const mapSegmentStats = (value: unknown): SegmentStats | null => {
@@ -163,7 +210,7 @@ const mapSegmentStats = (value: unknown): SegmentStats | null => {
     durationS,
     elevationGain,
     elevationLoss,
-    avgPaceSPerKm: toNullableNumber(value.avg_pace_s_per_km),
+    pace: mapSegmentMetrics(value.pace),
     speed: mapSegmentMetrics(value.speed),
     heartrate: mapSegmentMetrics(value.heartrate),
     power: mapSegmentMetrics(value.power),
@@ -184,6 +231,7 @@ const mapSegmentStatistics = (value: unknown): SegmentStatistics => {
     segmentSetId,
     name,
     cuts: toNumberArray(value.cuts),
+    displayMetadata: mapSegmentDisplayMetadata(value.display_metadata),
     segments: value.segments.map(mapSegmentStats).filter((segment): segment is SegmentStats => segment !== null),
   };
 };

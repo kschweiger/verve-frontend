@@ -11,7 +11,10 @@ import {
   fetchActivityTrack,
   fetchSegmentStatistics,
   updateSegmentSet,
+  type SegmentMetric,
+  type SegmentMetrics,
   type SegmentStatistics,
+  type SegmentStats,
   type TrackPoint,
 } from '@/services/api';
 import ActivityEquipment from '@/components/ActivityEquipment.vue';
@@ -59,6 +62,7 @@ const isCreatingSegmentSet = ref(false);
 const draftSegmentSetName = ref('');
 const isSavingSegmentSet = ref(false);
 const segmentMutationError = ref<string | null>(null);
+const expandedSegmentIndices = ref<number[]>([]);
 
 function handlePointHover(index: number | null) {
   hoveredPointIndex.value = index;
@@ -177,11 +181,45 @@ const canApplySegmentCutChanges = computed(() => {
   );
 });
 
+const displayMetrics = computed<SegmentMetric[]>(() => {
+  const metadata = selectedSegmentStatistics.value?.displayMetadata;
+  if (!metadata) return [];
+
+  return [
+    metadata.primaryMetric,
+    ...metadata.displayMetrics.filter((metric) => metric !== metadata.primaryMetric),
+  ];
+});
+
+const supportingDisplayMetrics = computed(() => displayMetrics.value.slice(1));
+
+const hasSegmentDistance = computed(() => {
+  return selectedSegmentStatistics.value?.segments.some((segment) => segment.distanceM !== null) ?? false;
+});
+
+const hasSegmentElevation = computed(() => {
+  return (
+    selectedSegmentStatistics.value?.segments.some(
+      (segment) => segment.elevationGain !== null || segment.elevationLoss !== null
+    ) ?? false
+  );
+});
+
+const segmentStatsColumnCount = computed(() => {
+  return (
+    4 +
+    supportingDisplayMetrics.value.length +
+    (hasSegmentDistance.value ? 1 : 0) +
+    (hasSegmentElevation.value ? 1 : 0)
+  );
+});
+
 function selectSegmentSet(segmentSetId: string) {
   selectedSegmentSetId.value = segmentSetId;
   isCreatingSegmentSet.value = false;
   draftSegmentSetName.value = '';
   segmentMutationError.value = null;
+  expandedSegmentIndices.value = [];
   cancelSegmentCutEdit();
 }
 
@@ -208,6 +246,16 @@ function cancelSegmentCutEdit() {
   isCreatingSegmentSet.value = false;
   draftSegmentSetName.value = '';
   segmentMutationError.value = null;
+}
+
+function toggleSegmentDetails(segmentIndex: number) {
+  expandedSegmentIndices.value = expandedSegmentIndices.value.includes(segmentIndex)
+    ? expandedSegmentIndices.value.filter((index) => index !== segmentIndex)
+    : [...expandedSegmentIndices.value, segmentIndex];
+}
+
+function isSegmentDetailsExpanded(segmentIndex: number) {
+  return expandedSegmentIndices.value.includes(segmentIndex);
 }
 
 function handleSegmentSetChange(event: Event) {
@@ -455,13 +503,11 @@ function formatSeconds(seconds: number) {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-function formatPace(secondsPerKm: number | null) {
-  if (secondsPerKm === null) return '-';
-  return `${formatSeconds(secondsPerKm)}/km`;
-}
-
-function formatSpeedMetersPerSecond(speed: number | null) {
+function formatSpeedMetersPerSecond(speed: number | null, unit = 'km/h') {
   if (speed === null) return '-';
+
+  if (unit === 'm/s') return `${speed.toFixed(1)} m/s`;
+  if (unit === 'miles/h') return `${(speed * 2.236936).toFixed(1)} mph`;
   return `${(speed * 3.6).toFixed(1)} km/h`;
 }
 
@@ -476,6 +522,48 @@ function formatSegmentElevation(gain: number | null, loss: number | null) {
   const gainLabel = gain === null ? '-' : `+${gain.toFixed(0)}`;
   const lossLabel = loss === null ? '-' : `-${loss.toFixed(0)}`;
   return `${gainLabel} / ${lossLabel} m`;
+}
+
+function formatPaceMetric(secondsPerKm: number | null) {
+  if (secondsPerKm === null) return '-';
+
+  const unit = selectedSegmentStatistics.value?.displayMetadata.paceUnit ?? 'min/km';
+  if (unit === 's/km') return `${secondsPerKm.toFixed(0)} s/km`;
+  if (unit === 's/mile') return `${(secondsPerKm * 1.609344).toFixed(0)} s/mi`;
+  if (unit === 'min/mile') return `${formatSeconds(secondsPerKm * 1.609344)}/mi`;
+  return `${formatSeconds(secondsPerKm)}/km`;
+}
+
+function segmentMetricValue(segment: SegmentStats, metric: SegmentMetric): SegmentMetrics | null {
+  return segment[metric];
+}
+
+function metricLabel(metric: SegmentMetric) {
+  const labels: Record<SegmentMetric, string> = {
+    pace: 'Pace',
+    speed: 'Speed',
+    heartrate: 'HR',
+    power: 'Power',
+    cadence: 'Cadence',
+  };
+
+  return labels[metric];
+}
+
+function formatSegmentMetric(metric: SegmentMetric, value: number | null) {
+  if (value === null) return '-';
+
+  if (metric === 'pace') return formatPaceMetric(value);
+  if (metric === 'speed') {
+    return formatSpeedMetersPerSecond(value, selectedSegmentStatistics.value?.displayMetadata.speedUnit);
+  }
+  if (metric === 'heartrate') return formatNullableMetric(value, 'bpm');
+  if (metric === 'power') return formatNullableMetric(value, 'W');
+  return formatNullableMetric(value, 'rpm');
+}
+
+function formatSegmentMetricAverage(segment: SegmentStats, metric: SegmentMetric) {
+  return formatSegmentMetric(metric, segmentMetricValue(segment, metric)?.avg ?? null);
 }
 
 onMounted(() => {
@@ -835,30 +923,65 @@ async function handleDeleteConfirm() {
             <thead>
               <tr class="text-left text-xs font-bold uppercase tracking-wider text-verve-brown/50 border-b border-verve-medium/30">
                 <th class="py-3 pr-4">#</th>
-                <th class="py-3 px-4">Distance</th>
                 <th class="py-3 px-4">Duration</th>
-                <th class="py-3 px-4">Pace</th>
-                <th class="py-3 px-4">Speed</th>
-                <th class="py-3 px-4">HR</th>
-                <th class="py-3 px-4">Power</th>
-                <th class="py-3 px-4">Cadence</th>
-                <th class="py-3 pl-4">Elevation</th>
+                <th v-if="hasSegmentDistance" class="py-3 px-4">Distance</th>
+                <th class="py-3 px-4">{{ metricLabel(selectedSegmentStatistics.displayMetadata.primaryMetric) }}</th>
+                <th v-for="metric in supportingDisplayMetrics" :key="metric" class="py-3 px-4">
+                  {{ metricLabel(metric) }} avg
+                </th>
+                <th v-if="hasSegmentElevation" class="py-3 pl-4">Elevation</th>
+                <th class="py-3 pl-4">Details</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-verve-medium/20">
-              <tr v-for="(segment, index) in selectedSegmentStatistics.segments" :key="index" class="text-verve-brown">
-                <td class="py-3 pr-4 font-semibold">{{ index + 1 }}</td>
-                <td class="py-3 px-4">{{ formatDistanceMeters(segment.distanceM) }}</td>
-                <td class="py-3 px-4">{{ formatSeconds(segment.durationS) }}</td>
-                <td class="py-3 px-4">{{ formatPace(segment.avgPaceSPerKm) }}</td>
-                <td class="py-3 px-4">{{ formatSpeedMetersPerSecond(segment.speed?.avg ?? null) }}</td>
-                <td class="py-3 px-4">{{ formatNullableMetric(segment.heartrate?.avg ?? null, 'bpm') }}</td>
-                <td class="py-3 px-4">{{ formatNullableMetric(segment.power?.avg ?? null, 'W') }}</td>
-                <td class="py-3 px-4">{{ formatNullableMetric(segment.cadence?.avg ?? null, 'rpm') }}</td>
-                <td class="py-3 pl-4">
-                  {{ formatSegmentElevation(segment.elevationGain, segment.elevationLoss) }}
-                </td>
-              </tr>
+              <template v-for="(segment, index) in selectedSegmentStatistics.segments" :key="index">
+                <tr class="text-verve-brown">
+                  <td class="py-3 pr-4 font-semibold">{{ index + 1 }}</td>
+                  <td class="py-3 px-4">{{ formatSeconds(segment.durationS) }}</td>
+                  <td v-if="hasSegmentDistance" class="py-3 px-4">{{ formatDistanceMeters(segment.distanceM) }}</td>
+                  <td class="py-3 px-4 font-semibold">
+                    {{ formatSegmentMetricAverage(segment, selectedSegmentStatistics.displayMetadata.primaryMetric) }}
+                  </td>
+                  <td v-for="metric in supportingDisplayMetrics" :key="metric" class="py-3 px-4">
+                    {{ formatSegmentMetricAverage(segment, metric) }}
+                  </td>
+                  <td v-if="hasSegmentElevation" class="py-3 pl-4">
+                    {{ formatSegmentElevation(segment.elevationGain, segment.elevationLoss) }}
+                  </td>
+                  <td class="py-3 pl-4">
+                    <button type="button" class="text-xs font-bold text-verve-orange hover:text-verve-brown"
+                      @click="toggleSegmentDetails(index)">
+                      {{ isSegmentDetailsExpanded(index) ? 'Hide' : 'Show' }}
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="isSegmentDetailsExpanded(index)" class="bg-verve-light/20 text-verve-brown">
+                  <td :colspan="segmentStatsColumnCount" class="p-4">
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <div v-for="metric in displayMetrics" :key="metric"
+                        class="rounded-xl border border-verve-medium/30 bg-white p-3">
+                        <p class="text-xs font-bold uppercase tracking-wider text-verve-brown/50">
+                          {{ metricLabel(metric) }}
+                        </p>
+                        <div class="mt-2 grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <p class="text-verve-brown/50">Min</p>
+                            <p class="font-semibold">{{ formatSegmentMetric(metric, segmentMetricValue(segment, metric)?.min ?? null) }}</p>
+                          </div>
+                          <div>
+                            <p class="text-verve-brown/50">Avg</p>
+                            <p class="font-semibold">{{ formatSegmentMetric(metric, segmentMetricValue(segment, metric)?.avg ?? null) }}</p>
+                          </div>
+                          <div>
+                            <p class="text-verve-brown/50">Max</p>
+                            <p class="font-semibold">{{ formatSegmentMetric(metric, segmentMetricValue(segment, metric)?.max ?? null) }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
