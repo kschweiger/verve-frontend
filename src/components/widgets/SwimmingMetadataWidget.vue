@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { SwimmingMetaData, SwimmingSetMeta } from '@/activityMetadata/swimming';
+import { Info } from 'lucide-vue-next';
 
 const props = defineProps<{
   metadata: SwimmingMetaData;
 }>();
+
+const activeStyle = ref<string | null>(null);
+const swolfDescription =
+  'SWOLF is swim golf: length time in seconds plus stroke count. Lower is better for the same pool length.';
 
 const formatNumber = (value: number | undefined, digits = 0): string =>
   value === undefined ? '-' : value.toFixed(digits);
@@ -39,6 +44,15 @@ const lapRange = (set: SwimmingSetMeta): string => {
   return '-';
 };
 
+const toggleStyle = (style: string) => {
+  activeStyle.value = activeStyle.value === style ? null : style;
+};
+
+const filteredSets = computed(() => {
+  if (activeStyle.value === null) return props.metadata.sets;
+  return props.metadata.sets.filter((set) => set.style === activeStyle.value);
+});
+
 const statCards = computed(() => [
   {
     label: 'Pool',
@@ -71,21 +85,43 @@ const statCards = computed(() => [
       </div>
 
       <div v-if="metadata.styles.length > 0" class="flex flex-wrap gap-2">
-        <span
+        <button
           v-for="style in metadata.styles"
           :key="style"
-          class="rounded-lg border border-verve-medium/40 bg-verve-light/40 px-3 py-1 text-xs font-bold text-verve-brown"
+          type="button"
+          class="rounded-lg border px-3 py-1 text-xs font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-verve-orange/30"
+          :class="
+            activeStyle === style
+              ? 'border-verve-brown bg-verve-brown text-white'
+              : 'border-verve-medium/40 bg-verve-light/40 text-verve-brown hover:bg-verve-medium/40'
+          "
+          :aria-pressed="activeStyle === style"
+          @click="toggleStyle(style)"
         >
           {{ formatStyle(style) }}
-        </span>
+        </button>
       </div>
     </div>
 
     <div class="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
       <div v-for="card in statCards" :key="card.label" class="rounded-lg bg-verve-light/20 p-4 text-center">
         <p class="text-2xl font-bold text-verve-brown">{{ card.value }}</p>
-        <p class="mt-1 text-xs font-bold uppercase tracking-wider text-verve-brown/50">
+        <p class="mt-1 inline-flex items-center justify-center gap-1 text-xs font-bold uppercase tracking-wider text-verve-brown/50">
           {{ card.label }}
+          <span v-if="card.label === 'Avg SWOLF'" class="group relative inline-flex">
+            <button
+              type="button"
+              class="rounded-full text-verve-brown/40 transition-colors hover:text-verve-brown focus:outline-none focus:ring-2 focus:ring-verve-orange/30"
+              :aria-label="swolfDescription"
+            >
+              <Info class="size-3.5" />
+            </button>
+            <span
+              class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-56 -translate-x-1/2 rounded-lg bg-verve-brown px-3 py-2 text-left text-xs font-medium normal-case tracking-normal text-white shadow-lg group-focus-within:block group-hover:block"
+            >
+              {{ swolfDescription }}
+            </span>
+          </span>
         </p>
       </div>
     </div>
@@ -107,7 +143,7 @@ const statCards = computed(() => [
             </tr>
           </thead>
           <tbody class="divide-y divide-verve-medium/20">
-            <tr v-for="set in metadata.sets" :key="set.index" class="text-verve-brown">
+            <tr v-for="set in filteredSets" :key="set.index" class="text-verve-brown">
               <td class="py-3 pr-4 font-semibold">{{ set.index + 1 }}</td>
               <td class="px-4 py-3">{{ formatMeters(set.distanceMeters) }}</td>
               <td class="px-4 py-3">{{ formatSeconds(set.durationSeconds) }}</td>
@@ -120,6 +156,9 @@ const statCards = computed(() => [
           </tbody>
         </table>
       </div>
+      <p v-if="filteredSets.length === 0 && activeStyle !== null" class="mt-4 text-sm text-verve-brown/50 italic">
+        No sets for {{ formatStyle(activeStyle) }}.
+      </p>
     </div>
   </section>
 </template>
