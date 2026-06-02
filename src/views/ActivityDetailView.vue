@@ -23,6 +23,7 @@ import LeafletMap from '@/components/LeafletMap.vue';
 import ElevationChart from '@/components/ElevationChart.vue';
 import ActivityGallery from '@/components/ActivityGallery.vue';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue';
+import SwimmingMetadataWidget from '@/components/widgets/SwimmingMetadataWidget.vue';
 import {
   ChevronLeft,
   ChevronRight,
@@ -35,6 +36,7 @@ import ActivityLocationsWidget from '@/components/widgets/ActivityLocationsWidge
 import CombinedMetricsChart from '@/components/CombinedMetricsChart.vue';
 import { useLocationStore } from '@/stores/location';
 import ActivityTagsWidget from '@/components/widgets/ActivityTagsWidget.vue';
+import { parseSwimmingMetadata } from '@/utils/swimmingMetadata';
 
 const props = defineProps<{
   id: string;
@@ -180,6 +182,8 @@ const canApplySegmentCutChanges = computed(() => {
     !isSavingSegmentSet.value
   );
 });
+
+const swimmingMetadata = computed(() => parseSwimmingMetadata(activity.value?.metaData ?? null));
 
 const displayMetrics = computed<SegmentMetric[]>(() => {
   const metadata = selectedSegmentStatistics.value?.displayMetadata;
@@ -752,6 +756,8 @@ async function handleDeleteConfirm() {
           </div>
         </div>
       </div>
+
+      <SwimmingMetadataWidget v-if="swimmingMetadata" :metadata="swimmingMetadata" />
 
       <ActivityHighlights :activity-id="id" />
 
