@@ -1,4 +1,16 @@
 <!-- insertion marker -->
+<a name="0.8.0"></a>
+
+## [0.8.0](https://github.com/kschweiger/verve-frontend/compare/0.7.0...0.8.0) (2026-06-02)
+
+### Features
+
+- display activity meta data (#15) ([b23f675](https://github.com/kschweiger/verve-frontend/commit/b23f6759190bdb495f2011f0d17eae1dcb1d584c))
+
+### Code Refactoring
+
+- segment cuts can be added before/between/after existing cuts ([b2d1ebc](https://github.com/kschweiger/verve-frontend/commit/b2d1ebc30d8c3f60789bcea2fbec83c1d0b33240))
+
 <a name="0.7.0"></a>
 
 ## [0.7.0](https://github.com/kschweiger/verve-frontend/compare/0.6.2...0.7.0) (2026-04-30)
