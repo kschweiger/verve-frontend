@@ -315,3 +315,7 @@ For sets, `averageSwolf` should represent the average of the included lap SWOLF 
 - Do not store source-specific field names such as Apple HealthKit metadata keys.
 - Do not require every exporter to provide laps and sets. Partial swim metadata is valid when it contains at least one meaningful field.
 - Do not duplicate root activity fields such as total workout duration or root total distance unless a future version defines a swim-specific distinction.
+
+## Frontend Display Extension
+
+Activity metadata display is dispatched by `meta_data.target`. To add a new metadata type in the frontend, add a parser, a domain-specific widget, a registry definition, and a renderer-map entry. Unknown metadata targets are intentionally hidden until a display implementation exists.

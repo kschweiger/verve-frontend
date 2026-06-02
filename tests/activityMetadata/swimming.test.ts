@@ -3,7 +3,7 @@ import swimmingVerveFile from '../fixtures/swimming_verve_file.json';
 import {
   extractSwimmingMetadataFromVerveFile,
   parseSwimmingMetadata,
-} from '../../src/utils/swimmingMetadata';
+} from '../../src/activityMetadata/swimming';
 
 const backendSwimmingMetadata = {
   target: 'SwimmingMetaData',

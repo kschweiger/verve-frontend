@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { SwimmingMetaData, SwimmingSetMeta } from '@/utils/swimmingMetadata';
+import type { SwimmingMetaData, SwimmingSetMeta } from '@/activityMetadata/swimming';
 
 const props = defineProps<{
   metadata: SwimmingMetaData;

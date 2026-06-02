@@ -1,4 +1,4 @@
-import { parseISODuration } from './datetime';
+import { parseISODuration } from '../utils/datetime';
 
 export interface SwimmingSetMeta {
   index: number;
