@@ -16,6 +16,7 @@ export interface ApiActivity {
   name?: string | null;
   avg_speed?: number | null;
   max_speed?: number | null;
+  meta_data?: Record<string, unknown> | null;
   tags?: ActivityTagPublic[];
 }
 
@@ -124,6 +125,7 @@ const mapApiActivity = (apiActivity: ApiActivity): Activity => {
     name: apiActivity.name ?? null,
     avg_speed: apiActivity.avg_speed ?? null,
     max_speed: apiActivity.max_speed ?? null,
+    metaData: apiActivity.meta_data ?? null,
     tags: apiActivity.tags ?? [],
   };
 };

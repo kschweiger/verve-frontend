@@ -22,7 +22,7 @@ export interface Activity {
   sub_type_id: number | null;
   name: string | null;
   avg_speed: number | null;
-  max_speed: number | null;
+  max_speed: number | null; metaData: Record<string, unknown> | null;
   tags: ActivityTagPublic[];
 }
 
@@ -74,7 +74,7 @@ const mapApiActivity = (apiActivity: ApiActivity): Activity => {
     elevationLoss: apiActivity.elevation_change_down ?? null,
     name: apiActivity.name ?? null,
     avg_speed: apiActivity.avg_speed ?? null,
-    max_speed: apiActivity.max_speed ?? null,
+    max_speed: apiActivity.max_speed ?? null, metaData: apiActivity.meta_data ?? null,
     type_id: apiActivity.type_id,
     sub_type_id: apiActivity.sub_type_id ?? null,
     tags: apiActivity.tags ?? [],
