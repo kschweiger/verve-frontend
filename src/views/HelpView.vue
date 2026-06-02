@@ -112,7 +112,7 @@ const verveJsonExample = `{
   "type": "FeatureCollection",
   "properties": {
     "verveVersion": "1.0",
-    "generator": "VerveBackend",
+    "generator": "Verve",
     "name": "Sunday Morning Ride",
     "description": "Easy pace through the hills.",
     "activityType": "Cycling",
@@ -157,6 +157,61 @@ const verveJsonExample = `{
       }
     }
   ]
+}`;
+
+const swimmingMetadataExample = `{
+  "type": "FeatureCollection",
+  "properties": {
+    "verveVersion": "1.0",
+    "activityType": "Swimming",
+    "activitySubType": "Outdoor Pool",
+    "metadata": {
+      "target": "SwimmingMetaData",
+      "version": "1.0",
+      "data": {
+        "poolLengthMeters": 50,
+        "totalStrokeCount": 56,
+        "averageSwolf": 82.7,
+        "lapCount": 2,
+        "setCount": 1,
+        "strokeStyles": ["breaststroke"],
+        "laps": [
+          {
+            "index": 0,
+            "durationSeconds": 72.0,
+            "distanceMeters": 50,
+            "strokeStyle": "breaststroke",
+            "strokeCount": 28,
+            "swolf": 82.0
+          },
+          {
+            "index": 1,
+            "durationSeconds": 71.0,
+            "distanceMeters": 50,
+            "strokeStyle": "breaststroke",
+            "strokeCount": 28,
+            "swolf": 83.0,
+            "restAfterSeconds": 62.0
+          }
+        ],
+        "sets": [
+          {
+            "index": 0,
+            "durationSeconds": 143.0,
+            "lapStartIndex": 0,
+            "lapEndIndex": 1,
+            "lapCount": 2,
+            "distanceMeters": 100,
+            "strokeStyle": "breaststroke",
+            "strokeCount": 56,
+            "averageSwolf": 82.7,
+            "restAfterSeconds": 62.0
+          }
+        ]
+      }
+    }
+  },
+  "features": []
 }`;
 </script>
 
@@ -232,6 +287,47 @@ const verveJsonExample = `{
                 are included in the settings or directly on the heatmap view.
               </div>
             </details>
+
+            <details
+              class="group bg-verve-light/10 rounded-xl border border-verve-medium/20 open:bg-verve-light/20 transition-colors">
+              <summary
+                class="flex justify-between items-center cursor-pointer p-4 font-bold text-verve-brown list-none">
+                <span>What swimming metadata does Verve support?</span>
+                <span class="transition group-open:rotate-180">▼</span>
+              </summary>
+              <div class="px-4 pb-4 text-verve-brown/80 text-sm leading-relaxed space-y-3">
+                <p>
+                  Verve files can include source-neutral swimming metadata under
+                  <code class="font-mono text-xs bg-white/70 px-1.5 py-0.5 rounded">metadata.target =
+                    "SwimmingMetaData"</code>.
+                  This can describe pool length, total stroke count, average SWOLF, lap count, set count, stroke
+                  styles, laps, and sets.
+                </p>
+                <p>
+                  Laps are the smallest exported swim records, usually one pool length. Sets group one or more laps,
+                  such as a 100 m breaststroke set made from two 50 m laps. Activity detail can show the general swim
+                  summary and set table when meaningful swim metadata is available.
+                </p>
+                <p>
+                  Pool length is optional, so open-water swims or incomplete exports can still be valid. Swimming
+                  location type belongs to the activity type and subtype, not inside the swim metadata itself.
+                </p>
+              </div>
+            </details>
+
+            <details
+              class="group bg-verve-light/10 rounded-xl border border-verve-medium/20 open:bg-verve-light/20 transition-colors">
+              <summary
+                class="flex justify-between items-center cursor-pointer p-4 font-bold text-verve-brown list-none">
+                <span>What is SWOLF?</span>
+                <span class="transition group-open:rotate-180">▼</span>
+              </summary>
+              <div class="px-4 pb-4 text-verve-brown/80 text-sm leading-relaxed">
+                SWOLF means swim golf. For a pool length, it is the length duration in seconds plus the stroke count.
+                For example, a 50 m length completed in 54 seconds with 26 strokes has a SWOLF score of 80. Lower
+                values are better when comparing the same pool length.
+              </div>
+            </details>
           </div>
         </div>
 
@@ -291,6 +387,258 @@ const verveJsonExample = `{
           </p>
           <div class="bg-gray-900 rounded-xl p-4 overflow-x-auto text-xs font-mono text-gray-100 shadow-inner">
             <pre>{{ verveJsonExample }}</pre>
+          </div>
+
+          <h3 class="text-lg font-bold text-verve-brown mt-6 mb-3">Swimming Metadata Extension</h3>
+          <p class="text-verve-brown/80 leading-relaxed text-sm">
+            Swimming activities can include source-neutral pool, lap, set, stroke, and SWOLF data in the top-level
+            <code>properties.metadata</code> envelope. The file format uses camelCase field names.
+          </p>
+          <p class="text-verve-brown/80 leading-relaxed text-sm">
+            The swim metadata envelope is optional. If you include it, provide <code>target</code>,
+            <code>version</code>, and <code>data</code>. The <code>data</code> object should contain at least one
+            meaningful swim field, such as pool length, total strokes, average SWOLF, lap count, set count, stroke
+            styles, laps, or sets.
+          </p>
+          <p class="text-verve-brown/80 leading-relaxed text-sm">
+            Count fields should match the exported detail arrays: <code>lapCount</code> should equal the number of
+            objects in <code>laps</code>, and <code>setCount</code> should equal the number of objects in
+            <code>sets</code>. If no swim metadata fields are known, omit the metadata envelope instead of exporting an
+            empty one.
+          </p>
+          <div class="bg-gray-900 rounded-xl p-4 overflow-x-auto text-xs font-mono text-gray-100 shadow-inner">
+            <pre>{{ swimmingMetadataExample }}</pre>
+          </div>
+
+          <div class="overflow-x-auto border border-verve-medium/30 rounded-xl">
+            <table class="w-full text-sm text-left bg-white">
+              <thead class="text-xs text-verve-brown/60 uppercase bg-verve-light/50 border-b border-verve-medium/30">
+                <tr>
+                  <th class="px-4 py-3">Field</th>
+                  <th class="px-4 py-3">Type</th>
+                  <th class="px-4 py-3 text-center">Required</th>
+                  <th class="px-4 py-3">Description</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-verve-medium/10">
+                <tr class="bg-verve-light/10">
+                  <td colspan="4" class="px-4 py-2 font-bold text-verve-brown text-xs uppercase tracking-wider">
+                    Envelope</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">metadata.target</td>
+                  <td class="px-4 py-2 text-xs">"SwimmingMetaData"</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-orange font-bold">Yes</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Identifies the metadata as swimming data.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">metadata.version</td>
+                  <td class="px-4 py-2 text-xs">"1.0"</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-orange font-bold">Yes</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Swimming metadata contract version.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">metadata.data</td>
+                  <td class="px-4 py-2 text-xs">Object</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-orange font-bold">Yes</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Swimming metadata payload with at least one
+                    meaningful field.</td>
+                </tr>
+                <tr class="bg-verve-light/10">
+                  <td colspan="4" class="px-4 py-2 font-bold text-verve-brown text-xs uppercase tracking-wider">
+                    Data Object</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">poolLengthMeters</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Pool length in meters. Omit when unknown or
+                    open-water.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">totalStrokeCount</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Total counted strokes for the workout.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">averageSwolf</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Average SWOLF across the workout or exported laps.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">lapCount / setCount</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Number of exported lap or set objects. These counts
+                    should match <code>laps.length</code> and <code>sets.length</code> when those arrays are present.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">strokeStyles</td>
+                  <td class="px-4 py-2 text-xs">Array[String]</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Distinct styles such as freestyle, backstroke,
+                    breaststroke, butterfly, kickboard, mixed, or unknown.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">laps</td>
+                  <td class="px-4 py-2 text-xs">Array[Object]</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Smallest exported swim records, usually one pool
+                    length each. Useful fields include index, durationSeconds, distanceMeters, strokeStyle, strokeCount,
+                    swolf, and restAfterSeconds.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">sets</td>
+                  <td class="px-4 py-2 text-xs">Array[Object]</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Groups of one or more laps, such as an interval or
+                    drill. Useful fields include index, durationSeconds, lapStartIndex, lapEndIndex, lapCount,
+                    distanceMeters, strokeStyle, strokeCount, averageSwolf, and restAfterSeconds.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 class="text-base font-bold text-verve-brown mt-4 mb-2">Lap Fields</h4>
+          <div class="overflow-x-auto border border-verve-medium/30 rounded-xl">
+            <table class="w-full text-sm text-left bg-white">
+              <thead class="text-xs text-verve-brown/60 uppercase bg-verve-light/50 border-b border-verve-medium/30">
+                <tr>
+                  <th class="px-4 py-3">Field</th>
+                  <th class="px-4 py-3">Type</th>
+                  <th class="px-4 py-3 text-center">Required</th>
+                  <th class="px-4 py-3">Description</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-verve-medium/10">
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">index</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-orange font-bold">Yes</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Zero-based lap position in the exported swim.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">durationSeconds</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Time spent swimming this lap, in seconds.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">distanceMeters</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Lap distance in meters. For pool swims this usually
+                    matches the pool length.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">strokeStyle</td>
+                  <td class="px-4 py-2 text-xs">String</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Main stroke style for this lap, such as freestyle,
+                    breaststroke, mixed, or unknown.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">strokeCount</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Counted strokes for this lap.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">swolf</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">SWOLF score for this lap: lap seconds plus stroke
+                    count.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">restAfterSeconds</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Rest time after this lap, in seconds.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 class="text-base font-bold text-verve-brown mt-4 mb-2">Set Fields</h4>
+          <div class="overflow-x-auto border border-verve-medium/30 rounded-xl">
+            <table class="w-full text-sm text-left bg-white">
+              <thead class="text-xs text-verve-brown/60 uppercase bg-verve-light/50 border-b border-verve-medium/30">
+                <tr>
+                  <th class="px-4 py-3">Field</th>
+                  <th class="px-4 py-3">Type</th>
+                  <th class="px-4 py-3 text-center">Required</th>
+                  <th class="px-4 py-3">Description</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-verve-medium/10">
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">index</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-orange font-bold">Yes</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Zero-based set position in the exported swim.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">durationSeconds</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Total swimming time for this set, in seconds.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">lapStartIndex</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Index of the first lap included in this set.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">lapEndIndex</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Index of the last lap included in this set.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">lapCount</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Number of laps in this set.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">distanceMeters</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Total set distance in meters.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">strokeStyle</td>
+                  <td class="px-4 py-2 text-xs">String</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Main stroke style for this set, such as freestyle,
+                    breaststroke, mixed, or unknown.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">strokeCount</td>
+                  <td class="px-4 py-2 text-xs">Integer</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Total counted strokes for this set.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">averageSwolf</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Average SWOLF across the laps in this set.</td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">restAfterSeconds</td>
+                  <td class="px-4 py-2 text-xs">Number</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Rest time after this set, in seconds.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
 
