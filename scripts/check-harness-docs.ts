@@ -43,6 +43,8 @@ const requiredReferences: RequiredReference[] = [
       'docs/references/index.md',
       'docs/FRONTEND.md',
       'backend_openapi.json',
+      'docs/exec-plans/active/',
+      'docs/superpowers/plans/',
       'bun run check',
     ],
   },
@@ -67,6 +69,7 @@ const requiredReferences: RequiredReference[] = [
       'docs/exec-plans/active/',
       'docs/exec-plans/completed/',
       'docs/exec-plans/tech-debt-tracker.md',
+      'docs/superpowers/plans/',
     ],
   },
   {
@@ -109,6 +112,10 @@ if (existsSync('AGENTS.md')) {
   if (agentLines > 140) {
     failures.push(`AGENTS.md should stay map-first and short; found ${agentLines} lines`);
   }
+}
+
+if (existsSync('docs/superpowers/plans')) {
+  failures.push('Execution plans must be saved under docs/exec-plans/, not docs/superpowers/plans/.');
 }
 
 if (failures.length > 0) {

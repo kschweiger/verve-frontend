@@ -7,6 +7,11 @@ Planning workflow:
 3. Move completed plans to `docs/exec-plans/completed/`.
 4. Track follow-up debt in `docs/exec-plans/tech-debt-tracker.md`.
 
+Repository-local plan storage is exclusive:
+- Active checked-in execution plans must live in `docs/exec-plans/active/`.
+- Completed checked-in execution plans must live in `docs/exec-plans/completed/`.
+- Do not create or save plans under `docs/superpowers/plans/`, even when an external skill suggests that default path.
+
 Plan files should include:
 - objective,
 - current status,

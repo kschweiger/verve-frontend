@@ -14,10 +14,11 @@ description: "Operating skill for agent-first Vue frontend implementation loops 
 1. Load context progressively: `AGENTS.md` -> `ARCHITECTURE.md` -> docs indexes.
 2. For API work, inspect `backend_openapi.json` before touching code.
 3. Define one concrete success check before edits.
-4. Implement the smallest coherent patch that can pass that check.
-5. Run focused checks, inspect failures, and revise.
-6. Run `bun run check` before handoff for non-trivial work.
-7. Run `bun run diff:distribution` and include the result in the handoff.
+4. Save checked-in execution plans only in `docs/exec-plans/active/` while active and `docs/exec-plans/completed/` when retained after completion.
+5. Implement the smallest coherent patch that can pass that check.
+6. Run focused checks, inspect failures, and revise.
+7. Run `bun run check` before handoff for non-trivial work.
+8. Run `bun run diff:distribution` and include the result in the handoff.
 
 ## Frontend Rules
 - Vue 3 Composition API only with `<script setup lang="ts">`.
