@@ -3,10 +3,14 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useTypeStore } from '@/stores/types';
 import { useActivityStore } from '@/stores/activity';
 import ActivityCreateForm from '@/components/forms/ActivityCreateForm.vue';
-import { FileText, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-vue-next';
+import { FileText, CheckCircle, XCircle, Loader2, RefreshCw, HelpCircle } from 'lucide-vue-next';
 
 const typeStore = useTypeStore();
 const activityStore = useActivityStore();
+
+defineProps<{
+  embedded?: boolean;
+}>();
 
 const activeTab = ref<'auto' | 'manual'>('auto');
 const showManualModal = ref(false);
@@ -105,7 +109,7 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
+  <div :class="embedded ? 'h-full flex flex-col' : 'bg-white rounded-lg shadow-md p-6 h-full flex flex-col'">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-xl font-bold text-gray-800">Add Activity</h3>
 

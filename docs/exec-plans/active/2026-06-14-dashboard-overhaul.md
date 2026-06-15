@@ -10,6 +10,93 @@
 
 ---
 
+## Current Implementation Status
+
+Updated: 2026-06-15
+
+Status: implementation is in progress but functionally complete for the dashboard overhaul. Visual QA found layout issues that were fixed after the initial implementation.
+
+Completed implementation:
+
+- `src/stores/statistics.ts`
+  - Added activity-grid response types and `fetchActivityGrid(52)` support.
+- `src/utils/activityGrid.ts`
+  - Added pure helpers for intensity, weekday labels, month labels, compact duration formatting, and active-day average formatting.
+- `tests/utils/activityGrid.test.ts`
+  - Added Bun unit tests for the activity-grid helpers.
+- `src/components/widgets/ActivityGridWidget.vue`
+  - Added the dashboard activity history grid.
+  - Uses duration-based intensity and Monday-Sunday rows.
+  - Uses flexible week columns so the grid fills the card without month-label gaps.
+  - Month labels are absolutely positioned so they do not change week-column width.
+  - Removed the duplicate active-days header text because the overview strip already shows it.
+- `src/components/dashboard/DashboardOverviewStrip.vue`
+  - Added compact totals for active time, activities, active days, and average active day.
+- `src/components/dashboard/AddActivityPanel.vue`
+  - Added header `Add` action and side panel.
+  - Raised overlay above the navbar after QA showed the navbar covered the close button.
+- `src/components/widgets/UploadActivityWidget.vue`
+  - Added `embedded` prop.
+  - Added missing `HelpCircle` import.
+- `src/components/widgets/LastActivitiesWidget.vue`
+  - Made Recent Activities the primary dashboard navigation widget.
+  - Switched to duration-first metric display with distance as secondary.
+- `src/components/widgets/HighlightsWidget.vue`
+  - Replaced metric/scope/year controls with curated records.
+  - Removed `h-full` after QA showed the card overflowed its grid row and visually collided with the footer.
+- `src/components/widgets/GoalsWidget.vue`
+  - Removed `h-full` after QA showed vertically stacked right-column widgets overflowed their grid row.
+- `src/views/DashboardView.vue`
+  - Replaced old dashboard widgets and placeholders with the new activity overview composition.
+- `src/layouts/MainLayout.vue`
+  - Removed sticky-footer flex behavior so the footer follows `main` in normal document flow.
+
+Human validation notes:
+
+- Activity grid direction accepted after iterations.
+- Add panel interaction accepted after overlay z-index fix.
+- Grid label spacing adjusted after QA:
+  - weekday label rail widened,
+  - month labels made non-sizing,
+  - week columns made flexible.
+- Footer/records overlap root cause identified as `h-full` on stacked right-column widgets, not footer positioning. The latest fix removes those `h-full` constraints.
+
+Latest verification run after the most recent footer/records fix:
+
+```bash
+bun run type-check
+```
+
+Result: PASS (`vue-tsc --build` completed).
+
+Earlier validation during this implementation:
+
+```bash
+bun test tests/utils/activityGrid.test.ts
+bun run type-check
+bun run check
+bun run diff:distribution
+```
+
+Earlier results:
+
+- Activity-grid helper tests passed.
+- Type check passed.
+- Full `bun run check` passed before later visual QA layout fixes.
+- Diff distribution was concentrated in planned dashboard/source/test files plus pre-existing unrelated untracked files: `diff.txt`, `main_logo.svg`, `small_logo.png`.
+
+Remaining before handoff:
+
+- Re-run full final validation after the latest visual QA fixes:
+  - `bun test tests/utils/activityGrid.test.ts`
+  - `bun run type-check`
+  - `bun run check`
+  - `bun run diff:distribution`
+- Confirm in browser that Records is no longer behind the footer after removing `h-full` from `GoalsWidget` and `HighlightsWidget`.
+- Decide whether to keep this plan in `active/` until final validation, or move it to `completed/` after final handoff.
+
+---
+
 ## File Structure
 
 - Modify `src/stores/statistics.ts`
@@ -55,9 +142,15 @@
   - Use existing highlight APIs and fetch a small fixed set: longest duration, longest distance, most elevation where available.
   - Keep the implementation bounded to the dashboard widget; do not add backend preference storage.
 
+- Modify `src/components/widgets/GoalsWidget.vue`
+  - Remove fixed full-height behavior when used in the stacked dashboard right column.
+
 - Modify `src/views/DashboardView.vue`
   - Remove `YearlyStatsWidget`, `WeeklyStatsWidget`, `CalendarWidget`, `UploadActivityWidget`, `QuickAddWidget`, placeholder cards, and inert `Add Widget`.
   - Add `AddActivityPanel`, `ActivityGridWidget`, `DashboardOverviewStrip`, `LastActivitiesWidget`, `GoalsWidget`, and `HighlightsWidget`.
+
+- Modify `src/layouts/MainLayout.vue`
+  - Keep the authenticated layout in normal document flow so `Footer` renders after all routed `main` content.
 
 - No backend files are changed in this frontend plan.
 
@@ -131,7 +224,7 @@ Required stop points:
 **Files:**
 - Modify: `src/stores/statistics.ts`
 
-- [ ] **Step 1: Add activity-grid interfaces**
+- [x] **Step 1: Add activity-grid interfaces**
 
 In `src/stores/statistics.ts`, after `CalendarResponse`, add:
 
@@ -166,7 +259,7 @@ export interface ActivityGridResponse {
 }
 ```
 
-- [ ] **Step 2: Add store state**
+- [x] **Step 2: Add store state**
 
 Inside `useStatisticsStore`, after `calendarData`, add:
 
@@ -176,7 +269,7 @@ Inside `useStatisticsStore`, after `calendarData`, add:
   const activityGridError = ref<string | null>(null);
 ```
 
-- [ ] **Step 3: Add `fetchActivityGrid`**
+- [x] **Step 3: Add `fetchActivityGrid`**
 
 Inside `useStatisticsStore`, after `fetchCalendar`, add:
 
@@ -215,7 +308,7 @@ Inside `useStatisticsStore`, after `fetchCalendar`, add:
   }
 ```
 
-- [ ] **Step 4: Return new state and action**
+- [x] **Step 4: Return new state and action**
 
 In the returned object from `useStatisticsStore`, add:
 
@@ -226,7 +319,7 @@ In the returned object from `useStatisticsStore`, add:
     fetchActivityGrid,
 ```
 
-- [ ] **Step 5: Run focused type check**
+- [x] **Step 5: Run focused type check**
 
 Run:
 
@@ -251,7 +344,7 @@ git commit -m "feat: add activity grid statistics store"
 - Create: `src/utils/activityGrid.ts`
 - Create: `tests/utils/activityGrid.test.ts`
 
-- [ ] **Step 1: Create failing tests**
+- [x] **Step 1: Create failing tests**
 
 Create `tests/utils/activityGrid.test.ts`:
 
@@ -311,7 +404,7 @@ bun test tests/utils/activityGrid.test.ts
 
 Expected: FAIL because `src/utils/activityGrid.ts` does not exist.
 
-- [ ] **Step 3: Implement helpers**
+- [x] **Step 3: Implement helpers**
 
 Create `src/utils/activityGrid.ts`:
 
@@ -350,7 +443,7 @@ export function formatAverageDuration(totalSeconds: number, activeDays: number):
 }
 ```
 
-- [ ] **Step 4: Run tests and verify pass**
+- [x] **Step 4: Run tests and verify pass**
 
 Run:
 
@@ -375,7 +468,7 @@ git commit -m "test: cover activity grid helpers"
 - Create: `src/components/widgets/ActivityGridWidget.vue`
 - Modify: `src/stores/statistics.ts` only if Task 1 exposed a missing type during implementation
 
-- [ ] **Step 1: Create `ActivityGridWidget.vue`**
+- [x] **Step 1: Create `ActivityGridWidget.vue`**
 
 Create `src/components/widgets/ActivityGridWidget.vue`:
 
@@ -481,7 +574,7 @@ function cellTitle(day: GridDay | null): string {
 </template>
 ```
 
-- [ ] **Step 2: Run type check**
+- [x] **Step 2: Run type check**
 
 Run:
 
@@ -505,7 +598,7 @@ git commit -m "feat: add dashboard activity history grid"
 **Files:**
 - Create: `src/components/dashboard/DashboardOverviewStrip.vue`
 
-- [ ] **Step 1: Create component**
+- [x] **Step 1: Create component**
 
 Create `src/components/dashboard/DashboardOverviewStrip.vue`:
 
@@ -565,7 +658,7 @@ const items = computed(() => {
 </template>
 ```
 
-- [ ] **Step 2: Run type check**
+- [x] **Step 2: Run type check**
 
 Run:
 
@@ -582,7 +675,7 @@ git add src/components/dashboard/DashboardOverviewStrip.vue
 git commit -m "feat: add dashboard overview strip"
 ```
 
-- [ ] **Step 4: STOP - Human validation Gate A**
+- [x] **Step 4: STOP - Human validation Gate A**
 
 Create a temporary, uncommitted preview of the new top section in `src/views/DashboardView.vue`. Add these imports:
 
@@ -644,7 +737,7 @@ Expected: the diff only contains the temporary preview imports/template. Remove 
 - Create: `src/components/dashboard/AddActivityPanel.vue`
 - Modify: `src/components/widgets/UploadActivityWidget.vue`
 
-- [ ] **Step 1: Fix and embed `UploadActivityWidget`**
+- [x] **Step 1: Fix and embed `UploadActivityWidget`**
 
 In `src/components/widgets/UploadActivityWidget.vue`, change the icon import to include `HelpCircle`:
 
@@ -672,7 +765,7 @@ with:
   <div :class="embedded ? 'h-full flex flex-col' : 'bg-white rounded-lg shadow-md p-6 h-full flex flex-col'">
 ```
 
-- [ ] **Step 2: Create `AddActivityPanel.vue`**
+- [x] **Step 2: Create `AddActivityPanel.vue`**
 
 Create `src/components/dashboard/AddActivityPanel.vue`:
 
@@ -731,7 +824,7 @@ const isOpen = ref(false);
 </template>
 ```
 
-- [ ] **Step 3: Run type check**
+- [x] **Step 3: Run type check**
 
 Run:
 
@@ -748,7 +841,7 @@ git add src/components/dashboard/AddActivityPanel.vue src/components/widgets/Upl
 git commit -m "feat: move activity creation into add panel"
 ```
 
-- [ ] **Step 5: STOP - Human validation Gate B**
+- [x] **Step 5: STOP - Human validation Gate B**
 
 With the dev server running, ask the human to inspect the `Add` interaction on desktop and mobile widths.
 
@@ -769,7 +862,7 @@ Do not continue to Task 6 until the human accepts the add-panel interaction or r
 **Files:**
 - Modify: `src/components/widgets/LastActivitiesWidget.vue`
 
-- [ ] **Step 1: Update display copy and metric layout**
+- [x] **Step 1: Update display copy and metric layout**
 
 Replace the template in `LastActivitiesWidget.vue` with:
 
@@ -829,7 +922,7 @@ Replace the template in `LastActivitiesWidget.vue` with:
 </template>
 ```
 
-- [ ] **Step 2: Run type check**
+- [x] **Step 2: Run type check**
 
 Run:
 
@@ -853,7 +946,7 @@ git commit -m "feat: emphasize recent activities on dashboard"
 **Files:**
 - Modify: `src/components/widgets/HighlightsWidget.vue`
 
-- [ ] **Step 1: Replace local state and fetch logic**
+- [x] **Step 1: Replace local state and fetch logic**
 
 In `HighlightsWidget.vue`, replace the script with:
 
@@ -941,7 +1034,7 @@ onMounted(loadCuratedRecords);
 </script>
 ```
 
-- [ ] **Step 2: Replace template**
+- [x] **Step 2: Replace template**
 
 In `HighlightsWidget.vue`, replace the template with:
 
@@ -994,7 +1087,7 @@ In `HighlightsWidget.vue`, replace the template with:
 </template>
 ```
 
-- [ ] **Step 3: Run type check**
+- [x] **Step 3: Run type check**
 
 Run:
 
@@ -1011,7 +1104,7 @@ git add src/components/widgets/HighlightsWidget.vue
 git commit -m "feat: simplify dashboard records"
 ```
 
-- [ ] **Step 5: STOP - Human validation Gate C**
+- [x] **Step 5: STOP - Human validation Gate C**
 
 With `LastActivitiesWidget`, `GoalsWidget`, and the updated `HighlightsWidget` available, ask the human to validate the main content widgets before the full dashboard reorder.
 
@@ -1032,7 +1125,7 @@ Do not continue to Task 8 until the human accepts the widget direction or reques
 **Files:**
 - Modify: `src/views/DashboardView.vue`
 
-- [ ] **Step 1: Replace imports**
+- [x] **Step 1: Replace imports**
 
 Replace the imports in `DashboardView.vue` with:
 
@@ -1046,7 +1139,7 @@ import GoalsWidget from '@/components/widgets/GoalsWidget.vue';
 import HighlightsWidget from '@/components/widgets/HighlightsWidget.vue';
 ```
 
-- [ ] **Step 2: Replace template**
+- [x] **Step 2: Replace template**
 
 Replace the template in `DashboardView.vue` with:
 
@@ -1085,7 +1178,7 @@ Replace the template in `DashboardView.vue` with:
 </template>
 ```
 
-- [ ] **Step 3: Run type check**
+- [x] **Step 3: Run type check**
 
 Run:
 
@@ -1102,7 +1195,7 @@ git add src/views/DashboardView.vue
 git commit -m "feat: recompose dashboard around activity overview"
 ```
 
-- [ ] **Step 5: STOP - Human validation Gate D**
+- [x] **Step 5: STOP - Human validation Gate D**
 
 Open the full dashboard with representative data and ask the human to compare it to the previous dashboard direction.
 
@@ -1129,7 +1222,7 @@ Do not continue to Task 9 until the human accepts the dashboard order or request
 **Files:**
 - Modify only files touched in Tasks 3-8 if QA reveals layout issues.
 
-- [ ] **Step 1: Start the dev server**
+- [x] **Step 1: Start the dev server**
 
 Run:
 
@@ -1152,7 +1245,7 @@ Expected:
 - Goals and Records appear in the right column on desktop.
 - On mobile width, sections stack without overlapping text.
 
-- [ ] **Step 3: STOP - Human validation Gate E**
+- [x] **Step 3: STOP - Human validation Gate E**
 
 Ask the human to inspect the live dashboard or screenshots at desktop and mobile widths.
 
@@ -1166,7 +1259,7 @@ Expected validation points:
 
 Do not continue to polish or final validation until the human accepts the visual direction or requests specific layout changes.
 
-- [ ] **Step 4: Verify add panel**
+- [x] **Step 4: Verify add panel**
 
 Click `Add`.
 
@@ -1177,7 +1270,7 @@ Expected:
 - Manual tab opens the manual entry form modal.
 - Close button closes the panel.
 
-- [ ] **Step 5: Verify grid rendering**
+- [x] **Step 5: Verify grid rendering**
 
 Inspect the activity grid.
 
@@ -1190,7 +1283,7 @@ Expected:
 - Future `null` days render muted.
 - Tooltips for real days show date, activity count, and duration.
 
-- [ ] **Step 6: Apply scoped polish if needed**
+- [x] **Step 6: Apply scoped polish if needed**
 
 If text overlaps or the grid is too wide on mobile, adjust only the relevant class names. Preferred fixes:
 
@@ -1228,7 +1321,7 @@ If no changes were made, do not create an empty commit.
 **Files:**
 - No intentional code changes.
 
-- [ ] **Step 1: Run utility tests**
+- [x] **Step 1: Run utility tests**
 
 Run:
 
@@ -1238,7 +1331,7 @@ bun test tests/utils/activityGrid.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 2: Run type check**
+- [x] **Step 2: Run type check**
 
 Run:
 
@@ -1248,7 +1341,7 @@ bun run type-check
 
 Expected: PASS.
 
-- [ ] **Step 3: Run full check**
+- [x] **Step 3: Run full check**
 
 Run:
 
@@ -1258,7 +1351,7 @@ bun run check
 
 Expected: PASS. If it fails, inspect whether the failure is caused by this dashboard work. Fix introduced failures before handoff.
 
-- [ ] **Step 4: Run diff distribution**
+- [x] **Step 4: Run diff distribution**
 
 Run:
 

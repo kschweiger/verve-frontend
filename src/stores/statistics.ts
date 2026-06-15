@@ -39,6 +39,35 @@ export interface CalendarResponse {
   weeks: CalendarWeek[];
 }
 
+export interface GridDay {
+  date: string;
+  activity_count: number;
+  duration_seconds: number;
+}
+
+export interface GridWeek {
+  start_date: string;
+  month: number | null;
+  days: Array<GridDay | null>;
+}
+
+export interface GridMax {
+  activity_count: number;
+  duration_seconds: number;
+}
+
+export interface GridTotals {
+  activity_count: number;
+  duration_seconds: number;
+  active_days: number;
+}
+
+export interface ActivityGridResponse {
+  weeks: GridWeek[];
+  scale_max: GridMax;
+  totals: GridTotals;
+}
+
 export interface YearStats {
   distance: {
     total: number;
@@ -57,6 +86,9 @@ export interface YearStats {
 export const useStatisticsStore = defineStore('statistics', () => {
   const yearlyStats = ref<YearStats | null>(null);
   const calendarData = ref<CalendarResponse | null>(null);
+  const activityGrid = ref<ActivityGridResponse | null>(null);
+  const isActivityGridLoading = ref(false);
+  const activityGridError = ref<string | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -128,12 +160,49 @@ export const useStatisticsStore = defineStore('statistics', () => {
     }
   }
 
+  async function fetchActivityGrid(weeks = 52) {
+    isActivityGridLoading.value = true;
+    activityGridError.value = null;
+
+    if (!userStore.token) {
+      activityGridError.value = 'Not authenticated';
+      isActivityGridLoading.value = false;
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams();
+      params.append('weeks', weeks.toString());
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/statistics/activity-grid?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${userStore.token}` },
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to load activity grid.');
+
+      activityGrid.value = await response.json();
+    } catch (e: unknown) {
+      activityGridError.value = e instanceof Error ? e.message : String(e);
+      activityGrid.value = null;
+    } finally {
+      isActivityGridLoading.value = false;
+    }
+  }
+
   return {
     yearlyStats,
     calendarData,
+    activityGrid,
+    isActivityGridLoading,
+    activityGridError,
     isLoading,
     error,
     fetchYearlyStats,
     fetchCalendar,
+    fetchActivityGrid,
   };
 });
