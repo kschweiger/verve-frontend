@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "2e1d28bf87ccd4faa4cfabeaed107b31aa11224a3f1a9c47222d75b66efdc65c",
+  "sourceSha256": "5e175623c8466e7b77f1683566bc3a76da81accaf261bf58a8142d3431ca20f5",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
     "version": "0.1.0"
   },
   "pathCount": 69,
-  "schemaCount": 92,
+  "schemaCount": 93,
   "paths": [
     {
       "path": "/api/v1/activity/",
@@ -1129,6 +1129,7 @@
     "GoalType",
     "GridDay",
     "GridMax",
+    "GridSummary",
     "GridTotals",
     "GridWeek",
     "HeatMapResponse",
