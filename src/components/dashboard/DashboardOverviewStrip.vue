@@ -27,22 +27,14 @@ const items = computed(() => {
       value: totals.value.active_days.toString(),
       icon: CalendarDays,
     },
-    {
-      label: 'Avg active day',
-      value: formatAverageDuration(totals.value.duration_seconds, totals.value.active_days),
-      icon: Gauge,
-    },
   ];
 });
 </script>
 
 <template>
-  <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-    <div
-      v-for="item in items"
-      :key="item.label"
-      class="bg-white border border-verve-medium/30 rounded-xl shadow-sm px-4 py-3"
-    >
+  <section class="grid grid-cols-2 gap-3 lg:grid-cols-3">
+    <div v-for="item in items" :key="item.label"
+      class="bg-white border border-verve-medium/30 rounded-xl shadow-sm px-4 py-3">
       <div class="flex items-center gap-2 text-verve-brown/50">
         <component :is="item.icon" class="size-4" aria-hidden="true" />
         <p class="text-xs font-bold uppercase tracking-wider">{{ item.label }}</p>
