@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "eb1c6f853f806d0639e2ca23a9fbd2715b116fa0ee1ab288966eff186be20744",
+  "sourceSha256": "5e175623c8466e7b77f1683566bc3a76da81accaf261bf58a8142d3431ca20f5",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
     "version": "0.1.0"
   },
-  "pathCount": 68,
-  "schemaCount": 86,
+  "pathCount": 69,
+  "schemaCount": 93,
   "paths": [
     {
       "path": "/api/v1/activity/",
@@ -708,6 +708,19 @@
       ]
     },
     {
+      "path": "/api/v1/statistics/activity-grid",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "statistics-get_activity_grid",
+          "summary": "Get Activity Grid",
+          "tags": [
+            "statistics"
+          ]
+        }
+      ]
+    },
+    {
       "path": "/api/v1/statistics/calender",
       "methods": [
         {
@@ -1083,7 +1096,9 @@
   "schemas": [
     "ActivitiesPublic",
     "ActivityCalendarItem",
+    "ActivityCorePublic",
     "ActivityCreate",
+    "ActivityGridResponse",
     "ActivityHighlightPublic",
     "ActivityPublic",
     "ActivityTagCategoryCreate",
@@ -1112,6 +1127,11 @@
     "GoalPublic",
     "GoalsPublic",
     "GoalType",
+    "GridDay",
+    "GridMax",
+    "GridSummary",
+    "GridTotals",
+    "GridWeek",
     "HeatMapResponse",
     "HeatmapSettings",
     "HighlightMetric",

@@ -26,6 +26,7 @@ This repository is agent-first and harness-oriented.
 - Use progressive disclosure: indexes first, details second.
 - Repository-local, versioned artifacts are the source of truth.
 - Define one concrete success check before editing.
+- Save checked-in execution plans only under `docs/exec-plans/active/` or `docs/exec-plans/completed/`; never use `docs/superpowers/plans/`.
 - Keep runtime Vue behavior unchanged unless the task explicitly asks for product behavior.
 - If behavior or policy changes, update docs and enforcement in the same change set.
 

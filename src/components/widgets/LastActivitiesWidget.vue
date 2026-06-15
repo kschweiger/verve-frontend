@@ -10,52 +10,55 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl shadow-sm border border-verve-medium/30 p-6 h-full">
-    <h3 class="text-xl font-bold text-verve-brown mb-4">Recent Activities</h3>
+  <section class="bg-white rounded-xl shadow-sm border border-verve-medium/30 p-6 h-full">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-xl font-bold text-verve-brown">Recent Activities</h3>
+        <p class="text-sm text-verve-brown/60">Latest sessions and imports</p>
+      </div>
+      <router-link to="/activities" class="text-sm font-bold text-verve-orange hover:text-verve-brown transition">
+        View all
+      </router-link>
+    </div>
 
-    <!-- Loading State -->
     <div v-if="activityStore.isRecentLoading" class="text-center py-8 text-verve-brown/60 text-sm">
       Loading activities...
     </div>
 
-    <!-- Error State -->
     <div v-else-if="activityStore.recentError" class="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
       Error: {{ activityStore.recentError }}
     </div>
 
-    <!-- Success State -->
-    <div v-else-if="activityStore.recentActivities.length > 0" class="space-y-1">
-      <router-link v-for="activity in activityStore.recentActivities" :key="activity.id"
+    <div v-else-if="activityStore.recentActivities.length > 0" class="divide-y divide-verve-medium/20">
+      <router-link
+        v-for="activity in activityStore.recentActivities"
+        :key="activity.id"
         :to="{ name: 'activity-detail', params: { id: activity.id } }"
-        class="block group p-3 rounded-xl hover:bg-verve-light/50 border border-transparent hover:border-verve-medium/30 transition-all">
-        <div class="flex justify-between items-center">
-          <!-- Left: Name & Date -->
-          <div class="overflow-hidden pr-2">
-            <p class="font-bold text-verve-brown text-sm truncate group-hover:text-verve-orange transition-colors">
-              {{ activity.name }}
-            </p>
-            <p class="text-xs text-verve-brown/60">
-              {{ new Date(activity.start).toLocaleDateString() }}
-            </p>
-          </div>
+        class="grid grid-cols-[1fr_auto] gap-4 py-3 group"
+      >
+        <div class="min-w-0">
+          <p class="font-bold text-verve-brown text-sm truncate group-hover:text-verve-orange transition-colors">
+            {{ activity.name || 'Untitled activity' }}
+          </p>
+          <p class="text-xs text-verve-brown/60">
+            {{ new Date(activity.start).toLocaleDateString() }}
+          </p>
+        </div>
 
-          <!-- Right: Stats -->
-          <div class="text-right whitespace-nowrap">
-            <p class="font-bold text-verve-brown text-sm">
-              {{ activity.distance != null ? activity.distance.toFixed(2) : '-' }}
-              <span v-if="activity.distance != null" class="text-[10px] font-normal text-verve-brown/60">km</span>
-            </p>
-            <p class="text-xs text-verve-brown/60 font-mono">
-              {{ activity.duration }}
-            </p>
-          </div>
+        <div class="text-right whitespace-nowrap">
+          <p class="font-bold text-verve-brown text-sm font-mono">
+            {{ activity.duration }}
+          </p>
+          <p class="text-xs text-verve-brown/60 font-mono">
+            <span v-if="activity.distance != null">{{ activity.distance.toFixed(2) }} km</span>
+            <span v-else>No distance</span>
+          </p>
         </div>
       </router-link>
     </div>
 
-    <!-- Empty State -->
     <div v-else class="text-center py-8 text-verve-brown/60 text-sm italic">
-      No recent activities found. Go record one!
+      No recent activities found.
     </div>
-  </div>
+  </section>
 </template>

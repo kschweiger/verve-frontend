@@ -2,6 +2,8 @@
 
 Store complex in-progress execution plans here.
 
+This is the only approved directory for checked-in active execution plans. Do not save active plans under `docs/superpowers/plans/`.
+
 Each plan should include:
 - objective,
 - current status,

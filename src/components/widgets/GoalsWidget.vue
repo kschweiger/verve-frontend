@@ -81,7 +81,7 @@ const getProgressBarColor = (goal: Goal) => {
 
 <template>
   <div
-    class="bg-white rounded-xl shadow-sm border border-verve-medium/30 p-6 relative flex flex-col h-full min-h-[300px]">
+    class="bg-white rounded-xl shadow-sm border border-verve-medium/30 p-6 relative flex flex-col min-h-[300px]">
     <!-- Header -->
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-xl font-bold text-verve-brown">My Goals</h3>

@@ -115,7 +115,7 @@ export const useActivityStore = defineStore('activity', () => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?limit=5`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?limit=8`, {
         method: 'GET',
         headers: { Authorization: `Bearer ${userStore.token}` },
       });
