@@ -79,6 +79,51 @@ Expected:
 - `bun run check` passes or only fails on pre-existing unrelated issues that are documented in the handoff.
 - `bun run diff:distribution` reports changes concentrated in dashboard widgets, statistics store, utility tests, and this plan.
 
+## Human-In-The-Loop Validation Gates
+
+This dashboard is a product-direction change, not just a code migration. Do not run every task straight through without human validation. Stop at the gates below and ask the human to inspect the dashboard against representative data before continuing.
+
+Use a local backend/user dataset with these minimum characteristics before visual validation:
+
+- At least 40 activities across the last 52 weeks.
+- At least 3 different activity types.
+- At least 1 distance-based activity type, such as running, cycling, hiking, or swimming.
+- At least 1 non-distance or distance-optional type, such as strength, yoga, indoor cardio, or manual activity.
+- At least 1 active current goal visible in `GoalsWidget`.
+- At least 1 available highlight for duration; distance and elevation highlights are useful but not mandatory.
+- At least 1 week with no activities and at least 1 week with multiple activities.
+- Current week includes future trailing days, so the `null` day behavior is visible.
+
+If the local dataset does not meet these checks, pause before product validation and ask the human whether to use their real local data, import sample activities, or limit the review to layout mechanics only.
+
+Required stop points:
+
+1. **Gate A: Activity Grid + Overview** after Task 4.
+   - Human validates whether the matrix communicates consistency better than the old yearly/weekly chart area.
+   - Human checks that duration-based intensity feels right for mixed activity types.
+   - Human checks that overview metrics are understandable without needing the old yearly table.
+   - Continue only if the top-of-dashboard direction is accepted or the requested adjustments are applied.
+
+2. **Gate B: Add Activity Panel** after Task 5.
+   - Human validates that upload/manual entry is reachable without occupying dashboard content space.
+   - Human checks desktop and mobile opening/closing behavior.
+   - Continue only if the interaction model is accepted.
+
+3. **Gate C: Main Content Widgets** after Task 7.
+   - Human validates Recent Activities as the primary navigation widget.
+   - Human validates that curated records are less confusing than the old dropdown-heavy personal records widget.
+   - Human checks whether Goals still feels important enough in the planned right-column position.
+   - Continue only after deciding whether Records, Goals, or Recent Activities need size/order changes.
+
+4. **Gate D: Full Dashboard Reordering** after Task 8 and before responsive polish.
+   - Human validates the complete order: Activity Grid, Overview Strip, Recent Activities, Goals, Records, Add action.
+   - Human compares against the old dashboard and confirms removed widgets are not missed on the main page.
+   - Continue only if the dashboard direction is still coherent with real data.
+
+5. **Gate E: Final Visual QA** during Task 9.
+   - Human validates desktop and mobile screenshots or the live browser.
+   - Human confirms no widget feels empty, misleading, or visually over-weighted.
+
 ---
 
 ### Task 1: Add Activity Grid Types And Store Fetching
@@ -537,6 +582,60 @@ git add src/components/dashboard/DashboardOverviewStrip.vue
 git commit -m "feat: add dashboard overview strip"
 ```
 
+- [ ] **Step 4: STOP - Human validation Gate A**
+
+Create a temporary, uncommitted preview of the new top section in `src/views/DashboardView.vue`. Add these imports:
+
+```ts
+import DashboardOverviewStrip from '@/components/dashboard/DashboardOverviewStrip.vue';
+import ActivityGridWidget from '@/components/widgets/ActivityGridWidget.vue';
+```
+
+Then temporarily replace the top statistics grid in the current dashboard template:
+
+```vue
+<div class="grid grid-cols-1 gap-6">
+  <YearlyStatsWidget />
+  <WeeklyStatsWidget />
+</div>
+```
+
+with:
+
+```vue
+<div class="space-y-6">
+  <ActivityGridWidget />
+  <DashboardOverviewStrip />
+</div>
+```
+
+This preview edit is only for human validation. Do not commit the temporary `DashboardView.vue` edit in Task 4.
+
+Run:
+
+```bash
+bun run dev
+```
+
+Expected: Vite starts and prints a local URL, usually `http://localhost:5173/`.
+
+Ask the human to validate against the dataset checklist from `Human-In-The-Loop Validation Gates`:
+
+- Does the matrix feel like a useful top-level activity overview?
+- Does duration-based intensity make sense across mixed activity types?
+- Are active days, active time, activity count, and average active day the right overview metrics?
+- Is anything from the old yearly/weekly top area still needed before continuing?
+
+Do not continue to Task 5 until the human explicitly accepts Gate A or requests specific changes. Apply requested changes inside Task 3 or Task 4 files, rerun `bun run type-check`, and repeat Gate A.
+
+After Gate A is accepted, remove the temporary `DashboardView.vue` preview imports and template edit so the only committed Task 4 files remain:
+
+```bash
+git diff -- src/views/DashboardView.vue
+```
+
+Expected: the diff only contains the temporary preview imports/template. Remove those temporary edits before continuing to Task 5.
+
 ---
 
 ### Task 5: Move Upload And Manual Entry Behind A Header Add Panel
@@ -648,6 +747,20 @@ Expected: PASS. This task also verifies the pre-existing `HelpCircle` reference 
 git add src/components/dashboard/AddActivityPanel.vue src/components/widgets/UploadActivityWidget.vue
 git commit -m "feat: move activity creation into add panel"
 ```
+
+- [ ] **Step 5: STOP - Human validation Gate B**
+
+With the dev server running, ask the human to inspect the `Add` interaction on desktop and mobile widths.
+
+Expected validation points:
+
+- `Add` is visible without scrolling.
+- Upload is reachable in one click.
+- Manual entry remains reachable.
+- The panel does not obscure the dashboard in a way that makes reviewing data annoying.
+- Closing the panel feels obvious.
+
+Do not continue to Task 6 until the human accepts the add-panel interaction or requests specific changes. Apply requested changes in `src/components/dashboard/AddActivityPanel.vue` or `src/components/widgets/UploadActivityWidget.vue`, rerun `bun run type-check`, and repeat Gate B.
 
 ---
 
@@ -898,6 +1011,20 @@ git add src/components/widgets/HighlightsWidget.vue
 git commit -m "feat: simplify dashboard records"
 ```
 
+- [ ] **Step 5: STOP - Human validation Gate C**
+
+With `LastActivitiesWidget`, `GoalsWidget`, and the updated `HighlightsWidget` available, ask the human to validate the main content widgets before the full dashboard reorder.
+
+Expected validation points:
+
+- Recent Activities is useful as the primary navigation widget.
+- Duration-first display is better than distance-first display for mixed data.
+- Curated Records are understandable without metric/scope/year dropdowns.
+- The selected curated records do not over-emphasize distance-based activity types.
+- Goals should remain on the dashboard and should be placed above Records unless the human requests otherwise.
+
+Do not continue to Task 8 until the human accepts the widget direction or requests specific changes. Apply requested changes in `src/components/widgets/LastActivitiesWidget.vue`, `src/components/widgets/HighlightsWidget.vue`, or the later Task 8 layout, rerun `bun run type-check`, and repeat Gate C.
+
 ---
 
 ### Task 8: Recompose Dashboard Layout
@@ -975,6 +1102,26 @@ git add src/views/DashboardView.vue
 git commit -m "feat: recompose dashboard around activity overview"
 ```
 
+- [ ] **Step 5: STOP - Human validation Gate D**
+
+Open the full dashboard with representative data and ask the human to compare it to the previous dashboard direction.
+
+Expected validation points:
+
+- Top order feels right: Activity Grid first, Overview Strip second.
+- Recent Activities, Goals, and Records have the right visual weight.
+- Removed dashboard widgets are not missed in the main overview:
+  - `YearlyStatsWidget`
+  - `WeeklyStatsWidget`
+  - `CalendarWidget`
+  - `UploadActivityWidget` as a permanent card
+  - `QuickAddWidget` as a permanent card
+  - placeholder cards
+- The fullscreen Calendar can cover calendar needs outside the dashboard.
+- Detailed analytics can move to a future Data View instead of staying on the dashboard.
+
+Do not continue to Task 9 until the human accepts the dashboard order or requests specific changes. Apply requested changes in `src/views/DashboardView.vue` and the affected widget files, rerun `bun run type-check`, and repeat Gate D.
+
 ---
 
 ### Task 9: Dashboard Visual QA And Responsive Polish
@@ -1005,7 +1152,21 @@ Expected:
 - Goals and Records appear in the right column on desktop.
 - On mobile width, sections stack without overlapping text.
 
-- [ ] **Step 3: Verify add panel**
+- [ ] **Step 3: STOP - Human validation Gate E**
+
+Ask the human to inspect the live dashboard or screenshots at desktop and mobile widths.
+
+Expected validation points:
+
+- No widget feels empty, misleading, or visually over-weighted.
+- The activity grid is readable without dominating the whole page.
+- The overview strip is useful but not visually louder than the matrix or Recent Activities.
+- Recent Activities, Goals, and Records preserve a clear hierarchy.
+- The page still feels like an overview, not an analytics detail page.
+
+Do not continue to polish or final validation until the human accepts the visual direction or requests specific layout changes.
+
+- [ ] **Step 4: Verify add panel**
 
 Click `Add`.
 
@@ -1016,7 +1177,7 @@ Expected:
 - Manual tab opens the manual entry form modal.
 - Close button closes the panel.
 
-- [ ] **Step 4: Verify grid rendering**
+- [ ] **Step 5: Verify grid rendering**
 
 Inspect the activity grid.
 
@@ -1029,7 +1190,7 @@ Expected:
 - Future `null` days render muted.
 - Tooltips for real days show date, activity count, and duration.
 
-- [ ] **Step 5: Apply scoped polish if needed**
+- [ ] **Step 6: Apply scoped polish if needed**
 
 If text overlaps or the grid is too wide on mobile, adjust only the relevant class names. Preferred fixes:
 
@@ -1045,11 +1206,11 @@ for horizontal grid overflow, and:
 
 for dashboard stacking.
 
-- [ ] **Step 6: Stop dev server**
+- [ ] **Step 7: Stop dev server**
 
 Stop the Vite process before final handoff.
 
-- [ ] **Step 7: Commit QA polish**
+- [ ] **Step 8: Commit QA polish**
 
 If any polish changes were made:
 
@@ -1135,6 +1296,7 @@ If validation did not change files, do not create an empty commit.
 ## Self-Review
 
 - Spec coverage: The plan covers the new activity-grid route, top matrix, overview strip, recent activities, add panel, goals retention, curated records, and removal of the old central yearly/weekly/calendar/upload widget grid.
-- Placeholder scan: No task contains `TBD`, `TODO`, or undefined future work as an implementation requirement.
+- Human validation coverage: Gate A validates the matrix and overview before deeper widget work; Gate B validates the add panel; Gate C validates Recent Activities, Goals, and Records; Gate D validates the full reordering; Gate E validates final responsive visual quality.
+- Placeholder scan: No task contains placeholder instructions or undefined future work as an implementation requirement.
 - Type consistency: `GridWeek.month`, `scale_max.duration_seconds`, `GridDay | null`, and `duration_seconds` match the updated OpenAPI contract.
 - Scope check: Data View is intentionally excluded. This plan only updates the dashboard and does not implement future analytics navigation.
