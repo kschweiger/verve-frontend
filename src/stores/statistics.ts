@@ -62,10 +62,17 @@ export interface GridTotals {
   active_days: number;
 }
 
+export interface GridSummary {
+  last_active_day: string | null;
+  week_activity_streak: number;
+  activities_this_month: number;
+}
+
 export interface ActivityGridResponse {
   weeks: GridWeek[];
   scale_max: GridMax;
   totals: GridTotals;
+  summary: GridSummary;
 }
 
 export interface YearStats {
