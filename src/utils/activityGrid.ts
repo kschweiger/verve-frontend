@@ -1,3 +1,5 @@
+import type { GridDay } from '@/stores/statistics';
+
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 const MONTH_LABELS = [
   'Jan',
@@ -37,6 +39,15 @@ export function formatActivityGridDuration(totalSeconds: number): string {
   if (hours === 0) return `${minutes}m`;
   if (minutes === 0) return `${hours}h`;
   return `${hours}h ${minutes}m`;
+}
+
+export function formatActivityGridCellDetails(day: GridDay): string {
+  const activityLabel = day.activity_count === 1 ? 'activity' : 'activities';
+  return `${day.date} · ${day.activity_count} ${activityLabel} · ${formatActivityGridDuration(day.duration_seconds)}`;
+}
+
+export function hasActivityGridCellDetails(day: GridDay | null): day is GridDay {
+  return day !== null && day.activity_count > 0;
 }
 
 export function formatAverageDuration(totalSeconds: number, activeDays: number): string {

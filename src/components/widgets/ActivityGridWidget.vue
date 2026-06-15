@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useStatisticsStore, type GridDay } from '@/stores/statistics';
 import { useActivityStore } from '@/stores/activity';
 import {
-  formatActivityGridDuration,
+  formatActivityGridCellDetails,
   getActivityGridIntensity,
   getWeekdayLabels,
+  hasActivityGridCellDetails,
   monthLabel,
 } from '@/utils/activityGrid';
 
@@ -16,6 +17,7 @@ const weekdayLabels = getWeekdayLabels();
 
 const weeks = computed(() => statisticsStore.activityGrid?.weeks ?? []);
 const scaleMax = computed(() => statisticsStore.activityGrid?.scale_max.duration_seconds ?? 0);
+const activeDay = ref<GridDay | null>(null);
 const gridTemplateColumns = computed(() => `28px repeat(${weeks.value.length}, minmax(12px, 1fr))`);
 
 const loadGrid = () => {
@@ -36,21 +38,34 @@ function cellClass(day: GridDay | null): string {
   return 'bg-verve-orange border-verve-orange';
 }
 
-function cellTitle(day: GridDay | null): string {
-  if (day === null) return 'Future day';
+function cellDetails(day: GridDay | null): string {
+  return hasActivityGridCellDetails(day) ? formatActivityGridCellDetails(day) : '';
+}
 
-  const activityLabel = day.activity_count === 1 ? 'activity' : 'activities';
-  return `${day.date}: ${day.activity_count} ${activityLabel}, ${formatActivityGridDuration(day.duration_seconds)}`;
+function showCellDetails(day: GridDay | null) {
+  activeDay.value = hasActivityGridCellDetails(day) ? day : null;
+}
+
+function clearCellDetails() {
+  activeDay.value = null;
 }
 </script>
 
 <template>
-  <section class="bg-white border border-verve-medium/30 rounded-xl shadow-sm p-5 sm:p-6">
+  <section class="relative bg-white border border-verve-medium/30 rounded-xl shadow-sm p-5 sm:p-6">
     <div class="mb-5">
       <div>
         <h2 class="text-xl font-bold text-verve-brown">Activity History</h2>
         <p class="text-sm text-verve-brown/60">Last 52 weeks by active time</p>
       </div>
+    </div>
+
+    <div
+      v-if="activeDay"
+      class="pointer-events-none absolute right-5 top-5 z-10 rounded-lg border border-verve-medium/30 bg-white px-3 py-2 text-xs font-semibold text-verve-brown shadow-lg"
+      role="status"
+    >
+      {{ cellDetails(activeDay) }}
     </div>
 
     <div
@@ -96,9 +111,15 @@ function cellTitle(day: GridDay | null): string {
           <div
             v-for="(day, dayIndex) in week.days"
             :key="`${week.start_date}-${dayIndex}`"
-            class="aspect-square w-full rounded-[3px] border"
+            class="aspect-square w-full rounded-[3px] border outline-none focus:ring-2 focus:ring-verve-orange focus:ring-offset-1"
             :class="cellClass(day)"
-            :title="cellTitle(day)"
+            :title="cellDetails(day) || undefined"
+            :tabindex="hasActivityGridCellDetails(day) ? 0 : -1"
+            :aria-label="cellDetails(day) || undefined"
+            @mouseenter="showCellDetails(day)"
+            @mouseleave="clearCellDetails"
+            @focus="showCellDetails(day)"
+            @blur="clearCellDetails"
           ></div>
         </div>
       </div>
