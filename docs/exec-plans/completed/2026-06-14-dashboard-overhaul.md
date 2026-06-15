@@ -14,7 +14,7 @@
 
 Updated: 2026-06-15
 
-Status: implementation is in progress but functionally complete for the dashboard overhaul. Visual QA found layout issues that were fixed after the initial implementation.
+Status: complete. Implementation is complete in commit `2663692 implement plan`. Code review on 2026-06-15 found no blocking static/type issues. Automated validation passed, and final human review accepted the dashboard direction on 2026-06-15.
 
 Completed implementation:
 
@@ -55,13 +55,41 @@ Human validation notes:
 
 - Activity grid direction accepted after iterations.
 - Add panel interaction accepted after overlay z-index fix.
+- Final human review accepted the implementation on 2026-06-15.
 - Grid label spacing adjusted after QA:
   - weekday label rail widened,
   - month labels made non-sizing,
   - week columns made flexible.
 - Footer/records overlap root cause identified as `h-full` on stacked right-column widgets, not footer positioning. The latest fix removes those `h-full` constraints.
 
-Latest verification run after the most recent footer/records fix:
+Code review notes from 2026-06-15:
+
+- `src/views/DashboardView.vue` now matches the intended order: activity grid, overview strip, recent activities, goals, records, and header add action.
+- `src/components/widgets/ActivityGridWidget.vue` uses the backend `activity-grid` contract directly and keeps scaling/rendering logic frontend-local. No backend aggregation logic is duplicated in the component.
+- `src/components/dashboard/DashboardOverviewStrip.vue` correctly depends on the same `activityGrid.totals` payload as the matrix, keeping the top summary consistent with the grid.
+- `src/components/dashboard/AddActivityPanel.vue` is a reasonable first implementation of the hidden upload/manual action. Human validation should specifically check keyboard expectations such as Escape-to-close and focus behavior; those are not currently implemented.
+- `src/components/widgets/HighlightsWidget.vue` now uses curated records. It intentionally keeps duration, distance, and elevation as the first record set, but Gate C should verify that distance/elevation do not dominate mixed-activity users.
+- `src/components/widgets/LastActivitiesWidget.vue` is duration-first with distance secondary, matching the dashboard's mixed-activity direction.
+- `src/components/widgets/GoalsWidget.vue` remains on the dashboard and no longer forces `h-full`, which avoids right-column overflow with Records.
+- `src/layouts/MainLayout.vue` no longer uses sticky-footer flex behavior, so dashboard content and footer follow normal document flow.
+
+Latest verification run after code review:
+
+```bash
+bun test tests/utils/activityGrid.test.ts
+bun run type-check
+bun run check
+bun run diff:distribution
+```
+
+Latest results:
+
+- Activity-grid helper tests passed: 6 tests, 15 assertions.
+- `bun run type-check` passed.
+- `bun run check` passed, including harness docs, links, OpenAPI summary freshness, agent rules, ESLint baseline, type check, and production build.
+- `bun run diff:distribution` shows no source/test/doc diff and only pre-existing unrelated untracked files: `diff.txt`, `main_logo.svg`, `small_logo.png`.
+
+Previous verification run after the most recent footer/records fix:
 
 ```bash
 bun run type-check
@@ -85,15 +113,11 @@ Earlier results:
 - Full `bun run check` passed before later visual QA layout fixes.
 - Diff distribution was concentrated in planned dashboard/source/test files plus pre-existing unrelated untracked files: `diff.txt`, `main_logo.svg`, `small_logo.png`.
 
-Remaining before handoff:
+Completion notes:
 
-- Re-run full final validation after the latest visual QA fixes:
-  - `bun test tests/utils/activityGrid.test.ts`
-  - `bun run type-check`
-  - `bun run check`
-  - `bun run diff:distribution`
-- Confirm in browser that Records is no longer behind the footer after removing `h-full` from `GoalsWidget` and `HighlightsWidget`.
-- Decide whether to keep this plan in `active/` until final validation, or move it to `completed/` after final handoff.
+- Human review accepted the final dashboard direction.
+- Keep Add panel Escape-to-close/focus trapping as a possible accessibility follow-up, not a blocker for this plan.
+- Keep configurable/alternative curated record metrics as a possible future product follow-up, not a blocker for this plan.
 
 ---
 
@@ -218,6 +242,10 @@ Required stop points:
    - Human confirms no widget feels empty, misleading, or visually over-weighted.
 
 ---
+
+## Historical Task Checklist
+
+The checklist below records the original implementation path. The dashboard code is already implemented in commit `2663692 implement plan`; remaining active work is tracked in `Current Implementation Status`, `Human-In-The-Loop Validation Gates`, and `Task 9` final browser review. Unchecked per-task commit steps below are historical and are superseded by the single implementation commit.
 
 ### Task 1: Add Activity Grid Types And Store Fetching
 
@@ -1371,7 +1399,7 @@ Expected: Report shows changes concentrated in:
 - `src/components/widgets/LastActivitiesWidget.vue`
 - `src/components/widgets/HighlightsWidget.vue`
 - `src/views/DashboardView.vue`
-- `docs/exec-plans/active/2026-06-14-dashboard-overhaul.md`
+- `docs/exec-plans/completed/2026-06-14-dashboard-overhaul.md`
 
 - [ ] **Step 5: Final commit if validation changed files**
 

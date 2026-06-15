@@ -13,5 +13,3 @@ Each plan should include:
 Small changes can use ephemeral plans in the agent conversation instead of checked-in plan files.
 
 ## Active
-
-- `2026-06-14-dashboard-overhaul.md`
