@@ -3,7 +3,8 @@ import type { GridDay } from '../../src/stores/statistics';
 import {
   formatActivityGridCellDetails,
   formatActivityGridDuration,
-  formatAverageDuration,
+  formatLastActiveDay,
+  formatWeekActivityStreak,
   getActivityGridIntensity,
   getWeekdayLabels,
   hasActivityGridCellDetails,
@@ -66,9 +67,25 @@ describe('activity grid helpers', () => {
     expect(hasActivityGridCellDetails(null)).toBe(false);
   });
 
-  test('formats average duration per active day', () => {
-    expect(formatAverageDuration(7200, 2)).toBe('1h/day');
-    expect(formatAverageDuration(0, 0)).toBe('-');
+  test('formats last active day relative to a pinned date', () => {
+    const today = new Date(2026, 5, 15);
+
+    expect(formatLastActiveDay('2026-06-15', today)).toBe('Today');
+    expect(formatLastActiveDay('2026-06-14', today)).toBe('Yesterday');
+    expect(formatLastActiveDay('2026-06-12', today)).toBe('3 days ago');
+    expect(formatLastActiveDay(null, today)).toBe('No activity');
+  });
+
+  test('formats older last active days as compact dates', () => {
+    const today = new Date(2026, 5, 15);
+
+    expect(formatLastActiveDay('2026-05-01', today)).toBe('May 1');
+  });
+
+  test('formats week activity streaks', () => {
+    expect(formatWeekActivityStreak(0)).toBe('0 weeks');
+    expect(formatWeekActivityStreak(1)).toBe('1 week');
+    expect(formatWeekActivityStreak(4)).toBe('4 weeks');
   });
 
   test('returns Monday-first weekday labels', () => {

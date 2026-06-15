@@ -15,6 +15,7 @@ const MONTH_LABELS = [
   'Nov',
   'Dec',
 ] as const;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export function getActivityGridIntensity(value: number, scaleMax: number): number {
   if (scaleMax <= 0) return 0;
@@ -46,11 +47,39 @@ export function formatActivityGridCellDetails(day: GridDay): string {
   return `${day.date} · ${day.activity_count} ${activityLabel} · ${formatActivityGridDuration(day.duration_seconds)}`;
 }
 
-export function hasActivityGridCellDetails(day: GridDay | null): day is GridDay {
-  return day !== null && day.activity_count > 0;
+function isoDateToUtcDay(value: string): number | null {
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return Date.UTC(year, month - 1, day) / MS_PER_DAY;
 }
 
-export function formatAverageDuration(totalSeconds: number, activeDays: number): string {
-  if (activeDays <= 0) return '-';
-  return `${formatActivityGridDuration(Math.round(totalSeconds / activeDays))}/day`;
+function dateToUtcDay(value: Date): number {
+  return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()) / MS_PER_DAY;
+}
+
+export function formatLastActiveDay(lastActiveDay: string | null, today = new Date()): string {
+  if (lastActiveDay === null) return 'No activity';
+
+  const activeDay = isoDateToUtcDay(lastActiveDay);
+  if (activeDay === null) return lastActiveDay;
+
+  const dayDiff = dateToUtcDay(today) - activeDay;
+  if (dayDiff === 0) return 'Today';
+  if (dayDiff === 1) return 'Yesterday';
+  if (dayDiff > 1 && dayDiff < 30) return `${dayDiff} days ago`;
+
+  const [year, month, day] = lastActiveDay.split('-').map(Number);
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: year === today.getFullYear() ? undefined : 'numeric',
+  }).format(new Date(year, month - 1, day));
+}
+
+export function formatWeekActivityStreak(streak: number): string {
+  return `${streak} ${streak === 1 ? 'week' : 'weeks'}`;
+}
+
+export function hasActivityGridCellDetails(day: GridDay | null): day is GridDay {
+  return day !== null && day.activity_count > 0;
 }
