@@ -8,3 +8,4 @@ Keep completed plans concise. If the important outcome is already captured in co
 
 - `2026-06-14-dashboard-overhaul.md`
 - `2026-06-15-activity-grid-hover-details.md`
+- `2026-06-15-activity-grid-summary-strip.md`
