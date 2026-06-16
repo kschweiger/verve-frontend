@@ -131,7 +131,29 @@ const toggleMenu = (menu: string) => {
                 </transition>
               </div>
 
-              <router-link to="/heatmap" class="hover:text-verve-brown">Statistik</router-link>
+              <!-- Statistics Dropdown -->
+              <div class="relative" @mouseenter="openMenu('statistics')" @mouseleave="closeMenu"
+                @click="toggleMenu('statistics')">
+                <span class="cursor-pointer hover:text-verve-brown flex items-center py-2"
+                  :class="{ 'text-verve-brown': activeMenu === 'statistics' }">
+                  Statistics
+                  <span class="ml-1 text-[10px] transition-transform duration-200"
+                    :class="{ 'rotate-180': activeMenu === 'statistics' }">▼</span>
+                </span>
+
+                <transition enter-active-class="transition ease-out duration-100"
+                  enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0"
+                  leave-active-class="transition ease-in duration-75" leave-from-class="opacity-100 translate-y-0"
+                  leave-to-class="opacity-0 translate-y-1">
+                  <div v-show="activeMenu === 'statistics'"
+                    class="absolute left-0 mt-0 w-40 bg-white shadow-xl rounded-xl py-2 z-50 border border-verve-medium/20">
+                    <router-link to="/heatmap"
+                      class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
+                      Heatmap
+                    </router-link>
+                  </div>
+                </transition>
+              </div>
             </div>
           </div>
 
@@ -231,9 +253,9 @@ const toggleMenu = (menu: string) => {
             <router-link to="/locations"
               class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Locations</router-link>
 
-            <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">Analysis</div>
+            <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">Statistics</div>
             <router-link to="/heatmap"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Statistik</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Heatmap</router-link>
           </div>
         </div>
       </transition>
