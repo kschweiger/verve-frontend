@@ -1,4 +1,17 @@
 <!-- insertion marker -->
+<a name="0.9.0"></a>
+
+## [0.9.0](https://github.com/kschweiger/verve-frontend/compare/0.8.1...0.9.0) (2026-06-17)
+
+### Features
+
+- add password reset ([241eb32](https://github.com/kschweiger/verve-frontend/commit/241eb32809b8c2b7f1055c5033bbef6a36023231))
+- Landing page overhaul (#16) ([5199dd4](https://github.com/kschweiger/verve-frontend/commit/5199dd418e7903c6a461dee8025fefe5550b1109))
+
+### Code Refactoring
+
+- **navbar:** heatmap is seperate item in statistics dropdown ([1f6b095](https://github.com/kschweiger/verve-frontend/commit/1f6b095896d4558977fb692a0d8957b401a8cde4))
+
 <a name="0.8.1"></a>
 
 ## [0.8.1](https://github.com/kschweiger/verve-frontend/compare/0.8.0...0.8.1) (2026-06-02)
