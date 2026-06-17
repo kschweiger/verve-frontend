@@ -4,6 +4,8 @@ import { useUserStore } from '@/stores/auth';
 // Layouts & Views
 import MainLayout from '@/layouts/MainLayout.vue';
 import LoginView from '@/views/LoginView.vue';
+import ForgotPasswordView from '@/views/ForgotPasswordView.vue';
+import ResetPasswordView from '@/views/ResetPasswordView.vue';
 import DashboardView from '@/views/DashboardView.vue';
 
 // Type Augmentation for meta fields
@@ -18,6 +20,16 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: LoginView,
+  },
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: ForgotPasswordView,
+  },
+  {
+    path: '/reset-password/:token?',
+    name: 'reset-password',
+    component: ResetPasswordView,
   },
   {
     path: '/',

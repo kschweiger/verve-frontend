@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/auth';
 
 const router = useRouter();
@@ -38,7 +38,15 @@ async function handleLogin() {
     </div>
 
     <div>
-      <label for="password" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Password</label>
+      <div class="flex items-center justify-between gap-4 mb-1">
+        <label for="password" class="block text-xs font-bold text-verve-brown/60 uppercase">Password</label>
+        <RouterLink
+          :to="{ name: 'forgot-password' }"
+          class="text-xs font-bold text-verve-dark hover:text-verve-brown hover:underline transition-colors"
+        >
+          Forgot password?
+        </RouterLink>
+      </div>
       <div class="mt-1">
         <input v-model="password" id="password" name="password" type="password" autocomplete="current-password" required
           class="w-full px-4 py-3 border border-verve-medium rounded-xl shadow-sm text-verve-brown focus:outline-none focus:ring-2 focus:ring-verve-dark focus:border-verve-dark bg-white transition-colors" />

@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "5e175623c8466e7b77f1683566bc3a76da81accaf261bf58a8142d3431ca20f5",
+  "sourceSha256": "013eaa506d270efe65b0c324be6e956ac8ea1b6b53279bbfbff7eb0213278960",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
     "version": "0.1.0"
   },
-  "pathCount": 69,
-  "schemaCount": 93,
+  "pathCount": 71,
+  "schemaCount": 96,
   "paths": [
     {
       "path": "/api/v1/activity/",
@@ -604,6 +604,32 @@
       ]
     },
     {
+      "path": "/api/v1/login/forgot-password",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "auth-forgot_password",
+          "summary": "Forgot Password",
+          "tags": [
+            "auth"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/login/reset-password",
+      "methods": [
+        {
+          "method": "post",
+          "operationId": "auth-reset_password",
+          "summary": "Reset Password",
+          "tags": [
+            "auth"
+          ]
+        }
+      ]
+    },
+    {
       "path": "/api/v1/login/test-token",
       "methods": [
         {
@@ -1157,6 +1183,9 @@
     "MetricSummary_float_",
     "MetricSummary_int_",
     "PasswordChangeRequest",
+    "PasswordForgotPayload",
+    "PasswordForgotResponse",
+    "PasswordResetPayload",
     "PhraseCandidate_int_",
     "PhraseCandidate_UUID_",
     "ResolvedSubType",
