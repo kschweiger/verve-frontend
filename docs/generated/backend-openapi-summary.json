@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "013eaa506d270efe65b0c324be6e956ac8ea1b6b53279bbfbff7eb0213278960",
+  "sourceSha256": "da2b61ade79665efbd8b81655c905aac63138b5783567e10f329a2453d9aa589",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
