@@ -8,7 +8,7 @@
 
 **Tech Stack:** Vue 3 Composition API, Vue Router, Pinia, TypeScript, Bun tests, Vite, Tailwind CSS v4, Lucide icons.
 
-**Status:** Planned on 2026-06-18. Backend `type_id` work is owned separately; this plan covers frontend implementation after that backend contract lands.
+**Status:** Done on 2026-06-19. Backend `type_id` work is owned separately; this plan covers frontend implementation after that backend contract lands.
 
 **Primary success check:** `/records` is reachable from the Statistics navbar, defaults to current-year records for all activity types, shows grouped metrics and a selected metric top-3 trophy list, and supports activity type filtering through `type_id`.
 
@@ -92,16 +92,16 @@ Frontend v1 does not need this route for the Records page because the overview e
 - Modify: `backend_openapi.json`
 - Modify: `docs/generated/backend-openapi-summary.json`
 
-- [ ] Replace `backend_openapi.json` with the backend contract that extends:
+- [x] Verify `backend_openapi.json` already contains the backend contract that extends:
   - `GET /api/v1/highlights/` with `type_id`;
   - `GET /api/v1/highlights/metric/{metric}` with `type_id`.
-- [ ] Run:
+- [x] Run:
 
 ```bash
 bun run generate:api-summary
 ```
 
-- [ ] Verify the summary includes the new parameter:
+- [x] Verify the summary includes the new parameter:
 
 ```bash
 rg -n '"type_id"|"/api/v1/highlights/metric/{metric}"|"/api/v1/highlights/"' backend_openapi.json docs/generated/backend-openapi-summary.json
@@ -115,7 +115,7 @@ Expected: `backend_openapi.json` shows `type_id` on both highlights routes.
 - Create: `src/services/records.ts`
 - Test: `tests/services/records.test.ts`
 
-- [ ] Create `src/services/records.ts` with strict exported types:
+- [x] Create `src/services/records.ts` with strict exported types:
 
 ```ts
 export type HighlightMetric =
@@ -158,7 +158,7 @@ export interface RecordsQueryParams {
 }
 ```
 
-- [ ] Add local parser helpers:
+- [x] Add local parser helpers:
 
 ```ts
 const highlightMetrics = [
@@ -190,7 +190,7 @@ const isHighlightScope = (value: unknown): value is HighlightTimeScope =>
   typeof value === 'string' && highlightScopes.includes(value as HighlightTimeScope);
 ```
 
-- [ ] Add query builder:
+- [x] Add query builder:
 
 ```ts
 export function buildRecordsQuery(params: RecordsQueryParams): string {
@@ -203,16 +203,16 @@ export function buildRecordsQuery(params: RecordsQueryParams): string {
 }
 ```
 
-- [ ] Add parsers:
+- [x] Add parsers:
   - `parseActivityHighlight(value: unknown): ActivityHighlight`
   - `parseHighlightsByMetricResponse(value: unknown): RecordsMetricGroup[]`
-- [ ] Parser requirements:
+- [x] Parser requirements:
   - reject unknown metric keys;
   - reject invalid `metric`, `scope`, `activity_id`, `type_id`, `rank`, and `value`;
   - allow `year` and `track_id` to be missing or null, mapped to `null`;
   - sort each group by `rank ASC`;
   - only keep records whose `metric` matches the containing metric key.
-- [ ] Add API function with auth headers from `useUserStore()`:
+- [x] Add API function with auth headers from `useUserStore()`:
 
 ```ts
 export async function fetchRecordsOverview(params: RecordsQueryParams): Promise<RecordsMetricGroup[]> {
@@ -222,7 +222,7 @@ export async function fetchRecordsOverview(params: RecordsQueryParams): Promise<
 }
 ```
 
-- [ ] Write `tests/services/records.test.ts` covering:
+- [x] Write `tests/services/records.test.ts` covering:
   - query builder includes `year` and `type_id`;
   - query builder omits `year` when `year` is null for lifetime;
   - valid overview dict response parses into groups;
@@ -230,7 +230,7 @@ export async function fetchRecordsOverview(params: RecordsQueryParams): Promise<
   - invalid `scope`, `rank`, `value`, missing `activity_id`, and malformed `data` reject;
   - records are sorted by rank;
   - records with mismatched metric are rejected.
-- [ ] Run:
+- [x] Run:
 
 ```bash
 bun test tests/services/records.test.ts
@@ -244,7 +244,7 @@ Expected: new service tests pass.
 - Create: `src/utils/records.ts`
 - Test: `tests/utils/records.test.ts`
 
-- [ ] Create metric group metadata:
+- [x] Create metric group metadata:
 
 ```ts
 import type { ActivityHighlight, HighlightMetric, RecordsMetricGroup } from '@/services/records';
@@ -259,7 +259,7 @@ export interface RecordMetricDefinition {
 }
 ```
 
-- [ ] Define all backend metrics:
+- [x] Define all backend metrics:
 
 ```ts
 export const recordMetricDefinitions: RecordMetricDefinition[] = [
@@ -280,24 +280,24 @@ export const recordMetricDefinitions: RecordMetricDefinition[] = [
 ];
 ```
 
-- [ ] Add helpers:
+- [x] Add helpers:
   - `getRecordMetricDefinition(metric)`
   - `formatRecordValue(metric, value)`
   - `sortRecordGroups(groups)`
   - `formatRecordActivityDate(record)`
-- [ ] Format values:
+- [x] Format values:
   - duration string: parse with `parseISODuration`, format with `formatDuration`;
   - duration number: format as seconds with `formatDuration`;
   - distance: `12.34 km`;
   - elevation: `123 m`;
   - speed: `12.3 km/h`;
   - power: `321 W`.
-- [ ] `sortRecordGroups(groups)` order:
+- [x] `sortRecordGroups(groups)` order:
   - Endurance metrics first, Speed second, Power third;
   - within a group, use `recordMetricDefinitions` order;
   - within records, sort by `rank ASC`.
-- [ ] Write `tests/utils/records.test.ts` covering all value formatters, all metric definitions, deterministic group sorting, and date formatting.
-- [ ] Run:
+- [x] Write `tests/utils/records.test.ts` covering all value formatters, all metric definitions, deterministic group sorting, and date formatting.
+- [x] Run:
 
 ```bash
 bun test tests/utils/records.test.ts
@@ -310,7 +310,7 @@ Expected: new utility tests pass.
 **Files:**
 - Create: `src/stores/records.ts`
 
-- [ ] Create state:
+- [x] Create state:
 
 ```ts
 const currentYear = new Date().getFullYear();
@@ -326,7 +326,7 @@ const isLoadingSummaries = ref(false);
 const error = ref<string | null>(null);
 ```
 
-- [ ] Add computed selected group:
+- [x] Add computed selected group:
 
 ```ts
 const selectedGroup = computed(() =>
@@ -334,13 +334,13 @@ const selectedGroup = computed(() =>
 );
 ```
 
-- [ ] Add request year helper:
+- [x] Add request year helper:
 
 ```ts
 const requestYear = computed(() => (scope.value === 'yearly' ? year.value : null));
 ```
 
-- [ ] Add `fetchOverview()`:
+- [x] Add `fetchOverview()`:
   - set loading state;
   - call `fetchRecordsOverview({ year: requestYear.value, typeId: typeId.value })`;
   - sort and store returned groups;
@@ -348,35 +348,35 @@ const requestYear = computed(() => (scope.value === 'yearly' ? year.value : null
   - clear activity summary cache for records no longer visible;
   - call `fetchSelectedActivitySummaries()`;
   - set readable error on failure.
-- [ ] Add `setScope(nextScope)`, `setYear(nextYear)`, and `setTypeId(nextTypeId)`:
+- [x] Add `setScope(nextScope)`, `setYear(nextYear)`, and `setTypeId(nextTypeId)`:
   - update state;
   - call `fetchOverview()`.
-- [ ] Add `selectMetric(metric)`:
+- [x] Add `selectMetric(metric)`:
   - update `selectedMetric`;
   - call `fetchSelectedActivitySummaries()`.
-- [ ] Add `fetchSelectedActivitySummaries()`:
+- [x] Add `fetchSelectedActivitySummaries()`:
   - read current selected group records;
   - find activity ids not already in `activitySummaries`;
   - fetch selected metric activity summaries with existing `fetchActivitySummary(activityId)`;
   - cache successful summaries by activity id;
   - ignore missing activity summaries in page rendering by falling back to date/activity id display.
-- [ ] Export all state, computed values, and actions.
+- [x] Export all state, computed values, and actions.
 
 ## Task 5: Add Records Page
 
 **Files:**
 - Create: `src/views/RecordsView.vue`
 
-- [ ] Create `<script setup lang="ts">` that imports:
+- [x] Create `<script setup lang="ts">` that imports:
   - `computed`, `onMounted`;
   - `Trophy`, `CalendarDays`, `Medal`, `Filter`;
   - `useRecordsStore`;
   - `useTypeStore`;
   - helpers from `src/utils/records.ts`.
-- [ ] On mount:
+- [x] On mount:
   - call `typeStore.fetchActivityTypes()`;
   - call `recordsStore.fetchOverview()`.
-- [ ] Template structure:
+- [x] Template structure:
   - page wrapper `bg-verve-medium min-h-[calc(100vh-64px)]`;
   - max-width container;
   - header with `Records` title and `Trophy case` subtitle;
@@ -385,21 +385,21 @@ const requestYear = computed(() => (scope.value === 'yearly' ? year.value : null
   - activity type select with `All activity types` default;
   - left metric rail grouped by Endurance, Speed, Power;
   - right selected metric detail.
-- [ ] Year control:
+- [x] Year control:
   - decrement button sets `year - 1`;
   - number input updates `year`;
   - increment button sets `year + 1`;
   - controls call `recordsStore.setYear(...)`.
-- [ ] Type filter:
+- [x] Type filter:
   - options from `typeStore.activityTypes`;
   - empty value maps to `null`;
   - selected type calls `recordsStore.setTypeId(...)`.
-- [ ] Metric rail item content:
+- [x] Metric rail item content:
   - metric label;
   - best value from first record;
   - loaded count, expected to be 1 to 3;
   - selected state using Verve palette.
-- [ ] Detail content:
+- [x] Detail content:
   - loading state;
   - error state;
   - empty state;
@@ -408,9 +408,9 @@ const requestYear = computed(() => (scope.value === 'yearly' ? year.value : null
   - value formatted with `formatRecordValue`;
   - activity title from cached activity summary name, cached activity date, or activity id fallback;
   - router-link to `activity-detail`.
-- [ ] Do not add `Show more`; v1 only shows saved top 3.
-- [ ] Keep card radius at `rounded-lg` or less unless matching existing component card patterns.
-- [ ] Do not use `v-html`.
+- [x] Do not add `Show more`; v1 only shows saved top 3.
+- [x] Keep card radius at `rounded-lg` or less unless matching existing component card patterns.
+- [x] Do not use `v-html`.
 
 ## Task 6: Add Route And Navigation
 
@@ -418,7 +418,7 @@ const requestYear = computed(() => (scope.value === 'yearly' ? year.value : null
 - Modify: `src/router/index.ts`
 - Modify: `src/components/Navbar.vue`
 
-- [ ] Add route under authenticated `MainLayout` children:
+- [x] Add route under authenticated `MainLayout` children:
 
 ```ts
 {
@@ -428,7 +428,7 @@ const requestYear = computed(() => (scope.value === 'yearly' ? year.value : null
 },
 ```
 
-- [ ] Add desktop Statistics dropdown link before Heatmap:
+- [x] Add desktop Statistics dropdown link before Heatmap:
 
 ```vue
 <router-link
@@ -439,7 +439,7 @@ const requestYear = computed(() => (scope.value === 'yearly' ? year.value : null
 </router-link>
 ```
 
-- [ ] Add mobile Statistics link before Heatmap:
+- [x] Add mobile Statistics link before Heatmap:
 
 ```vue
 <router-link
@@ -455,7 +455,7 @@ const requestYear = computed(() => (scope.value === 'yearly' ? year.value : null
 **Files:**
 - Review changed files only.
 
-- [ ] Run focused tests:
+- [x] Run focused tests:
 
 ```bash
 bun test tests/services/records.test.ts tests/utils/records.test.ts
@@ -463,7 +463,7 @@ bun test tests/services/records.test.ts tests/utils/records.test.ts
 
 Expected: all records tests pass.
 
-- [ ] Run TypeScript check:
+- [x] Run TypeScript check:
 
 ```bash
 bun run type-check
@@ -471,7 +471,7 @@ bun run type-check
 
 Expected: no type errors.
 
-- [ ] Run full repository gate:
+- [x] Run full repository gate:
 
 ```bash
 bun run check
@@ -479,7 +479,7 @@ bun run check
 
 Expected: all harness, link, API, agent-rules, ESLint-baseline, type-check, and build gates pass.
 
-- [ ] Run diff distribution:
+- [x] Run diff distribution:
 
 ```bash
 bun run diff:distribution
@@ -487,7 +487,7 @@ bun run diff:distribution
 
 Expected: report source, test, docs, and other change counts for final handoff.
 
-- [ ] Manual browser check:
+- [x] Manual browser check:
   - log in;
   - open Statistics > Records;
   - verify current year is default;
@@ -496,6 +496,8 @@ Expected: report source, test, docs, and other change counts for final handoff.
   - select at least one Endurance, Speed, and Power metric;
   - verify no load-more control appears;
   - open an activity record link and confirm it routes to activity detail.
+
+Note: Manual browser verification was completed by the user. Starting the local Vite dev server from this sandbox failed with `listen EPERM` on `127.0.0.1:5173`; automated build and type validation passed.
 
 ## Assumptions
 
