@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="0.10.0"></a>
+
+## [0.10.0](https://github.com/kschweiger/verve-frontend/compare/0.9.0...0.10.0) (2026-06-19)
+
+### Features
+
+- add trophy case  (#17) ([7c542f4](https://github.com/kschweiger/verve-frontend/commit/7c542f4c3f56850bd1e80738572788693ebcf4d1))
+
 <a name="0.9.0"></a>
 
 ## [0.9.0](https://github.com/kschweiger/verve-frontend/compare/0.8.1...0.9.0) (2026-06-17)
