@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="0.10.1"></a>
+
+## [0.10.1](https://github.com/kschweiger/verve-frontend/compare/0.10.0...0.10.1) (2026-06-19)
+
+### Bug Fixes
+
+- frontend assumed highlights to be returned with m for distances ([3b60cba](https://github.com/kschweiger/verve-frontend/commit/3b60cbacfa4e21514b23a736bdd5f513e01ba61c))
+
 <a name="0.10.0"></a>
 
 ## [0.10.0](https://github.com/kschweiger/verve-frontend/compare/0.9.0...0.10.0) (2026-06-19)
