@@ -49,7 +49,7 @@ export function formatRecordValue(metric: HighlightMetric, value: ActivityHighli
   }
   if (!Number.isFinite(numberValue)) return value.toString();
 
-  if (definition.unit === 'kilometers') return `${(numberValue / 1000).toFixed(2)} km`;
+  if (definition.unit === 'kilometers') return `${numberValue.toFixed(2)} km`;
   if (definition.unit === 'meters') return `${Math.round(numberValue)} m`;
   if (definition.unit === 'speed') return `${numberValue.toFixed(1)} km/h`;
   return `${Math.round(numberValue)} W`;

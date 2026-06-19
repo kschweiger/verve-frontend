@@ -54,7 +54,7 @@ describe('records utilities', () => {
   });
 
   test('formats distance, elevation, speed, and power values', () => {
-    expect(formatRecordValue('distance', 12345)).toBe('12.35 km');
+    expect(formatRecordValue('distance', 12.345)).toBe('12.35 km');
     expect(formatRecordValue('elevation_change_up', 123.4)).toBe('123 m');
     expect(formatRecordValue('avg_speed', 11.26)).toBe('11.3 km/h');
     expect(formatRecordValue('max_power', 320.7)).toBe('321 W');
