@@ -54,6 +54,10 @@ describe('records service', () => {
     expect(buildRecordsQuery({ year: null, typeId: 3 })).toBe('type_id=3');
   });
 
+  test('query builder can omit type_id for non-records-page callers', () => {
+    expect(buildRecordsQuery({ year: 2026, typeId: null })).toBe('year=2026');
+  });
+
   test('parses a valid overview dictionary into metric groups', () => {
     const result = parseHighlightsByMetricResponse({
       data: {

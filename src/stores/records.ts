@@ -1,14 +1,14 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { fetchActivitySummary } from '@/services/api';
+import { fetchActivitySummary } from '../services/api';
 import type { Activity } from './activity';
 import {
   fetchRecordsOverview,
   type HighlightMetric,
   type HighlightTimeScope,
   type RecordsMetricGroup,
-} from '@/services/records';
-import { sortRecordGroups } from '@/utils/records';
+} from '../services/records';
+import { sortRecordGroups } from '../utils/records';
 
 const currentYear = new Date().getFullYear();
 
@@ -67,6 +67,13 @@ export const useRecordsStore = defineStore('records', () => {
   }
 
   async function fetchOverview() {
+    if (typeId.value === null) {
+      groups.value = [];
+      selectedMetric.value = null;
+      error.value = 'Choose an activity type to view records.';
+      return;
+    }
+
     isLoading.value = true;
     error.value = null;
 
@@ -98,7 +105,11 @@ export const useRecordsStore = defineStore('records', () => {
     await fetchOverview();
   }
 
-  async function setTypeId(nextTypeId: number | null) {
+  function setInitialTypeId(nextTypeId: number) {
+    typeId.value = nextTypeId;
+  }
+
+  async function setTypeId(nextTypeId: number) {
     typeId.value = nextTypeId;
     await fetchOverview();
   }
@@ -123,6 +134,7 @@ export const useRecordsStore = defineStore('records', () => {
     fetchOverview,
     setScope,
     setYear,
+    setInitialTypeId,
     setTypeId,
     selectMetric,
     fetchSelectedActivitySummaries,

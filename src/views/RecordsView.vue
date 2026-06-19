@@ -3,6 +3,7 @@ import { computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { CalendarDays, ChevronLeft, ChevronRight, Filter, Medal, Trophy } from 'lucide-vue-next';
 import { useRecordsStore } from '@/stores/records';
+import { useSettingsStore } from '@/stores/settings';
 import { useTypeStore } from '@/stores/types';
 import type { ActivityHighlight, HighlightMetric } from '@/services/records';
 import {
@@ -14,6 +15,7 @@ import {
 } from '@/utils/records';
 
 const recordsStore = useRecordsStore();
+const settingsStore = useSettingsStore();
 const typeStore = useTypeStore();
 
 const {
@@ -83,8 +85,24 @@ function setYearFromInput(event: Event) {
 }
 
 function setTypeFromSelect(event: Event) {
-  const value = (event.target as HTMLSelectElement).value;
-  void recordsStore.setTypeId(value === '' ? null : Number(value));
+  const value = Number((event.target as HTMLSelectElement).value);
+  if (Number.isInteger(value)) {
+    void recordsStore.setTypeId(value);
+  }
+}
+
+function resolveInitialRecordsTypeId(): number | null {
+  const recordsTypeId = settingsStore.userSettings?.records_settings?.default_activity_type;
+  if (recordsTypeId && activityTypes.value.some((activityType) => activityType.id === recordsTypeId)) {
+    return recordsTypeId;
+  }
+
+  const appDefaultTypeId = settingsStore.userSettings?.default_type_id;
+  if (appDefaultTypeId && activityTypes.value.some((activityType) => activityType.id === appDefaultTypeId)) {
+    return appDefaultTypeId;
+  }
+
+  return activityTypes.value[0]?.id ?? null;
 }
 
 function activityTitle(record: ActivityHighlight): string {
@@ -104,9 +122,18 @@ function rankClasses(rank: number): string {
   return 'bg-white text-verve-brown border-verve-medium';
 }
 
-onMounted(() => {
-  void typeStore.fetchActivityTypes();
-  void recordsStore.fetchOverview();
+onMounted(async () => {
+  await Promise.all([
+    typeStore.fetchActivityTypes(),
+    settingsStore.fetchAllSettings(),
+  ]);
+
+  const initialTypeId = resolveInitialRecordsTypeId();
+  if (initialTypeId !== null) {
+    recordsStore.setInitialTypeId(initialTypeId);
+  }
+
+  await recordsStore.fetchOverview();
 });
 </script>
 
@@ -178,12 +205,11 @@ onMounted(() => {
           <label class="flex items-center gap-2 rounded-lg border border-verve-brown/15 bg-white px-3 py-2">
             <Filter class="size-4 text-verve-brown/55" aria-hidden="true" />
             <select
-              :value="typeId ?? ''"
+              :value="typeId"
               class="min-w-44 border-0 bg-transparent p-0 text-sm font-semibold text-verve-brown focus:ring-0"
               aria-label="Activity type"
               @change="setTypeFromSelect"
             >
-              <option value="">All activity types</option>
               <option v-for="activityType in activityTypes" :key="activityType.id" :value="activityType.id">
                 {{ activityType.name }}
               </option>

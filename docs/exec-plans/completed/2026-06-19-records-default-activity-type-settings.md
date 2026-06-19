@@ -58,7 +58,7 @@ The response body is not used by the frontend; refresh user settings after a suc
 - Modify: `src/stores/settings.ts`
 - Test: `tests/stores/settings.test.ts`
 
-- [ ] Add the exported interface:
+- [x] Add the exported interface:
 
 ```ts
 export interface RecordsSettings {
@@ -66,7 +66,7 @@ export interface RecordsSettings {
 }
 ```
 
-- [ ] Update `UserSettings`:
+- [x] Update `UserSettings`:
 
 ```ts
 export interface UserSettings {
@@ -78,7 +78,7 @@ export interface UserSettings {
 }
 ```
 
-- [ ] Add an action beside `updateHeatmapSettings`:
+- [x] Add an action beside `updateHeatmapSettings`:
 
 ```ts
 async function updateRecordsSettings(defaultActivityType: number): Promise<boolean> {
@@ -106,9 +106,9 @@ async function updateRecordsSettings(defaultActivityType: number): Promise<boole
 }
 ```
 
-- [ ] Return `updateRecordsSettings` from the store.
+- [x] Return `updateRecordsSettings` from the store.
 
-- [ ] If direct Bun store tests fail to resolve the router alias from `src/stores/settings.ts`, replace:
+- [x] If direct Bun store tests fail to resolve the router alias from `src/stores/settings.ts`, replace:
 
 ```ts
 import router from '@/router';
@@ -122,7 +122,9 @@ import router from '../router';
 
 This matches the direct-test compatibility fix used by `src/services/records.ts` and does not change runtime behavior.
 
-- [ ] Create `tests/stores/settings.test.ts` with tests for loading and updating records settings:
+Implemented as a dynamic `await import('../router')` inside `updatePassword`, which keeps runtime behavior unchanged and avoids loading the router in direct store tests.
+
+- [x] Create `tests/stores/settings.test.ts` with tests for loading and updating records settings:
 
 ```ts
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
@@ -238,7 +240,7 @@ describe('settings store records settings', () => {
 });
 ```
 
-- [ ] Run the new test and confirm it fails before implementation:
+- [x] Run the new test and confirm it fails before implementation:
 
 ```bash
 bun test tests/stores/settings.test.ts
@@ -246,9 +248,9 @@ bun test tests/stores/settings.test.ts
 
 Expected before implementation: failure because `records_settings` and/or `updateRecordsSettings` are missing.
 
-- [ ] Implement the store changes.
+- [x] Implement the store changes.
 
-- [ ] Run:
+- [x] Run:
 
 ```bash
 bun test tests/stores/settings.test.ts
@@ -261,7 +263,7 @@ Expected after implementation: all settings store tests pass.
 **Files:**
 - Create: `src/components/forms/RecordsSettingsForm.vue`
 
-- [ ] Create the form component:
+- [x] Create the form component:
 
 ```vue
 <script setup lang="ts">
@@ -343,19 +345,19 @@ function onSave() {
 **Files:**
 - Modify: `src/views/SettingsView.vue`
 
-- [ ] Import the new form:
+- [x] Import the new form:
 
 ```ts
 import RecordsSettingsForm from '@/components/forms/RecordsSettingsForm.vue';
 ```
 
-- [ ] Add UI state:
+- [x] Add UI state:
 
 ```ts
 const isRecordsEditing = ref(false);
 ```
 
-- [ ] Add a computed label:
+- [x] Add a computed label:
 
 ```ts
 const recordsDefaultTypeName = computed(() => {
@@ -366,7 +368,7 @@ const recordsDefaultTypeName = computed(() => {
 });
 ```
 
-- [ ] Add save handler:
+- [x] Add save handler:
 
 ```ts
 async function handleRecordsSave(defaultActivityType: number) {
@@ -375,7 +377,7 @@ async function handleRecordsSave(defaultActivityType: number) {
 }
 ```
 
-- [ ] Add a “Records Configuration” section after Heatmap Configuration and before the version footer:
+- [x] Add a “Records Configuration” section after Heatmap Configuration and before the version footer:
 
 ```vue
 <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
@@ -413,7 +415,7 @@ async function handleRecordsSave(defaultActivityType: number) {
 </div>
 ```
 
-- [ ] Run:
+- [x] Run:
 
 ```bash
 bun run type-check
@@ -427,7 +429,7 @@ Expected: no TypeScript errors from the new settings form integration.
 - Modify: `src/stores/records.ts`
 - Test: `tests/stores/records.test.ts`
 
-- [ ] Create `tests/stores/records.test.ts` covering concrete type fetches and null guard behavior:
+- [x] Create `tests/stores/records.test.ts` covering concrete type fetches and null guard behavior:
 
 ```ts
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
@@ -493,7 +495,7 @@ describe('records store type filter', () => {
 });
 ```
 
-- [ ] Run the test and confirm it fails before store changes:
+- [x] Run the test and confirm it fails before store changes:
 
 ```bash
 bun test tests/stores/records.test.ts
@@ -501,7 +503,7 @@ bun test tests/stores/records.test.ts
 
 Expected before implementation: failure because `setInitialTypeId` is missing and/or `fetchOverview` still allows `null`.
 
-- [ ] Update `src/stores/records.ts`:
+- [x] Update `src/stores/records.ts`:
 
 ```ts
 function setInitialTypeId(nextTypeId: number) {
@@ -509,7 +511,7 @@ function setInitialTypeId(nextTypeId: number) {
 }
 ```
 
-- [ ] Update `fetchOverview()` before setting `isLoading`:
+- [x] Update `fetchOverview()` before setting `isLoading`:
 
 ```ts
 if (typeId.value === null) {
@@ -520,13 +522,13 @@ if (typeId.value === null) {
 }
 ```
 
-- [ ] Keep the existing API call, now relying on the guard:
+- [x] Keep the existing API call, now relying on the guard:
 
 ```ts
 await fetchRecordsOverview({ year: requestYear.value, typeId: typeId.value })
 ```
 
-- [ ] Update `setTypeId` to require a number:
+- [x] Update `setTypeId` to require a number:
 
 ```ts
 async function setTypeId(nextTypeId: number) {
@@ -535,9 +537,9 @@ async function setTypeId(nextTypeId: number) {
 }
 ```
 
-- [ ] Return `setInitialTypeId`.
+- [x] Return `setInitialTypeId`.
 
-- [ ] Run:
+- [x] Run:
 
 ```bash
 bun test tests/stores/records.test.ts
@@ -550,19 +552,19 @@ Expected after implementation: records store tests pass.
 **Files:**
 - Modify: `src/views/RecordsView.vue`
 
-- [ ] Import the settings store:
+- [x] Import the settings store:
 
 ```ts
 import { useSettingsStore } from '@/stores/settings';
 ```
 
-- [ ] Create the store instance:
+- [x] Create the store instance:
 
 ```ts
 const settingsStore = useSettingsStore();
 ```
 
-- [ ] Add a concrete default resolver:
+- [x] Add a concrete default resolver:
 
 ```ts
 function resolveInitialRecordsTypeId(): number | null {
@@ -580,7 +582,7 @@ function resolveInitialRecordsTypeId(): number | null {
 }
 ```
 
-- [ ] Replace the current `onMounted` body:
+- [x] Replace the current `onMounted` body:
 
 ```ts
 onMounted(async () => {
@@ -598,7 +600,7 @@ onMounted(async () => {
 });
 ```
 
-- [ ] Update `setTypeFromSelect` so it never maps to `null`:
+- [x] Update `setTypeFromSelect` so it never maps to `null`:
 
 ```ts
 function setTypeFromSelect(event: Event) {
@@ -609,7 +611,7 @@ function setTypeFromSelect(event: Event) {
 }
 ```
 
-- [ ] Remove the all-types option from the select:
+- [x] Remove the all-types option from the select:
 
 ```vue
 <option v-for="activityType in activityTypes" :key="activityType.id" :value="activityType.id">
@@ -617,7 +619,7 @@ function setTypeFromSelect(event: Event) {
 </option>
 ```
 
-- [ ] Confirm there is no remaining text `All activity types` in `src/views/RecordsView.vue`.
+- [x] Confirm there is no remaining text `All activity types` in `src/views/RecordsView.vue`.
 
 ## Task 6: Preserve Existing Records Service Contract
 
@@ -625,11 +627,11 @@ function setTypeFromSelect(event: Event) {
 - Modify only if tests require it: `src/services/records.ts`
 - Test: `tests/services/records.test.ts`
 
-- [ ] Keep `RecordsQueryParams.typeId?: number | null` and `buildRecordsQuery` null behavior unchanged because other future callers may still omit `type_id`.
+- [x] Keep `RecordsQueryParams.typeId?: number | null` and `buildRecordsQuery` null behavior unchanged because other future callers may still omit `type_id`.
 
-- [ ] Do not change existing service tests that prove query-builder null behavior unless the service contract itself changes later.
+- [x] Do not change existing service tests that prove query-builder null behavior unless the service contract itself changes later.
 
-- [ ] Add this test only if implementation accidentally starts permitting unfiltered Records page calls through the store instead of through the service:
+- [x] Add this test only if implementation accidentally starts permitting unfiltered Records page calls through the store instead of through the service:
 
 ```ts
 // Keep this behavior in tests/services/records.test.ts.
@@ -645,7 +647,7 @@ Expected: service remains a generic API wrapper; page/store enforce Records-page
 **Files:**
 - Review changed files only.
 
-- [ ] Run focused tests:
+- [x] Run focused tests:
 
 ```bash
 bun test tests/stores/settings.test.ts tests/stores/records.test.ts tests/services/records.test.ts tests/utils/records.test.ts
@@ -653,7 +655,7 @@ bun test tests/stores/settings.test.ts tests/stores/records.test.ts tests/servic
 
 Expected: all focused tests pass.
 
-- [ ] Run TypeScript:
+- [x] Run TypeScript:
 
 ```bash
 bun run type-check
@@ -661,7 +663,7 @@ bun run type-check
 
 Expected: no type errors.
 
-- [ ] Run full repository gate:
+- [x] Run full repository gate:
 
 ```bash
 bun run check
@@ -669,7 +671,7 @@ bun run check
 
 Expected: harness checks, markdown links, OpenAPI freshness, agent rules, ESLint baseline, TypeScript, and build all pass.
 
-- [ ] Run diff distribution:
+- [x] Run diff distribution:
 
 ```bash
 bun run diff:distribution
@@ -677,13 +679,15 @@ bun run diff:distribution
 
 Expected: report includes records/settings source and store tests. Pre-existing untracked files may still appear under “other”; do not modify them unless the user explicitly asks.
 
-- [ ] Manual browser check:
+- [x] Manual browser check:
   - Open `/records`.
   - Confirm the first highlights request is `/highlights/?year=<currentYear>&type_id=<records_settings.default_activity_type>`.
   - Confirm the type dropdown contains only concrete activity types and no “All activity types” option.
   - Switch the type dropdown and confirm the next highlights request includes the selected concrete `type_id`.
   - Open Settings, edit Records Configuration, save a different default type, reload `/records`, and confirm the saved type is selected by default.
   - Switch Lifetime and confirm the request omits `year` but still includes `type_id`.
+
+Verified by the user in browser on 2026-06-19.
 
 ## Assumptions
 

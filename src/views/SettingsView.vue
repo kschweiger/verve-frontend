@@ -6,6 +6,7 @@ import ProfileEditForm from '@/components/forms/ProfileEditForm.vue';
 import PasswordChangeForm from '@/components/forms/PasswordChangeForm.vue';
 import AppSettingsForm from '@/components/forms/AppSettingsForm.vue';
 import HeatmapSettingsForm from '@/components/forms/HeatmapSettingsForm.vue';
+import RecordsSettingsForm from '@/components/forms/RecordsSettingsForm.vue';
 
 const appVersion = import.meta.env.VITE_APP_VERSION || 'Dev';
 
@@ -17,6 +18,7 @@ const isProfileEditing = ref(false);
 const isPasswordEditing = ref(false);
 const isAppSettingsEditing = ref(false);
 const isHeatmapEditing = ref(false);
+const isRecordsEditing = ref(false);
 
 // --- Computed Helpers ---
 const defaultTypeName = computed(() => {
@@ -34,6 +36,13 @@ const defaultSubTypeName = computed(() => {
   const foundType = typeStore.activityTypes.find((t) => t.id === typeId);
   const foundSubType = foundType?.sub_types.find((st) => st.id === subTypeId);
   return foundSubType?.name ?? `ID #${subTypeId}`;
+});
+
+const recordsDefaultTypeName = computed(() => {
+  const typeId = settingsStore.userSettings?.records_settings?.default_activity_type;
+  if (!typeId) return 'Not Set';
+  const foundType = typeStore.activityTypes.find((t) => t.id === typeId);
+  return foundType?.name ?? `ID #${typeId}`;
 });
 
 onMounted(() => {
@@ -61,6 +70,11 @@ async function handleAppSettingsSave(payload: { typeId: number | null; subTypeId
 async function handleHeatmapSave(excludedTypes: Array<[number, number | null]>) {
   const success = await settingsStore.updateHeatmapSettings(excludedTypes);
   if (success) isHeatmapEditing.value = false;
+}
+
+async function handleRecordsSave(defaultActivityType: number) {
+  const success = await settingsStore.updateRecordsSettings(defaultActivityType);
+  if (success) isRecordsEditing.value = false;
 }
 
 const getExcludedLabel = (tuple: [number, number | null]) => {
@@ -229,6 +243,38 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- SECTION 5: Records Configuration -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
+          <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
+            <div>
+              <h2 class="text-xl font-bold text-verve-brown">Records Configuration</h2>
+              <p class="text-sm text-verve-brown/60 mt-1">
+                Choose the activity type shown first in your trophy case.
+              </p>
+            </div>
+
+            <button v-if="!isRecordsEditing" @click="isRecordsEditing = true"
+              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors">
+              Edit Default
+            </button>
+          </div>
+
+          <RecordsSettingsForm
+            v-if="isRecordsEditing"
+            :initial-settings="settingsStore.userSettings?.records_settings ?? null"
+            :activity-types="typeStore.activityTypes"
+            @save="handleRecordsSave"
+            @cancel="isRecordsEditing = false"
+          />
+
+          <div v-else>
+            <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">
+              Default Records Activity Type
+            </p>
+            <p class="text-verve-brown font-medium">{{ recordsDefaultTypeName }}</p>
           </div>
         </div>
 
