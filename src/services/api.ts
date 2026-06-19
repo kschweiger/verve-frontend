@@ -1,8 +1,8 @@
 // src/services/api.ts
-import { useUserStore } from '@/stores/auth';
-import type { Activity } from '@/stores/activity';
-import type { ActivityTagPublic } from '@/stores/tags';
-import { parseISODuration, formatDuration } from '@/utils/datetime';
+import { useUserStore } from '../stores/auth';
+import type { Activity } from '../stores/activity';
+import type { ActivityTagPublic } from '../stores/tags';
+import { parseISODuration, formatDuration } from '../utils/datetime';
 
 export interface ApiActivity {
   id: string;

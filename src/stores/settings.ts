@@ -1,7 +1,6 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
-import router from '@/router';
 
 // --- INTERFACES ---
 export interface UserProfile {
@@ -15,11 +14,16 @@ export interface HeatmapSettings {
   excluded_activity_types: Array<[number, number | null]>;
 }
 
+export interface RecordsSettings {
+  default_activity_type: number;
+}
+
 export interface UserSettings {
   default_type_id: number | null;
   defautl_sub_type_id: number | null; // API typo 'defautl' kept for compatibility
   locale: string;
   heatmap_settings: HeatmapSettings;
+  records_settings: RecordsSettings | null;
 }
 
 export interface UserProfilePayload {
@@ -143,6 +147,7 @@ export const useSettingsStore = defineStore('settings', () => {
       }
 
       userStore.logout();
+      const { default: router } = await import('../router');
       router.push({
         name: 'login',
         query: { status: 'password-updated' },
@@ -212,6 +217,30 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
+  async function updateRecordsSettings(defaultActivityType: number): Promise<boolean> {
+    const userStore = useUserStore();
+    if (!userStore.token) return false;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/records_settings`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${userStore.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ default_activity_type: defaultActivityType }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update records settings.');
+
+      await fetchAllSettings();
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
   return {
     userProfile,
     userSettings,
@@ -222,5 +251,6 @@ export const useSettingsStore = defineStore('settings', () => {
     updatePassword,
     updateDefaultTypes,
     updateHeatmapSettings,
+    updateRecordsSettings,
   };
 });

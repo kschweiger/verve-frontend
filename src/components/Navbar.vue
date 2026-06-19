@@ -147,6 +147,10 @@ const toggleMenu = (menu: string) => {
                   leave-to-class="opacity-0 translate-y-1">
                   <div v-show="activeMenu === 'statistics'"
                     class="absolute left-0 mt-0 w-40 bg-white shadow-xl rounded-xl py-2 z-50 border border-verve-medium/20">
+                    <router-link to="/records"
+                      class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
+                      Records
+                    </router-link>
                     <router-link to="/heatmap"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
                       Heatmap
@@ -254,6 +258,8 @@ const toggleMenu = (menu: string) => {
               class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Locations</router-link>
 
             <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">Statistics</div>
+            <router-link to="/records"
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Records</router-link>
             <router-link to="/heatmap"
               class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Heatmap</router-link>
           </div>

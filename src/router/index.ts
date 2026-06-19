@@ -73,6 +73,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/HeatmapView.vue'),
       },
       {
+        path: 'records',
+        name: 'records',
+        component: () => import('@/views/RecordsView.vue'),
+      },
+      {
         path: 'goals',
         name: 'goals',
         component: () => import('@/views/GoalsView.vue'),
@@ -111,16 +116,18 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const auth = useUserStore();
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    next({ name: 'login' });
-  } else if (to.name === 'login' && auth.isAuthenticated) {
-    next({ name: 'dashboard' });
-  } else {
-    next();
+    return { name: 'login' };
   }
+
+  if (to.name === 'login' && auth.isAuthenticated) {
+    return { name: 'dashboard' };
+  }
+
+  return true;
 });
 
 export default router;

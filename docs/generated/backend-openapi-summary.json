@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "013eaa506d270efe65b0c324be6e956ac8ea1b6b53279bbfbff7eb0213278960",
+  "sourceSha256": "0a19f5d36042cb35578d23f1c236fe46b63fd56110ef5dce32daef1e9788a5f6",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
     "version": "0.1.0"
   },
-  "pathCount": 71,
-  "schemaCount": 96,
+  "pathCount": 72,
+  "schemaCount": 97,
   "paths": [
     {
       "path": "/api/v1/activity/",
@@ -1093,6 +1093,19 @@
       ]
     },
     {
+      "path": "/api/v1/users/me/records_settings",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "user-replace_records_settings",
+          "summary": "Replace Records Settings",
+          "tags": [
+            "user"
+          ]
+        }
+      ]
+    },
+    {
       "path": "/api/v1/users/me/set_default_activity_type",
       "methods": [
         {
@@ -1188,6 +1201,7 @@
     "PasswordResetPayload",
     "PhraseCandidate_int_",
     "PhraseCandidate_UUID_",
+    "RecordsSettings",
     "ResolvedSubType",
     "ResolvedType",
     "ResolvedTypes",
