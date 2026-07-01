@@ -20,6 +20,17 @@ export interface ApiActivity {
   tags?: ActivityTagPublic[];
 }
 
+export interface ActivityPageParams {
+  limit?: number;
+  offset?: number;
+  year?: number | null;
+  month?: number | null;
+  type_id?: number | null;
+  sub_type_id?: number | null;
+  category_id?: number | null;
+  tag_id?: number | null;
+}
+
 export interface TrackPoint {
   id: number;
   lat: number | null;
@@ -109,7 +120,7 @@ const getJsonAuthHeaders = (): HeadersInit => ({
   'Content-Type': 'application/json',
 });
 
-const mapApiActivity = (apiActivity: ApiActivity): Activity => {
+export const mapApiActivity = (apiActivity: ApiActivity): Activity => {
   const durationSeconds = parseISODuration(apiActivity.duration);
 
   return {
@@ -145,6 +156,16 @@ const toNumberArray = (value: unknown): number[] =>
 
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+const appendNullableNumberParam = (
+  params: URLSearchParams,
+  key: string,
+  value: number | null | undefined
+) => {
+  if (value !== null && value !== undefined) {
+    params.set(key, value.toString());
+  }
+};
 
 const segmentMetrics = ['pace', 'heartrate', 'power', 'speed', 'cadence'] as const;
 const speedUnits = ['m/s', 'km/h', 'miles/h'] as const;
@@ -280,6 +301,40 @@ export async function fetchActivitySummary(activityId: string): Promise<Activity
 
   const apiActivity: ApiActivity = await response.json();
   return mapApiActivity(apiActivity);
+}
+
+export function buildActivityPageQuery(params: ActivityPageParams): string {
+  const query = new URLSearchParams();
+
+  query.set('limit', (params.limit ?? 20).toString());
+  query.set('offset', (params.offset ?? 0).toString());
+  appendNullableNumberParam(query, 'year', params.year);
+  appendNullableNumberParam(query, 'month', params.month);
+  appendNullableNumberParam(query, 'type_id', params.type_id);
+  appendNullableNumberParam(query, 'sub_type_id', params.sub_type_id);
+  appendNullableNumberParam(query, 'category_id', params.category_id);
+  appendNullableNumberParam(query, 'tag_id', params.tag_id);
+
+  return query.toString();
+}
+
+export async function fetchActivityPage(params: ActivityPageParams): Promise<Activity[]> {
+  const query = buildActivityPageQuery(params);
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?${query}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) throw new Error('Failed to fetch activities.');
+
+  const responseData: unknown = await response.json();
+  if (!isRecord(responseData) || !Array.isArray(responseData.data)) {
+    throw new Error('Invalid activities response.');
+  }
+
+  return responseData.data
+    .filter(isRecord)
+    .map((activity) => mapApiActivity(activity as unknown as ApiActivity));
 }
 
 export async function fetchActivityTrack(activityId: string): Promise<TrackPoint[]> {

@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "0a19f5d36042cb35578d23f1c236fe46b63fd56110ef5dce32daef1e9788a5f6",
+  "sourceSha256": "07d8a1797b39c7f2a54fa0d319efb9d000b06a266d5f8f282a73d19a5ddb0999",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
     "version": "0.1.0"
   },
-  "pathCount": 72,
-  "schemaCount": 97,
+  "pathCount": 75,
+  "schemaCount": 105,
   "paths": [
     {
       "path": "/api/v1/activity/",
@@ -165,6 +165,78 @@
           "summary": "Recalculate Highlights",
           "tags": [
             "admin"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/collection",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_collections",
+          "summary": "Get Collections",
+          "tags": [
+            "activity",
+            "collection",
+            "collection"
+          ]
+        },
+        {
+          "method": "post",
+          "operationId": "activity-create_collection",
+          "summary": "Create Collection",
+          "tags": [
+            "activity",
+            "collection",
+            "collection"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/collection/{id}",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_collection",
+          "summary": "Get Collection",
+          "tags": [
+            "activity",
+            "collection"
+          ]
+        },
+        {
+          "method": "delete",
+          "operationId": "activity-delete_collection",
+          "summary": "Delete Collection",
+          "tags": [
+            "activity",
+            "collection"
+          ]
+        },
+        {
+          "method": "patch",
+          "operationId": "activity-update_collection",
+          "summary": "Update Collection",
+          "tags": [
+            "activity",
+            "collection",
+            "collection"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/api/v1/collection/{id}/track",
+      "methods": [
+        {
+          "method": "get",
+          "operationId": "activity-get_collection_track",
+          "summary": "Get Collection Track",
+          "tags": [
+            "activity",
+            "collection"
           ]
         }
       ]
@@ -1135,6 +1207,8 @@
   "schemas": [
     "ActivitiesPublic",
     "ActivityCalendarItem",
+    "ActivityCollectionCreate",
+    "ActivityCollectionPublic",
     "ActivityCorePublic",
     "ActivityCreate",
     "ActivityGridResponse",
@@ -1153,6 +1227,11 @@
     "CalendarDay",
     "CalendarResponse",
     "CalendarWeek",
+    "CollectionDetailResponse",
+    "CollectionListResponse",
+    "CollectionOverview",
+    "CollectionTrackPointResponse",
+    "CollectionUpdate",
     "DictResponse_HighlightMetric_list_ActivityHighlightPublic__",
     "DictResponse_tuple_int__Union_int__NoneType___UUID_",
     "DictResponse_UUID_set_UUID__",
@@ -1180,6 +1259,7 @@
     "ListResponse_ActivityHighlightPublic_",
     "ListResponse_ActivityPublic_",
     "ListResponse_ActivityTagPublic_",
+    "ListResponse_CollectionTrackPointResponse_",
     "ListResponse_EquipmentPublic_",
     "ListResponse_EquipmentSetPublic_",
     "ListResponse_EquipmentType_",

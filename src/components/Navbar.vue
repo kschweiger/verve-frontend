@@ -95,6 +95,10 @@ const toggleMenu = (menu: string) => {
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
                       Activities
                     </router-link>
+                    <router-link to="/collections"
+                      class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
+                      Collections
+                    </router-link>
                     <router-link to="/calendar"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
                       Calendar
@@ -248,6 +252,8 @@ const toggleMenu = (menu: string) => {
             <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">Training</div>
             <router-link to="/activities"
               class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Activities</router-link>
+            <router-link to="/collections"
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Collections</router-link>
             <router-link to="/calendar"
               class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Calendar</router-link>
 

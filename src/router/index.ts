@@ -63,6 +63,28 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/ActivityListView.vue'),
       },
       {
+        path: 'collections',
+        name: 'collections',
+        component: () => import('@/views/CollectionListView.vue'),
+      },
+      {
+        path: 'collections/new',
+        name: 'collection-create',
+        component: () => import('@/views/CollectionCreateView.vue'),
+      },
+      {
+        path: 'collections/:id',
+        name: 'collection-detail',
+        component: () => import('@/views/CollectionDetailView.vue'),
+        props: true,
+      },
+      {
+        path: 'collections/:id/edit',
+        name: 'collection-edit',
+        component: () => import('@/views/CollectionEditView.vue'),
+        props: true,
+      },
+      {
         path: 'calendar',
         name: 'calendar',
         component: () => import('@/views/CalendarView.vue'),
