@@ -1,4 +1,16 @@
 <!-- insertion marker -->
+<a name="0.11.0"></a>
+
+## [0.11.0](https://github.com/kschweiger/verve-frontend/compare/0.10.1...0.11.0) (2026-07-01)
+
+### Features
+
+- add collections ([3f7a48e](https://github.com/kschweiger/verve-frontend/commit/3f7a48ee55fee6c0b6ed46b878bf1c4002d01f65))
+
+### Bug Fixes
+
+- add activity panel is 100% height ([1fa5729](https://github.com/kschweiger/verve-frontend/commit/1fa5729f2c99330be996e8895b6448f9fef26355))
+
 <a name="0.10.1"></a>
 
 ## [0.10.1](https://github.com/kschweiger/verve-frontend/compare/0.10.0...0.10.1) (2026-06-19)
