@@ -25,12 +25,12 @@ const isOpen = ref(false);
       @click.self="isOpen = false"
     >
       <aside
-        class="absolute right-0 top-0 h-dvh w-full max-w-xl bg-white shadow-xl border-l border-verve-medium/30 p-5 sm:p-6 overflow-y-auto"
+        class="absolute right-0 top-0 h-dvh w-full max-w-xl bg-white shadow-xl border-l border-verve-medium/30 p-5 sm:p-6 overflow-hidden flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-label="Add activity"
       >
-        <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center justify-between mb-5 shrink-0">
           <div>
             <h2 class="text-xl font-bold text-verve-brown">Add activity</h2>
             <p class="text-sm text-verve-brown/60">Upload a file or create a manual activity.</p>
@@ -45,7 +45,9 @@ const isOpen = ref(false);
           </button>
         </div>
 
-        <UploadActivityWidget embedded />
+        <div class="grow min-h-0 overflow-y-auto">
+          <UploadActivityWidget embedded />
+        </div>
       </aside>
     </div>
   </div>
