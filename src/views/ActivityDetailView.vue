@@ -72,6 +72,9 @@ function handlePointHover(index: number | null) {
 
 const showDeleteModal = ref(false);
 const isDeleting = ref(false);
+const hasDistinctTotalDuration = computed(() => {
+  return activity.value !== null && activity.value.durationSeconds !== activity.value.effectiveDurationSeconds;
+});
 
 async function loadData() {
   try {
@@ -727,9 +730,12 @@ async function handleDeleteConfirm() {
             <p class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mt-1">km</p>
           </div>
           <div class="p-4 bg-verve-light/20 rounded-lg">
-            <p class="text-2xl font-bold text-verve-brown">{{ activity.duration }}</p>
+            <p class="text-2xl font-bold text-verve-brown">{{ activity.effectiveDuration }}</p>
             <p class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mt-1">
-              Duration
+              Active Time
+            </p>
+            <p v-if="hasDistinctTotalDuration" class="mt-1 text-xs text-verve-brown/45">
+              {{ activity.duration }} total
             </p>
           </div>
           <div class="p-4 bg-verve-light/20 rounded-lg">

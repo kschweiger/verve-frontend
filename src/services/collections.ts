@@ -19,6 +19,10 @@ export interface CollectionOverview {
   distance: number | null;
   movingDuration: string | null;
   movingDurationSeconds: number | null;
+  effectiveDuration: string;
+  effectiveDurationSeconds: number;
+  pauseDuration: string | null;
+  pauseDurationSeconds: number | null;
   duration: string;
   durationSeconds: number;
   start: string;
@@ -37,6 +41,10 @@ export interface CollectionDetail {
   totalDurationSeconds: number;
   totalMovingDuration: string | null;
   totalMovingDurationSeconds: number | null;
+  effectiveDuration: string;
+  effectiveDurationSeconds: number;
+  pauseDuration: string | null;
+  pauseDurationSeconds: number | null;
   totalElevationGain: number | null;
   totalElevationLoss: number | null;
 }
@@ -89,6 +97,25 @@ const parseDuration = (duration: string) => {
   };
 };
 
+const deriveEffectiveDuration = (
+  durationSeconds: number,
+  movingDurationSeconds: number | null
+) => {
+  const effectiveDurationSeconds =
+    movingDurationSeconds !== null && movingDurationSeconds > 0 ? movingDurationSeconds : durationSeconds;
+  const pauseDurationSeconds =
+    movingDurationSeconds !== null && movingDurationSeconds > 0 && durationSeconds > movingDurationSeconds
+      ? durationSeconds - movingDurationSeconds
+      : null;
+
+  return {
+    effectiveDuration: formatDuration(effectiveDurationSeconds),
+    effectiveDurationSeconds,
+    pauseDuration: pauseDurationSeconds === null ? null : formatDuration(pauseDurationSeconds),
+    pauseDurationSeconds,
+  };
+};
+
 function parseOverview(value: unknown): CollectionOverview {
   if (!isRecord(value)) throw new Error('Invalid collection overview.');
 
@@ -115,6 +142,10 @@ function parseOverview(value: unknown): CollectionOverview {
   const parsedDuration = parseDuration(duration);
   const movingDuration = toString(value.moving_duration);
   const parsedMovingDuration = movingDuration === null ? null : parseDuration(movingDuration);
+  const effectiveDuration = deriveEffectiveDuration(
+    parsedDuration.seconds,
+    parsedMovingDuration?.seconds ?? null
+  );
 
   return {
     id,
@@ -125,6 +156,7 @@ function parseOverview(value: unknown): CollectionOverview {
     distance: toNullableNumber(value.distance),
     movingDuration: parsedMovingDuration?.label ?? null,
     movingDurationSeconds: parsedMovingDuration?.seconds ?? null,
+    ...effectiveDuration,
     duration: parsedDuration.label,
     durationSeconds: parsedDuration.seconds,
     start,
@@ -160,6 +192,10 @@ export function parseCollectionDetailResponse(value: unknown): CollectionDetail 
   const parsedDuration = parseDuration(totalDuration);
   const movingDuration = toString(value.total_moving_duration);
   const parsedMovingDuration = movingDuration === null ? null : parseDuration(movingDuration);
+  const effectiveDuration = deriveEffectiveDuration(
+    parsedDuration.seconds,
+    parsedMovingDuration?.seconds ?? null
+  );
   const activities = value.activities
     .filter(isRecord)
     .map((activity) => mapApiActivity(activity as unknown as ApiActivity))
@@ -175,6 +211,7 @@ export function parseCollectionDetailResponse(value: unknown): CollectionDetail 
     totalDurationSeconds: parsedDuration.seconds,
     totalMovingDuration: parsedMovingDuration?.label ?? null,
     totalMovingDurationSeconds: parsedMovingDuration?.seconds ?? null,
+    ...effectiveDuration,
     totalElevationGain: toNullableNumber(value.total_elevation_change_up),
     totalElevationLoss: toNullableNumber(value.total_elevation_change_down),
   };

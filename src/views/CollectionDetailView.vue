@@ -115,7 +115,7 @@ watch(() => props.id, loadCollection);
           </div>
         </div>
 
-        <div class="mt-6 grid grid-cols-2 gap-4 text-center md:grid-cols-5">
+        <div class="mt-6 grid grid-cols-2 gap-4 text-center md:grid-cols-4 xl:grid-cols-7">
           <div class="rounded-lg bg-verve-light/20 p-4">
             <p class="text-2xl font-bold text-verve-brown">{{ collection.activities.length }}</p>
             <p class="mt-1 text-xs font-bold uppercase tracking-wider text-verve-brown/50">Activities</p>
@@ -127,8 +127,16 @@ watch(() => props.id, loadCollection);
             <p class="mt-1 text-xs font-bold uppercase tracking-wider text-verve-brown/50">km</p>
           </div>
           <div class="rounded-lg bg-verve-light/20 p-4">
+            <p class="text-2xl font-bold text-verve-brown">{{ collection.effectiveDuration }}</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-wider text-verve-brown/50">Active Time</p>
+          </div>
+          <div class="rounded-lg bg-verve-light/20 p-4">
             <p class="text-2xl font-bold text-verve-brown">{{ collection.totalDuration }}</p>
-            <p class="mt-1 text-xs font-bold uppercase tracking-wider text-verve-brown/50">Duration</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-wider text-verve-brown/50">Total Time</p>
+          </div>
+          <div class="rounded-lg bg-verve-light/20 p-4">
+            <p class="text-2xl font-bold text-verve-brown">{{ collection.pauseDuration ?? '-' }}</p>
+            <p class="mt-1 text-xs font-bold uppercase tracking-wider text-verve-brown/50">Pause</p>
           </div>
           <div class="rounded-lg bg-verve-light/20 p-4">
             <p class="text-2xl font-bold text-verve-brown">{{ collection.totalElevationGain?.toFixed(0) ?? '-' }}</p>

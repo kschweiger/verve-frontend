@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
-import { fetchActivityPage } from '../../src/services/api';
+import { fetchActivityPage, mapApiActivity } from '../../src/services/api';
 
 const originalFetch = globalThis.fetch;
 const originalLocalStorage = globalThis.localStorage;
@@ -30,6 +30,62 @@ afterEach(() => {
 });
 
 describe('activity API page helper', () => {
+  test('maps moving duration as primary effective duration when available', () => {
+    const result = mapApiActivity({
+      id: 'activity-1',
+      start: '2026-06-01T08:00:00Z',
+      duration: 'PT1H',
+      moving_duration: 'PT45M',
+      distance: 10,
+      type_id: 1,
+      sub_type_id: null,
+      name: 'Morning ride',
+      created_at: '2026-06-01T09:00:00Z',
+      tags: [],
+    });
+
+    expect(result.duration).toBe('1h 0m');
+    expect(result.durationSeconds).toBe(3600);
+    expect(result.movingDuration).toBe('45m 0s');
+    expect(result.movingDurationSeconds).toBe(2700);
+    expect(result.effectiveDuration).toBe('45m 0s');
+    expect(result.effectiveDurationSeconds).toBe(2700);
+  });
+
+  test('falls back to total duration for effective duration when moving duration is missing or zero', () => {
+    const missingMoving = mapApiActivity({
+      id: 'activity-1',
+      start: '2026-06-01T08:00:00Z',
+      duration: 'PT1H',
+      moving_duration: null,
+      distance: 10,
+      type_id: 1,
+      sub_type_id: null,
+      name: 'Manual entry',
+      created_at: '2026-06-01T09:00:00Z',
+      tags: [],
+    });
+    const zeroMoving = mapApiActivity({
+      id: 'activity-2',
+      start: '2026-06-01T08:00:00Z',
+      duration: 'PT1H',
+      moving_duration: 'PT0S',
+      distance: 10,
+      type_id: 1,
+      sub_type_id: null,
+      name: 'Zero moving import',
+      created_at: '2026-06-01T09:00:00Z',
+      tags: [],
+    });
+
+    expect(missingMoving.movingDuration).toBeNull();
+    expect(missingMoving.effectiveDurationSeconds).toBe(3600);
+    expect(missingMoving.effectiveDuration).toBe('1h 0m');
+    expect(zeroMoving.movingDurationSeconds).toBe(0);
+    expect(zeroMoving.effectiveDurationSeconds).toBe(3600);
+    expect(zeroMoving.effectiveDuration).toBe('1h 0m');
+  });
+
   test('fetches a filtered activity page with auth headers', async () => {
     const userStore = useUserStore();
     userStore.setToken('token-123');

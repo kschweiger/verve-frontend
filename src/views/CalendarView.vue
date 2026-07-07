@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useStatisticsStore, type ActivityCalendarItem } from '@/stores/statistics';
 import ActivityIcon from '@/components/ActivityIcon.vue';
-import { formatDuration, parseISODuration } from '@/utils/datetime';
+import { formatDuration } from '@/utils/datetime';
 
 const statsStore = useStatisticsStore();
 
@@ -17,11 +17,11 @@ const monthName = computed(() =>
 );
 
 const monthSummary = computed(() => {
-  if (!statsStore.calendarData) return { count: 0, distance: 0, duration: 0, elevation: 0 };
+  if (!statsStore.calendarData) return { count: 0, distance: 0, effectiveDuration: 0, elevation: 0 };
 
   let count = 0,
     distance = 0,
-    duration = 0,
+    effectiveDuration = 0,
     elevation = 0;
 
   statsStore.calendarData.weeks.forEach((week) => {
@@ -29,13 +29,13 @@ const monthSummary = computed(() => {
       if (day.is_in_month) {
         count += day.total.count;
         distance += day.total.distance;
-        duration += day.total.duration;
+        effectiveDuration += day.total.effective_duration;
         elevation += day.total.elevation_gain;
       }
     });
   });
 
-  return { count, distance, duration, elevation };
+  return { count, distance, effectiveDuration, elevation };
 });
 
 // --- Actions ---
@@ -72,7 +72,7 @@ const getDisplayValue = (item: ActivityCalendarItem) => {
   if (item.distance != null && item.distance > 0) {
     return `${item.distance.toFixed(1)} km`;
   }
-  const seconds = typeof item.duration === 'string' ? parseISODuration(item.duration) : item.duration;
+  const seconds = item.effective_duration;
   if (seconds > 0) {
     return formatDuration(seconds);
   }
@@ -127,10 +127,10 @@ const getDisplayValue = (item: ActivityCalendarItem) => {
         </div>
         <div>
           <div class="text-[10px] text-verve-brown/60 uppercase font-bold tracking-wider">
-            Total Time
+            Active Time
           </div>
           <div class="text-xl font-bold text-verve-brown">
-            {{ formatDuration(monthSummary.duration) }}
+            {{ formatDuration(monthSummary.effectiveDuration) }}
           </div>
         </div>
         <div>
@@ -211,7 +211,7 @@ const getDisplayValue = (item: ActivityCalendarItem) => {
                   <span class="text-xs font-normal text-verve-brown/60">km</span>
                 </div>
                 <div class="text-xs text-verve-brown/80 font-mono bg-white/50 px-2 py-0.5 rounded-md">
-                  {{ formatDuration(week.week_summary.duration) }}
+                  {{ formatDuration(week.week_summary.effective_duration) }}
                 </div>
                 <div class="text-[10px] text-verve-brown/40 mt-1 font-medium uppercase tracking-wide">
                   {{ week.week_summary.count }} Activities

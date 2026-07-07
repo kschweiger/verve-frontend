@@ -21,6 +21,10 @@ const activitySubType = computed(() => {
   return activityType.value.sub_types.find((st) => st.id === props.activity.sub_type_id);
 });
 
+const hasDistinctTotalDuration = computed(() => {
+  return props.activity.durationSeconds !== props.activity.effectiveDurationSeconds;
+});
+
 const formatDate = (isoDate: string) => {
   return new Date(isoDate).toLocaleDateString(undefined, {
     year: 'numeric',
@@ -67,7 +71,10 @@ const formatTime = (isoDate: string) => {
           <span v-if="activity.distance != null" class="text-xs font-normal text-verve-brown/50 ml-0.5">km</span>
         </div>
         <div class="text-center">
-          <p class="text-sm font-semibold">{{ activity.duration }}</p>
+          <p class="text-sm font-semibold">{{ activity.effectiveDuration }}</p>
+          <p v-if="hasDistinctTotalDuration" class="text-[10px] text-verve-brown/45">
+            {{ activity.duration }} total
+          </p>
         </div>
         <div class="text-right">
           <span class="text-sm font-semibold">{{
@@ -99,8 +106,11 @@ const formatTime = (isoDate: string) => {
 
       <!-- Duration -->
       <div>
-        <p class="font-bold text-verve-brown">{{ activity.duration }}</p>
-        <p class="text-xs text-verve-brown/50 uppercase tracking-wide">Duration</p>
+        <p class="font-bold text-verve-brown">{{ activity.effectiveDuration }}</p>
+        <p class="text-xs text-verve-brown/50 uppercase tracking-wide">Active Time</p>
+        <p v-if="hasDistinctTotalDuration" class="text-xs text-verve-brown/45">
+          {{ activity.duration }} total
+        </p>
       </div>
 
       <!-- Distance -->

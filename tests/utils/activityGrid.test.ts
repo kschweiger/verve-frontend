@@ -35,19 +35,21 @@ describe('activity grid helpers', () => {
       date: '2026-06-15',
       activity_count: 1,
       duration_seconds: 3600,
+      effective_duration_seconds: 2700,
     };
 
-    expect(formatActivityGridCellDetails(day)).toBe('2026-06-15 · 1 activity · 1h');
+    expect(formatActivityGridCellDetails(day)).toBe('2026-06-15 · 1 activity · 45m active · 1h total');
   });
 
-  test('formats cell details with plural activity count and duration', () => {
+  test('formats cell details with plural activity count and matching effective and total duration', () => {
     const day: GridDay = {
       date: '2026-06-16',
       activity_count: 3,
       duration_seconds: 5400,
+      effective_duration_seconds: 5400,
     };
 
-    expect(formatActivityGridCellDetails(day)).toBe('2026-06-16 · 3 activities · 1h 30m');
+    expect(formatActivityGridCellDetails(day)).toBe('2026-06-16 · 3 activities · 1h 30m active');
   });
 
   test('only days with activities have cell details', () => {
@@ -55,11 +57,13 @@ describe('activity grid helpers', () => {
       date: '2026-06-15',
       activity_count: 1,
       duration_seconds: 1800,
+      effective_duration_seconds: 1200,
     };
     const inactiveDay: GridDay = {
       date: '2026-06-16',
       activity_count: 0,
       duration_seconds: 0,
+      effective_duration_seconds: 0,
     };
 
     expect(hasActivityGridCellDetails(activeDay)).toBe(true);

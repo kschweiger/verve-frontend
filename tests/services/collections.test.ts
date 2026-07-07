@@ -78,9 +78,11 @@ describe('collection response parsing', () => {
     expect(result.map((item) => item.id)).toEqual(['newer', 'older']);
     expect(result[0]?.durationSeconds).toBe(9000);
     expect(result[0]?.movingDurationSeconds).toBe(7800);
+    expect(result[0]?.effectiveDurationSeconds).toBe(7800);
+    expect(result[0]?.pauseDurationSeconds).toBe(1200);
   });
 
-  test('parses detail responses and sorts activities by start ascending', () => {
+  test('parses detail responses and derives effective and pause durations', () => {
     const result = parseCollectionDetailResponse({
       id: 'collection-1',
       name: 'Trip',
@@ -91,13 +93,38 @@ describe('collection response parsing', () => {
       ],
       total_distance: 40,
       total_duration: 'PT3H',
-      total_moving_duration: null,
+      total_moving_duration: 'PT2H30M',
       total_elevation_change_up: 500,
       total_elevation_change_down: 490,
     });
 
     expect(result.activities.map((activity) => activity.id)).toEqual(['activity-1', 'activity-2']);
     expect(result.totalDuration).toBe('3h 0m');
+    expect(result.totalMovingDuration).toBe('2h 30m');
+    expect(result.effectiveDuration).toBe('2h 30m');
+    expect(result.effectiveDurationSeconds).toBe(9000);
+    expect(result.pauseDuration).toBe('30m 0s');
+    expect(result.pauseDurationSeconds).toBe(1800);
+  });
+
+  test('falls back to total duration for collection effective duration when moving duration is missing', () => {
+    const result = parseCollectionDetailResponse({
+      id: 'collection-1',
+      name: 'Trip',
+      description: null,
+      activities: [apiActivity('activity-1', '2026-06-01T08:00:00Z')],
+      total_distance: 40,
+      total_duration: 'PT3H',
+      total_moving_duration: null,
+      total_elevation_change_up: 500,
+      total_elevation_change_down: 490,
+    });
+
+    expect(result.totalMovingDuration).toBeNull();
+    expect(result.effectiveDuration).toBe('3h 0m');
+    expect(result.effectiveDurationSeconds).toBe(10800);
+    expect(result.pauseDuration).toBeNull();
+    expect(result.pauseDurationSeconds).toBeNull();
   });
 
   test('parses collection track points with activity grouping fields', () => {

@@ -1,8 +1,7 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
-import { parseISODuration, formatDuration } from '@/utils/datetime';
-import type { ApiActivity } from '@/services/api';
+import { mapApiActivity, type ApiActivity } from '@/services/api';
 import type { ActivityTagPublic } from './tags';
 
 type ApiError = {
@@ -16,6 +15,10 @@ export interface Activity {
   duration: string;
   distance: number;
   durationSeconds: number;
+  movingDuration: string | null;
+  movingDurationSeconds: number | null;
+  effectiveDuration: string;
+  effectiveDurationSeconds: number;
   elevationGain: number | null;
   elevationLoss: number | null;
   type_id: number;
@@ -60,26 +63,6 @@ export interface ActivityImage {
 }
 
 const ACTIVITIES_PER_PAGE = 5;
-
-const mapApiActivity = (apiActivity: ApiActivity): Activity => {
-  const durationSeconds = parseISODuration(apiActivity.duration);
-
-  return {
-    id: apiActivity.id,
-    start: apiActivity.start,
-    duration: formatDuration(durationSeconds),
-    durationSeconds,
-    distance: apiActivity.distance,
-    elevationGain: apiActivity.elevation_change_up ?? null,
-    elevationLoss: apiActivity.elevation_change_down ?? null,
-    name: apiActivity.name ?? null,
-    avg_speed: apiActivity.avg_speed ?? null,
-    max_speed: apiActivity.max_speed ?? null, metaData: apiActivity.meta_data ?? null,
-    type_id: apiActivity.type_id,
-    sub_type_id: apiActivity.sub_type_id ?? null,
-    tags: apiActivity.tags ?? [],
-  };
-};
 
 export const useActivityStore = defineStore('activity', () => {
   const recentActivities = ref<Activity[]>([]);

@@ -16,7 +16,7 @@ const activityStore = useActivityStore();
 const weekdayLabels = getWeekdayLabels();
 
 const weeks = computed(() => statisticsStore.activityGrid?.weeks ?? []);
-const scaleMax = computed(() => statisticsStore.activityGrid?.scale_max.duration_seconds ?? 0);
+const scaleMax = computed(() => statisticsStore.activityGrid?.scale_max.effective_duration_seconds ?? 0);
 const activeDay = ref<GridDay | null>(null);
 const gridTemplateColumns = computed(() => `28px repeat(${weeks.value.length}, minmax(12px, 1fr))`);
 
@@ -30,7 +30,7 @@ watch(() => activityStore.lastUpdate, loadGrid);
 function cellClass(day: GridDay | null): string {
   if (day === null) return 'bg-verve-medium/20 border-verve-medium/20';
 
-  const intensity = getActivityGridIntensity(day.duration_seconds, scaleMax.value);
+  const intensity = getActivityGridIntensity(day.effective_duration_seconds, scaleMax.value);
   if (intensity === 0) return 'bg-verve-light border-verve-medium/30';
   if (intensity < 0.25) return 'bg-verve-neon/30 border-verve-neon/40';
   if (intensity < 0.5) return 'bg-verve-neon/55 border-verve-neon/60';

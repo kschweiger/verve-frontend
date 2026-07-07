@@ -19,7 +19,7 @@ const items = computed(() => {
   return [
     {
       label: 'Active time',
-      value: formatActivityGridDuration(totals.value.duration_seconds),
+      value: formatActivityGridDuration(totals.value.effective_duration_seconds),
       icon: Clock,
     },
     {

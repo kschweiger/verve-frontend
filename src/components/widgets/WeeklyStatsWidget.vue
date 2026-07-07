@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue';
-import { useWeeklyStore } from '@/stores/weekly';
+import { useStatisticsStore } from '@/stores/statistics';
 import { useTypeStore } from '@/stores/types';
 import { useActivityStore } from '@/stores/activity'; // Import
 import { formatDuration } from '@/utils/datetime';
@@ -9,16 +9,16 @@ import SubTypePieChart from '@/components/charts/SubTypePieChart.vue';
 import { CHART_COLORS, CHART_HOVER_COLORS, VERVE_COLORS } from '@/utils/colors';
 
 // Get store instances
-const weeklyStore = useWeeklyStore();
+const statisticsStore = useStatisticsStore();
 const typeStore = useTypeStore();
 const activityStore = useActivityStore(); // Init
 
 const selectedActivityTypeId = ref<number | null>(null);
-const selectedMetric = ref<'distance' | 'duration' | 'elevation_gain'>('distance');
+const selectedMetric = ref<'distance' | 'effective_duration' | 'duration' | 'elevation_gain'>('distance');
 const currentDate = ref(new Date());
 
 const selectedMetricTotal = computed(() => {
-  const stats = weeklyStore.weeklyData;
+  const stats = statisticsStore.weeklyStats;
   const metric = selectedMetric.value;
   if (!stats || !stats[metric]) return { value: 0, unit: '' };
 
@@ -27,6 +27,7 @@ const selectedMetricTotal = computed(() => {
   switch (metric) {
     case 'distance':
       return { value: total.toFixed(0), unit: 'km' };
+    case 'effective_duration':
     case 'duration':
       return { value: formatDuration(total), unit: '' };
     case 'elevation_gain':
@@ -48,8 +49,13 @@ const weekAndYear = computed(() => {
 });
 
 const barChartData = computed(() => {
-  const data = weeklyStore.weeklyData?.[selectedMetric.value]?.per_day;
+  const data = statisticsStore.weeklyStats?.[selectedMetric.value]?.per_day;
   if (!data) return { labels: [], datasets: [] };
+
+  const label =
+    selectedMetric.value === 'effective_duration'
+      ? 'active_time'
+      : selectedMetric.value;
 
   return {
     labels: Object.keys(data).map((d) =>
@@ -57,7 +63,7 @@ const barChartData = computed(() => {
     ),
     datasets: [
       {
-        label: selectedMetric.value,
+        label,
         backgroundColor: VERVE_COLORS.orange,
         borderRadius: 6,
         barPercentage: 0.6,
@@ -68,7 +74,7 @@ const barChartData = computed(() => {
 });
 
 const pieChartData = computed(() => {
-  const data = weeklyStore.weeklyData?.[selectedMetric.value]?.pie_data;
+  const data = statisticsStore.weeklyStats?.[selectedMetric.value]?.pie_data;
   const primaryType = typeStore.activityTypes.find((t) => t.id === selectedActivityTypeId.value);
 
   if (!data || !primaryType) return { labels: [], datasets: [] };
@@ -104,7 +110,7 @@ watch(
   [weekAndYear, selectedActivityTypeId],
   ([newWeek, newType]) => {
     if (newType) {
-      weeklyStore.fetchWeeklyStats(newWeek.year, newWeek.week, newType);
+      statisticsStore.fetchWeeklyStats(newWeek.year, newWeek.week, newType);
     }
   },
   { immediate: true }
@@ -112,7 +118,7 @@ watch(
 
 watch(() => activityStore.lastUpdate, () => {
   if (selectedActivityTypeId.value) {
-    weeklyStore.fetchWeeklyStats(weekAndYear.value.year, weekAndYear.value.week, selectedActivityTypeId.value);
+    statisticsStore.fetchWeeklyStats(weekAndYear.value.year, weekAndYear.value.week, selectedActivityTypeId.value);
   }
 });
 
@@ -144,7 +150,8 @@ onMounted(() => typeStore.fetchActivityTypes());
       <select v-model="selectedMetric"
         class="w-full border-verve-medium rounded-xl text-sm py-2.5 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
         <option value="distance">Distance</option>
-        <option value="duration">Duration</option>
+        <option value="effective_duration">Active Time</option>
+        <option value="duration">Total Time</option>
         <option value="elevation_gain">Elevation Gain</option>
       </select>
 
@@ -166,16 +173,16 @@ onMounted(() => typeStore.fetchActivityTypes());
     </div>
 
     <!-- CHARTS & DATA -->
-    <div v-if="weeklyStore.isLoading" class="text-center py-16 text-verve-brown/60">
+    <div v-if="statisticsStore.isWeeklyLoading" class="text-center py-16 text-verve-brown/60">
       <span class="animate-pulse">Loading stats...</span>
     </div>
 
-    <div v-else-if="weeklyStore.error"
+    <div v-else-if="statisticsStore.weeklyError"
       class="text-center py-16 text-red-600 bg-red-50 rounded-xl border border-red-100">
-      {{ weeklyStore.error }}
+      {{ statisticsStore.weeklyError }}
     </div>
 
-    <div v-else-if="weeklyStore.weeklyData" class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+    <div v-else-if="statisticsStore.weeklyStats" class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
       <!-- Bar Chart & Total Display -->
       <div class="lg:col-span-2">
         <div class="mb-4 flex items-baseline">

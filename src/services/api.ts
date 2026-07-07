@@ -8,6 +8,7 @@ export interface ApiActivity {
   id: string;
   start: string;
   duration: string;
+  moving_duration?: string | null;
   distance: number;
   elevation_change_up?: number | null;
   elevation_change_down?: number | null;
@@ -122,12 +123,22 @@ const getJsonAuthHeaders = (): HeadersInit => ({
 
 export const mapApiActivity = (apiActivity: ApiActivity): Activity => {
   const durationSeconds = parseISODuration(apiActivity.duration);
+  const movingDurationSeconds =
+    apiActivity.moving_duration === null || apiActivity.moving_duration === undefined
+      ? null
+      : parseISODuration(apiActivity.moving_duration);
+  const effectiveDurationSeconds =
+    movingDurationSeconds !== null && movingDurationSeconds > 0 ? movingDurationSeconds : durationSeconds;
 
   return {
     id: apiActivity.id,
     start: apiActivity.start,
     duration: formatDuration(durationSeconds),
     durationSeconds: durationSeconds,
+    movingDuration: movingDurationSeconds === null ? null : formatDuration(movingDurationSeconds),
+    movingDurationSeconds,
+    effectiveDuration: formatDuration(effectiveDurationSeconds),
+    effectiveDurationSeconds,
     distance: apiActivity.distance,
     elevationGain: apiActivity.elevation_change_up ?? null,
     elevationLoss: apiActivity.elevation_change_down ?? null,

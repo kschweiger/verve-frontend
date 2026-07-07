@@ -47,7 +47,13 @@ onMounted(() => {
 
         <div class="text-right whitespace-nowrap">
           <p class="font-bold text-verve-brown text-sm font-mono">
-            {{ activity.duration }}
+            {{ activity.effectiveDuration }}
+          </p>
+          <p
+            v-if="activity.durationSeconds !== activity.effectiveDurationSeconds"
+            class="text-[10px] text-verve-brown/45 font-mono"
+          >
+            {{ activity.duration }} total
           </p>
           <p class="text-xs text-verve-brown/60 font-mono">
             <span v-if="activity.distance != null">{{ activity.distance.toFixed(2) }} km</span>

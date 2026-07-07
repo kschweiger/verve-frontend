@@ -44,7 +44,14 @@ export function formatActivityGridDuration(totalSeconds: number): string {
 
 export function formatActivityGridCellDetails(day: GridDay): string {
   const activityLabel = day.activity_count === 1 ? 'activity' : 'activities';
-  return `${day.date} · ${day.activity_count} ${activityLabel} · ${formatActivityGridDuration(day.duration_seconds)}`;
+  const activeDuration = formatActivityGridDuration(day.effective_duration_seconds);
+  const totalDuration = formatActivityGridDuration(day.duration_seconds);
+  const durationDetails =
+    day.effective_duration_seconds === day.duration_seconds
+      ? `${activeDuration} active`
+      : `${activeDuration} active · ${totalDuration} total`;
+
+  return `${day.date} · ${day.activity_count} ${activityLabel} · ${durationDetails}`;
 }
 
 function isoDateToUtcDay(value: string): number | null {

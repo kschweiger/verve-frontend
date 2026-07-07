@@ -3,8 +3,7 @@ import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 import type { Activity } from './activity';
-import { parseISODuration, formatDuration } from '@/utils/datetime';
-import type { ApiActivity } from '@/services/api';
+import { mapApiActivity, type ApiActivity } from '@/services/api';
 
 // --- Interfaces ---
 export interface Location {
@@ -61,27 +60,6 @@ export const useLocationStore = defineStore('location', () => {
     Authorization: `Bearer ${userStore.token}`,
     'Content-Type': 'application/json',
   });
-
-  // --- Helpers ---
-  const mapApiActivity = (apiActivity: ApiActivity): Activity => {
-    const durationSeconds = parseISODuration(apiActivity.duration);
-    return {
-      id: apiActivity.id,
-      start: apiActivity.start,
-      duration: formatDuration(durationSeconds),
-      durationSeconds,
-      distance: apiActivity.distance,
-      elevationGain: apiActivity.elevation_change_up ?? null,
-      elevationLoss: apiActivity.elevation_change_down ?? null,
-      name: apiActivity.name ?? null,
-      avg_speed: apiActivity.avg_speed ?? null,
-      max_speed: apiActivity.max_speed ?? null,
-      metaData: apiActivity.meta_data ?? null,
-      type_id: apiActivity.type_id,
-      sub_type_id: apiActivity.sub_type_id ?? null,
-      tags: apiActivity.tags ?? [],
-    };
-  };
 
   // --- Actions ---
   async function fetchLocationsInBounds(bounds: MapBounds, filters?: LocationFilters) {

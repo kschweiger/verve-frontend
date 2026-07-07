@@ -37,7 +37,7 @@ const statsByType = computed<YearlyStatRow[]>(() => {
         id: typeId,
         name: name,
         distance: stats.distance.per_type[typeId] || 0,
-        duration: stats.duration.per_type[typeId] || 0,
+        duration: stats.effective_duration.per_type[typeId] || 0,
         count: stats.count.per_type[typeId] || 0,
       };
     })
@@ -88,7 +88,7 @@ onMounted(() => {
               Distance
             </th>
             <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider text-right">
-              Duration
+              Active Time
             </th>
             <th class="py-2 font-bold text-xs text-verve-brown/50 uppercase tracking-wider text-right">
               Count
@@ -116,7 +116,7 @@ onMounted(() => {
               {{ statisticsStore.yearlyStats?.distance.total.toFixed(0) }} km
             </td>
             <td class="pt-3 font-bold text-verve-brown text-right font-mono">
-              {{ formatDuration(statisticsStore.yearlyStats?.duration.total ?? 0) }}
+              {{ formatDuration(statisticsStore.yearlyStats?.effective_duration.total ?? 0) }}
             </td>
             <td class="pt-3 font-bold text-verve-brown text-right font-mono">
               {{ statisticsStore.yearlyStats?.count.total }}

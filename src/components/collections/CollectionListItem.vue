@@ -27,8 +27,8 @@ const dateRange = computed(() => {
     :to="{ name: 'collection-detail', params: { id: collection.id } }"
     class="block bg-white border-b border-verve-medium/10 first:rounded-t-xl last:rounded-b-xl p-5 transition-all duration-200 hover:bg-verve-light hover:border-l-4 hover:border-l-verve-orange"
   >
-    <div class="grid grid-cols-2 gap-4 md:grid-cols-7 md:items-center">
-      <div class="col-span-2 md:col-span-3">
+    <div class="grid grid-cols-2 gap-4 md:grid-cols-4 md:items-center lg:grid-cols-8">
+      <div class="col-span-2 md:col-span-2 lg:col-span-3">
         <div class="flex items-start gap-3">
           <div class="mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg bg-verve-light text-verve-brown">
             <Layers class="size-5" />
@@ -63,8 +63,16 @@ const dateRange = computed(() => {
       </div>
 
       <div class="text-left md:text-right">
+        <p class="font-bold text-verve-brown">{{ collection.effectiveDuration }}</p>
+        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">Active</p>
+      </div>
+
+      <div class="text-left md:text-right">
         <p class="font-bold text-verve-brown">{{ collection.duration }}</p>
-        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">Duration</p>
+        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">Total</p>
+        <p v-if="collection.pauseDuration" class="text-[10px] text-verve-brown/45">
+          {{ collection.pauseDuration }} pause
+        </p>
       </div>
     </div>
   </router-link>
