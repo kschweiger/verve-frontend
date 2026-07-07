@@ -9,7 +9,7 @@ export interface ApiActivity {
   start: string;
   duration: string;
   moving_duration?: string | null;
-  distance: number;
+  distance: number | null;
   elevation_change_up?: number | null;
   elevation_change_down?: number | null;
   type_id: number;
@@ -17,6 +17,10 @@ export interface ApiActivity {
   name?: string | null;
   avg_speed?: number | null;
   max_speed?: number | null;
+  avg_heartrate?: number | null;
+  max_heartrate?: number | null;
+  avg_power?: number | null;
+  max_power?: number | null;
   meta_data?: Record<string, unknown> | null;
   tags?: ActivityTagPublic[];
 }
@@ -147,6 +151,10 @@ export const mapApiActivity = (apiActivity: ApiActivity): Activity => {
     name: apiActivity.name ?? null,
     avg_speed: apiActivity.avg_speed ?? null,
     max_speed: apiActivity.max_speed ?? null,
+    avg_heartrate: apiActivity.avg_heartrate ?? null,
+    max_heartrate: apiActivity.max_heartrate ?? null,
+    avg_power: apiActivity.avg_power ?? null,
+    max_power: apiActivity.max_power ?? null,
     metaData: apiActivity.meta_data ?? null,
     tags: apiActivity.tags ?? [],
   };

@@ -37,6 +37,11 @@ import CombinedMetricsChart from '@/components/CombinedMetricsChart.vue';
 import { useLocationStore } from '@/stores/location';
 import ActivityTagsWidget from '@/components/widgets/ActivityTagsWidget.vue';
 import { parseActivityMetadata } from '@/activityMetadata/registry';
+import {
+  activitySummaryMetricCardClasses,
+  activitySummaryMetricListClasses,
+  buildActivitySummaryMetrics,
+} from '@/utils/activitySummaryMetrics';
 
 const props = defineProps<{
   id: string;
@@ -72,8 +77,8 @@ function handlePointHover(index: number | null) {
 
 const showDeleteModal = ref(false);
 const isDeleting = ref(false);
-const hasDistinctTotalDuration = computed(() => {
-  return activity.value !== null && activity.value.durationSeconds !== activity.value.effectiveDurationSeconds;
+const activitySummaryMetrics = computed(() => {
+  return activity.value === null ? [] : buildActivitySummaryMetrics(activity.value);
 });
 
 async function loadData() {
@@ -722,42 +727,14 @@ async function handleDeleteConfirm() {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 text-center">
-          <div class="p-4 bg-verve-light/20 rounded-lg">
-            <p class="text-2xl font-bold text-verve-brown">
-              {{ activity.distance != null ? activity.distance.toFixed(2) : '-' }}
-            </p>
-            <p class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mt-1">km</p>
-          </div>
-          <div class="p-4 bg-verve-light/20 rounded-lg">
-            <p class="text-2xl font-bold text-verve-brown">{{ activity.effectiveDuration }}</p>
+        <div :class="activitySummaryMetricListClasses">
+          <div v-for="metric in activitySummaryMetrics" :key="metric.label" :class="activitySummaryMetricCardClasses">
+            <p class="text-2xl font-bold text-verve-brown">{{ metric.value }}</p>
             <p class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mt-1">
-              Active Time
+              {{ metric.label }}
             </p>
-            <p v-if="hasDistinctTotalDuration" class="mt-1 text-xs text-verve-brown/45">
-              {{ activity.duration }} total
-            </p>
-          </div>
-          <div class="p-4 bg-verve-light/20 rounded-lg">
-            <p class="text-2xl font-bold text-verve-brown">
-              {{ activity.elevationGain?.toFixed(0) ?? '-' }}
-            </p>
-            <p class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mt-1">m Gain</p>
-          </div>
-          <div class="p-4 bg-verve-light/20 rounded-lg">
-            <p class="text-2xl font-bold text-verve-brown">
-              {{ activity.avg_speed?.toFixed(1) ?? '-' }}
-            </p>
-            <p class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mt-1">
-              Avg Speed
-            </p>
-          </div>
-          <div class="p-4 bg-verve-light/20 rounded-lg">
-            <p class="text-2xl font-bold text-verve-brown">
-              {{ activity.max_speed?.toFixed(1) ?? '-' }}
-            </p>
-            <p class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mt-1">
-              Max Speed
+            <p v-if="metric.secondary" class="mt-1 text-xs text-verve-brown/45">
+              {{ metric.secondary }}
             </p>
           </div>
         </div>

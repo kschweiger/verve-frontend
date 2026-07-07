@@ -13,7 +13,7 @@ export interface Activity {
   id: string;
   start: string;
   duration: string;
-  distance: number;
+  distance: number | null;
   durationSeconds: number;
   movingDuration: string | null;
   movingDurationSeconds: number | null;
@@ -25,7 +25,12 @@ export interface Activity {
   sub_type_id: number | null;
   name: string | null;
   avg_speed: number | null;
-  max_speed: number | null; metaData: Record<string, unknown> | null;
+  max_speed: number | null;
+  avg_heartrate: number | null;
+  max_heartrate: number | null;
+  avg_power: number | null;
+  max_power: number | null;
+  metaData: Record<string, unknown> | null;
   tags: ActivityTagPublic[];
 }
 
@@ -355,7 +360,7 @@ export const useActivityStore = defineStore('activity', () => {
     }
   }
 
-  async function deleteActivityImage(imageId: string, activityId: string) {
+  async function deleteActivityImage(imageId: string) {
     if (!userStore.token) return false;
 
     try {

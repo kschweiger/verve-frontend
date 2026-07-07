@@ -33,7 +33,7 @@ const handleFileChange = async (event: Event) => {
 const handleDelete = async (imageId: string) => {
   if (!confirm('Delete this photo?')) return;
   if (selectedImage.value?.id === imageId) selectedImage.value = null;
-  const success = await activityStore.deleteActivityImage(imageId, props.activityId);
+  const success = await activityStore.deleteActivityImage(imageId);
   if (!success) alert('Failed to delete image.');
 };
 </script>

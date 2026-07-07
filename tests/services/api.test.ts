@@ -86,6 +86,33 @@ describe('activity API page helper', () => {
     expect(zeroMoving.effectiveDuration).toBe('1h 0m');
   });
 
+  test('maps available average and max activity metrics', () => {
+    const result = mapApiActivity({
+      id: 'activity-1',
+      start: '2026-06-01T08:00:00Z',
+      duration: 'PT1H',
+      distance: 10,
+      type_id: 1,
+      sub_type_id: null,
+      name: 'Power ride',
+      created_at: '2026-06-01T09:00:00Z',
+      avg_speed: 24.6,
+      max_speed: 51.2,
+      avg_heartrate: 142,
+      max_heartrate: 178,
+      avg_power: 210,
+      max_power: 612,
+      tags: [],
+    });
+
+    expect(result.avg_speed).toBe(24.6);
+    expect(result.max_speed).toBe(51.2);
+    expect(result.avg_heartrate).toBe(142);
+    expect(result.max_heartrate).toBe(178);
+    expect(result.avg_power).toBe(210);
+    expect(result.max_power).toBe(612);
+  });
+
   test('fetches a filtered activity page with auth headers', async () => {
     const userStore = useUserStore();
     userStore.setToken('token-123');
