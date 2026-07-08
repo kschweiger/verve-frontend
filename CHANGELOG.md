@@ -1,4 +1,13 @@
 <!-- insertion marker -->
+<a name="0.12.0"></a>
+
+## [0.12.0](https://github.com/kschweiger/verve-frontend/compare/0.11.0...0.12.0) (2026-07-08)
+
+### Code Refactoring
+
+- redesign the summary metrics in the activity detail view ([9755be9](https://github.com/kschweiger/verve-frontend/commit/9755be948497fd34a59b406b34e422d1e07ec667))
+- use effective duration and moving duration ([3b61d19](https://github.com/kschweiger/verve-frontend/commit/3b61d1961db50b66698b8e498887ed241f8bdabc))
+
 <a name="0.11.0"></a>
 
 ## [0.11.0](https://github.com/kschweiger/verve-frontend/compare/0.10.1...0.11.0) (2026-07-01)
