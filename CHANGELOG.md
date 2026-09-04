@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="0.12.1"></a>
+
+## [0.12.1](https://github.com/kschweiger/verve-frontend/compare/0.12.0...0.12.1) (2026-09-04)
+
+### Code Refactoring
+
+- grid and calendar work on mobile ([ba2ce2d](https://github.com/kschweiger/verve-frontend/commit/ba2ce2d9b4d19aa79b144eaad737d3c3ffd8ffbc))
+
 <a name="0.12.0"></a>
 
 ## [0.12.0](https://github.com/kschweiger/verve-frontend/compare/0.11.0...0.12.0) (2026-07-08)
