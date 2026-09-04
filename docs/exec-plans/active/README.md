@@ -13,3 +13,5 @@ Each plan should include:
 Small changes can use ephemeral plans in the agent conversation instead of checked-in plan files.
 
 ## Active
+
+- [Responsive Activity History and Calendar](2026-09-04-responsive-activity-history-calendar.md) — compact dashboard history and calendar agenda plan.

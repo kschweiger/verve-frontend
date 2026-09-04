@@ -1,4 +1,4 @@
-import type { GridDay } from '@/stores/statistics';
+import type { GridDay, GridWeek } from '@/stores/statistics';
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 const MONTH_LABELS = [
@@ -20,6 +20,11 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export function getActivityGridIntensity(value: number, scaleMax: number): number {
   if (scaleMax <= 0) return 0;
   return Math.min(Math.max(value / scaleMax, 0), 1);
+}
+
+export function getRecentGridWeeks(weeks: readonly GridWeek[], limit: number): GridWeek[] {
+  if (limit <= 0) return [];
+  return weeks.slice(-limit);
 }
 
 export function getWeekdayLabels(): string[] {

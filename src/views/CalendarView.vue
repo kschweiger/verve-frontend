@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
-import { useStatisticsStore, type ActivityCalendarItem } from '@/stores/statistics';
+import { useStatisticsStore, type ActivityCalendarItem, type CalendarDay } from '@/stores/statistics';
 import ActivityIcon from '@/components/ActivityIcon.vue';
+import { getMonthAgendaDays } from '@/utils/calendarAgenda';
+import { isCalendarDataForMonth } from '@/utils/calendarData';
 import { formatDuration } from '@/utils/datetime';
 
 const statsStore = useStatisticsStore();
@@ -15,9 +17,15 @@ const currentMonth = ref(now.getMonth() + 1);
 const monthName = computed(() =>
   new Date(currentYear.value, currentMonth.value - 1).toLocaleString('default', { month: 'long' })
 );
+const isCalendarDataCurrent = computed(() =>
+  isCalendarDataForMonth(statsStore.calendarData, currentYear.value, currentMonth.value)
+);
+const agendaDays = computed(() => getMonthAgendaDays(statsStore.calendarData?.weeks ?? []));
 
 const monthSummary = computed(() => {
-  if (!statsStore.calendarData) return { count: 0, distance: 0, effectiveDuration: 0, elevation: 0 };
+  if (!isCalendarDataCurrent.value || !statsStore.calendarData) {
+    return { count: 0, distance: 0, effectiveDuration: 0, elevation: 0 };
+  }
 
   let count = 0,
     distance = 0,
@@ -78,21 +86,36 @@ const getDisplayValue = (item: ActivityCalendarItem) => {
   }
   return 'View';
 };
+
+const getAgendaDateLabel = (date: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(`${date}T00:00:00`));
+
+const getDaySummary = (day: CalendarDay) => {
+  const parts: string[] = [];
+  if (day.total.distance > 0) parts.push(`${day.total.distance.toFixed(1)} km`);
+  if (day.total.effective_duration > 0) parts.push(formatDuration(day.total.effective_duration));
+  parts.push(`${day.total.count} ${day.total.count === 1 ? 'activity' : 'activities'}`);
+  return parts.join(' · ');
+};
 </script>
 
 <template>
   <div class="p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-64px)] flex flex-col bg-verve-medium">
     <!-- HEADER -->
     <div
-      class="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30 shrink-0">
+      class="flex flex-col items-center justify-between mb-6 rounded-xl border border-verve-medium/30 bg-white p-6 shadow-sm lg:flex-row shrink-0">
       <!-- Month Navigation -->
-      <div class="flex items-center space-x-4 mb-4 md:mb-0">
+      <div class="mb-4 flex flex-wrap items-center gap-4 lg:mb-0">
         <h1 class="text-3xl font-bold text-verve-brown w-48">
           {{ monthName }} <span class="font-light text-verve-brown/60">{{ currentYear }}</span>
         </h1>
 
         <div class="flex items-center bg-verve-light rounded-xl p-1">
-          <button @click="changeMonth(-1)"
+          <button type="button" aria-label="Previous month" @click="changeMonth(-1)"
             class="p-2 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd"
@@ -100,10 +123,10 @@ const getDisplayValue = (item: ActivityCalendarItem) => {
                 clip-rule="evenodd" />
             </svg>
           </button>
-          <button @click="goToToday" class="px-4 text-sm font-bold text-verve-brown/80 hover:text-verve-brown">
+          <button type="button" aria-label="Go to current month" @click="goToToday" class="px-4 text-sm font-bold text-verve-brown/80 hover:text-verve-brown">
             Today
           </button>
-          <button @click="changeMonth(1)"
+          <button type="button" aria-label="Next month" @click="changeMonth(1)"
             class="p-2 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd"
@@ -115,7 +138,7 @@ const getDisplayValue = (item: ActivityCalendarItem) => {
       </div>
 
       <!-- Month Summary -->
-      <div class="flex space-x-8 text-right">
+      <div class="grid grid-cols-3 gap-3 text-right sm:gap-6 lg:gap-8">
         <div>
           <div class="text-[10px] text-verve-brown/60 uppercase font-bold tracking-wider">
             Total Dist
@@ -142,25 +165,74 @@ const getDisplayValue = (item: ActivityCalendarItem) => {
       </div>
     </div>
 
-    <!-- CALENDAR GRID CONTAINER -->
     <div
-      class="bg-white rounded-xl shadow-sm border border-verve-medium/30 overflow-hidden flex flex-col min-w-[900px] overflow-x-auto">
-      <!-- GRID HEADERS -->
-      <div
-        class="grid grid-cols-8 border-b border-verve-medium/30 bg-verve-light/50 text-xs font-bold text-verve-brown/60 uppercase tracking-wider">
-        <div v-for="day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="day"
-          class="py-3 text-center border-r border-verve-medium/10 last:border-r-0">
-          {{ day }}
-        </div>
-        <div class="py-3 text-center bg-verve-medium/20 text-verve-brown/80 border-l border-verve-medium/30">
-          Weekly
-        </div>
-      </div>
+      v-if="!isCalendarDataCurrent"
+      class="flex h-64 items-center justify-center rounded-xl border border-verve-medium/30 bg-white text-verve-brown/40 shadow-sm"
+    >
+      Loading calendar...
+    </div>
 
-      <!-- GRID BODY -->
-      <div class="grid grid-cols-8 auto-rows-[minmax(10rem,1fr)]">
-        <template v-if="statsStore.calendarData">
-          <template v-for="(week, wIdx) in statsStore.calendarData.weeks" :key="wIdx">
+    <template v-else>
+      <section class="overflow-hidden rounded-xl border border-verve-medium/30 bg-white shadow-sm lg:hidden">
+        <article
+          v-for="day in agendaDays"
+          :key="day.date"
+          class="border-b border-verve-medium/20 px-4 py-3 last:border-b-0"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <p class="font-bold text-verve-brown">{{ getAgendaDateLabel(day.date) }}</p>
+            <span
+              v-if="isToday(day.date)"
+              class="rounded-full bg-verve-neon px-2 py-0.5 text-xs font-bold text-verve-brown"
+            >
+              Today
+            </span>
+          </div>
+
+          <p v-if="day.total.count === 0" class="mt-1 text-sm text-verve-brown/60">Rest day</p>
+
+          <template v-else>
+            <p class="mt-1 text-sm text-verve-brown/60">{{ getDaySummary(day) }}</p>
+            <div class="mt-2 space-y-1">
+              <router-link
+                v-for="item in day.items"
+                :key="item.id"
+                :to="{ name: 'activity-detail', params: { id: item.id } }"
+                class="group flex items-center gap-2 rounded-lg border border-transparent bg-verve-light/40 p-1.5 transition-all hover:border-verve-medium/50 hover:bg-verve-light"
+                :title="item.name ?? 'Activity'"
+              >
+                <div class="flex size-5 shrink-0 items-center justify-center rounded-full bg-white text-verve-brown shadow-sm">
+                  <div class="size-3">
+                    <ActivityIcon :type-id="item.type_id" />
+                  </div>
+                </div>
+                <span class="min-w-0 grow truncate text-xs font-medium leading-tight text-verve-brown transition-colors group-hover:text-verve-orange">
+                  {{ item.name ?? 'Activity' }}
+                </span>
+                <span class="shrink-0 text-xs text-verve-brown/60">{{ getDisplayValue(item) }}</span>
+              </router-link>
+            </div>
+          </template>
+        </article>
+      </section>
+
+      <div class="hidden overflow-x-auto lg:block">
+        <div class="min-w-[900px] overflow-hidden rounded-xl border border-verve-medium/30 bg-white shadow-sm">
+          <!-- GRID HEADERS -->
+          <div
+            class="grid grid-cols-8 border-b border-verve-medium/30 bg-verve-light/50 text-xs font-bold text-verve-brown/60 uppercase tracking-wider">
+            <div v-for="day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="day"
+              class="py-3 text-center border-r border-verve-medium/10 last:border-r-0">
+              {{ day }}
+            </div>
+            <div class="py-3 text-center bg-verve-medium/20 text-verve-brown/80 border-l border-verve-medium/30">
+              Weekly
+            </div>
+          </div>
+
+          <!-- GRID BODY -->
+          <div class="grid grid-cols-8 auto-rows-[minmax(10rem,1fr)]">
+          <template v-for="(week, wIdx) in statsStore.calendarData?.weeks ?? []" :key="wIdx">
             <!-- 1. THE 7 DAYS -->
             <div v-for="(day, dIdx) in week.days" :key="`${wIdx}-${dIdx}`"
               class="border-b border-r border-verve-medium/20 p-2 flex flex-col relative transition-colors"
@@ -220,13 +292,9 @@ const getDisplayValue = (item: ActivityCalendarItem) => {
               <div v-else class="text-verve-brown/20 text-xs italic">Rest Week</div>
             </div>
           </template>
-        </template>
-
-        <!-- Loading State -->
-        <div v-else class="col-span-8 h-64 flex items-center justify-center text-verve-brown/40">
-          Loading calendar...
+          </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>

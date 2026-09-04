@@ -1,15 +1,20 @@
 import { describe, expect, test } from 'bun:test';
-import type { GridDay } from '../../src/stores/statistics';
+import type { GridDay, GridWeek } from '../../src/stores/statistics';
 import {
   formatActivityGridCellDetails,
   formatActivityGridDuration,
   formatLastActiveDay,
   formatWeekActivityStreak,
   getActivityGridIntensity,
+  getRecentGridWeeks,
   getWeekdayLabels,
   hasActivityGridCellDetails,
   monthLabel,
 } from '../../src/utils/activityGrid';
+
+function gridWeek(startDate: string): GridWeek {
+  return { start_date: startDate, month: null, days: [] };
+}
 
 describe('activity grid helpers', () => {
   test('scales duration values against scale max', () => {
@@ -100,5 +105,25 @@ describe('activity grid helpers', () => {
     expect(monthLabel(1)).toBe('Jan');
     expect(monthLabel(6)).toBe('Jun');
     expect(monthLabel(null)).toBe('');
+  });
+
+  test('keeps the newest grid weeks in chronological order', () => {
+    const weeks = [
+      gridWeek('2026-01-05'),
+      gridWeek('2026-01-12'),
+      gridWeek('2026-01-19'),
+      gridWeek('2026-01-26'),
+    ];
+
+    expect(getRecentGridWeeks(weeks, 2).map((week) => week.start_date)).toEqual([
+      '2026-01-19',
+      '2026-01-26',
+    ]);
+  });
+
+  test('returns all available grid weeks when the limit exceeds the response', () => {
+    const weeks = [gridWeek('2026-01-05'), gridWeek('2026-01-12')];
+
+    expect(getRecentGridWeeks(weeks, 12)).toEqual(weeks);
   });
 });

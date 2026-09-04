@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useStatisticsStore, type GridDay } from '@/stores/statistics';
 import { useActivityStore } from '@/stores/activity';
 import {
   formatActivityGridCellDetails,
   getActivityGridIntensity,
+  getRecentGridWeeks,
   getWeekdayLabels,
   hasActivityGridCellDetails,
   monthLabel,
@@ -14,11 +15,24 @@ const statisticsStore = useStatisticsStore();
 const activityStore = useActivityStore();
 
 const weekdayLabels = getWeekdayLabels();
+const COMPACT_QUERY = '(max-width: 1023px)';
+const COMPACT_WEEK_COUNT = 12;
 
 const weeks = computed(() => statisticsStore.activityGrid?.weeks ?? []);
 const scaleMax = computed(() => statisticsStore.activityGrid?.scale_max.effective_duration_seconds ?? 0);
 const activeDay = ref<GridDay | null>(null);
-const gridTemplateColumns = computed(() => `28px repeat(${weeks.value.length}, minmax(12px, 1fr))`);
+const isCompact = ref(false);
+let compactMediaQuery: MediaQueryList | null = null;
+
+const visibleWeeks = computed(() =>
+  isCompact.value ? getRecentGridWeeks(weeks.value, COMPACT_WEEK_COUNT) : weeks.value
+);
+const gridTemplateColumns = computed(
+  () => `28px repeat(${visibleWeeks.value.length}, minmax(12px, 1fr))`
+);
+const historySubtitle = computed(() =>
+  isCompact.value ? 'Last 12 weeks by active time' : 'Last 52 weeks by active time'
+);
 
 const loadGrid = () => {
   statisticsStore.fetchActivityGrid(52);
@@ -26,6 +40,22 @@ const loadGrid = () => {
 
 onMounted(loadGrid);
 watch(() => activityStore.lastUpdate, loadGrid);
+watch(() => statisticsStore.activityGrid, clearCellDetails);
+
+function syncCompactViewport() {
+  isCompact.value = compactMediaQuery?.matches ?? false;
+  clearCellDetails();
+}
+
+onMounted(() => {
+  compactMediaQuery = window.matchMedia(COMPACT_QUERY);
+  syncCompactViewport();
+  compactMediaQuery.addEventListener('change', syncCompactViewport);
+});
+
+onBeforeUnmount(() => {
+  compactMediaQuery?.removeEventListener('change', syncCompactViewport);
+});
 
 function cellClass(day: GridDay | null): string {
   if (day === null) return 'bg-verve-medium/20 border-verve-medium/20';
@@ -56,74 +86,57 @@ function clearCellDetails() {
     <div class="mb-5">
       <div>
         <h2 class="text-xl font-bold text-verve-brown">Activity History</h2>
-        <p class="text-sm text-verve-brown/60">Last 52 weeks by active time</p>
+        <p class="text-sm text-verve-brown/60">{{ historySubtitle }}</p>
       </div>
     </div>
 
-    <div
-      v-if="activeDay"
-      class="pointer-events-none absolute right-5 top-5 z-10 rounded-lg border border-verve-medium/30 bg-white px-3 py-2 text-xs font-semibold text-verve-brown shadow-lg"
-      role="status"
-    >
-      {{ cellDetails(activeDay) }}
-    </div>
-
-    <div
-      v-if="statisticsStore.isActivityGridLoading"
-      class="py-14 text-center text-sm text-verve-brown/60"
-    >
+    <div v-if="statisticsStore.isActivityGridLoading" class="py-14 text-center text-sm text-verve-brown/60">
       <span class="animate-pulse">Loading activity history...</span>
     </div>
 
-    <div
-      v-else-if="statisticsStore.activityGridError"
-      class="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600"
-    >
+    <div v-else-if="statisticsStore.activityGridError"
+      class="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
       {{ statisticsStore.activityGridError }}
     </div>
 
-    <div v-else-if="weeks.length > 0" class="overflow-x-auto pb-1">
-      <div
-        class="grid min-w-[900px] gap-1"
-        :style="{ gridTemplateColumns }"
-      >
-        <div class="grid grid-rows-[12px_repeat(7,minmax(0,1fr))] gap-1 pr-2">
-          <div></div>
-          <div
-            v-for="label in weekdayLabels"
-            :key="label"
-            class="h-3 text-right text-[10px] leading-none text-verve-brown/40"
-          >
-            {{ label }}
+    <template v-else-if="visibleWeeks.length > 0">
+      <div class="overflow-visible lg:overflow-x-auto lg:pb-1">
+        <div class="grid min-w-0 gap-1 lg:min-w-[900px]" :style="{ gridTemplateColumns }">
+          <div class="grid grid-rows-[12px_repeat(7,minmax(0,1fr))] gap-1 pr-2">
+            <div></div>
+            <div v-for="label in weekdayLabels" :key="label"
+              class="h-3 text-right text-[10px] leading-none text-verve-brown/40">
+              {{ label }}
+            </div>
           </div>
-        </div>
 
-        <div
-          v-for="week in weeks"
-          :key="week.start_date"
-          class="relative grid grid-rows-[12px_repeat(7,minmax(0,1fr))] gap-1"
-        >
-          <div>
-            <span class="absolute left-0 top-0 w-max text-[10px] leading-none text-verve-brown/45">
-              {{ monthLabel(week.month) }}
-            </span>
+          <div v-for="week in visibleWeeks" :key="week.start_date"
+            class="relative grid grid-rows-[12px_repeat(7,minmax(0,1fr))] gap-1">
+            <div>
+              <span class="absolute left-0 top-0 w-max text-[10px] leading-none text-verve-brown/45">
+                {{ monthLabel(week.month) }}
+              </span>
+            </div>
+            <template v-for="(day, dayIndex) in week.days" :key="`${week.start_date}-${dayIndex}`">
+              <button v-if="hasActivityGridCellDetails(day)" type="button"
+                class="aspect-square w-full rounded-[3px] border p-0 outline-none focus:ring-2 focus:ring-verve-orange focus:ring-offset-1"
+                :class="cellClass(day)" :title="cellDetails(day)" :aria-label="cellDetails(day)"
+                @click="showCellDetails(day)" @mouseenter="showCellDetails(day)" @mouseleave="clearCellDetails"
+                @focus="showCellDetails(day)" @blur="clearCellDetails"></button>
+              <div v-else :key="`${week.start_date}-${dayIndex}`"
+                class="aspect-square w-full rounded-[3px] border outline-none focus:ring-2 focus:ring-verve-orange focus:ring-offset-1"
+                :class="cellClass(day)"></div>
+            </template>
           </div>
-          <div
-            v-for="(day, dayIndex) in week.days"
-            :key="`${week.start_date}-${dayIndex}`"
-            class="aspect-square w-full rounded-[3px] border outline-none focus:ring-2 focus:ring-verve-orange focus:ring-offset-1"
-            :class="cellClass(day)"
-            :title="cellDetails(day) || undefined"
-            :tabindex="hasActivityGridCellDetails(day) ? 0 : -1"
-            :aria-label="cellDetails(day) || undefined"
-            @mouseenter="showCellDetails(day)"
-            @mouseleave="clearCellDetails"
-            @focus="showCellDetails(day)"
-            @blur="clearCellDetails"
-          ></div>
         </div>
       </div>
-    </div>
+
+      <div v-if="activeDay"
+        class="mt-4 rounded-lg border border-verve-medium/30 bg-white px-3 py-2 text-xs font-semibold text-verve-brown shadow-lg lg:absolute lg:right-5 lg:top-5 lg:mt-0"
+        role="status">
+        {{ cellDetails(activeDay) }}
+      </div>
+    </template>
 
     <div v-else class="py-14 text-center text-sm italic text-verve-brown/50">
       No activity history found.
