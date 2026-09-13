@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "command": "bunx eslint . --format json",
-  "issueCount": 18,
+  "issueCount": 17,
   "issues": [
     {
       "filePath": "src/components/ActivityHighlights.vue",
@@ -26,14 +26,6 @@
       "severity": 2,
       "ruleId": "@typescript-eslint/no-unused-vars",
       "message": "'props' is assigned a value but never used."
-    },
-    {
-      "filePath": "src/components/common/ConfirmDeleteModal.vue",
-      "line": 11,
-      "column": 7,
-      "severity": 2,
-      "ruleId": "@typescript-eslint/no-unused-vars",
-      "message": "'emit' is assigned a value but never used."
     },
     {
       "filePath": "src/components/Footer.vue",
