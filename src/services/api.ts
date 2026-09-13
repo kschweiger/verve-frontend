@@ -49,6 +49,9 @@ export interface TrackPoint {
   power?: number | null;
 }
 
+export const supportedTrackExtensions = ['heartrate', 'power', 'cadence'] as const;
+export type SupportedTrackExtension = (typeof supportedTrackExtensions)[number];
+
 interface ApiTrackPointResponse {
   id?: number;
   latitude?: number | null;
@@ -387,6 +390,22 @@ export async function fetchActivityTrack(activityId: string): Promise<TrackPoint
       })
     )
     .filter((point): point is TrackPoint => point !== null);
+}
+
+export async function removeTrackExtensionData(
+  activityId: string,
+  extension: SupportedTrackExtension
+): Promise<void> {
+  const query = new URLSearchParams({ extension });
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/track/clear-track-extension-data/${activityId}?${query.toString()}`,
+    {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (response.status !== 204) throw new Error('Failed to remove track extension data.');
 }
 
 export async function fetchActivitySegmentSetIds(activityId: string): Promise<string[]> {

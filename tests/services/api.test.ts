@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
-import { fetchActivityPage, mapApiActivity } from '../../src/services/api';
+import {
+  fetchActivityPage,
+  mapApiActivity,
+  removeTrackExtensionData,
+} from '../../src/services/api';
 
 const originalFetch = globalThis.fetch;
 const originalLocalStorage = globalThis.localStorage;
@@ -156,5 +160,44 @@ describe('activity API page helper', () => {
 
   test('throws when not authenticated', async () => {
     await expect(fetchActivityPage({ limit: 10, offset: 0 })).rejects.toThrow('Not authenticated');
+  });
+});
+
+describe('track extension API requests', () => {
+  test('removes an activity heart-rate stream with the documented PATCH request', async () => {
+    const userStore = useUserStore();
+    userStore.setToken('token-123');
+    const fetchMock = mock(async () => new Response(null, { status: 204 }));
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await removeTrackExtensionData('activity-123', 'heartrate');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${import.meta.env.VITE_API_BASE_URL}/track/clear-track-extension-data/activity-123?extension=heartrate`,
+      expect.objectContaining({
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer token-123' },
+      })
+    );
+  });
+
+  test('reports a failed track-extension removal', async () => {
+    const userStore = useUserStore();
+    userStore.setToken('token-123');
+    globalThis.fetch = mock(async () => new Response(null, { status: 500 })) as typeof fetch;
+
+    await expect(removeTrackExtensionData('activity-123', 'power')).rejects.toThrow(
+      'Failed to remove track extension data.'
+    );
+  });
+
+  test('rejects a successful-looking response that does not match the documented 204 status', async () => {
+    const userStore = useUserStore();
+    userStore.setToken('token-123');
+    globalThis.fetch = mock(async () => new Response(null, { status: 200 })) as typeof fetch;
+
+    await expect(removeTrackExtensionData('activity-123', 'cadence')).rejects.toThrow(
+      'Failed to remove track extension data.'
+    );
   });
 });

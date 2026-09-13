@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "source": "backend_openapi.json",
-  "sourceSha256": "d28a5ddac43421cb7166fce6594f8dfcc9e34962cdc8c6423bcdbe3af27be7ee",
+  "sourceSha256": "69704e6ce72e7df87c9ba8edd751f0054e769d9d190926c57579b2d2b367fa1d",
   "openapi": "3.1.0",
   "info": {
     "title": "Verve Outdoors Backend",
     "version": "0.1.0"
   },
-  "pathCount": 75,
-  "schemaCount": 105,
+  "pathCount": 76,
+  "schemaCount": 106,
   "paths": [
     {
       "path": "/api/v1/activity/",
@@ -1044,6 +1044,19 @@
       ]
     },
     {
+      "path": "/api/v1/track/clear-track-extension-data/{activity_id}",
+      "methods": [
+        {
+          "method": "patch",
+          "operationId": "track-remove_track_extension_data",
+          "summary": "Remove Track Extension Data",
+          "tags": [
+            "track"
+          ]
+        }
+      ]
+    },
+    {
       "path": "/api/v1/track/segments/set",
       "methods": [
         {
@@ -1294,6 +1307,7 @@
     "SegmentStatisticsResponse",
     "StatsMetric",
     "SupportedLocale",
+    "SupportedTrackExtension",
     "TemporalType",
     "Token",
     "TrackPointResponse",

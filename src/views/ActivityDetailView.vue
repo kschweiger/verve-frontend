@@ -10,11 +10,13 @@ import {
   fetchActivitySummary,
   fetchActivityTrack,
   fetchSegmentStatistics,
+  removeTrackExtensionData,
   updateSegmentSet,
   type SegmentMetric,
   type SegmentMetrics,
   type SegmentStatistics,
   type SegmentStats,
+  type SupportedTrackExtension,
   type TrackPoint,
 } from '@/services/api';
 import ActivityEquipment from '@/components/ActivityEquipment.vue';
@@ -23,6 +25,7 @@ import LeafletMap from '@/components/LeafletMap.vue';
 import ElevationChart from '@/components/ElevationChart.vue';
 import ActivityGallery from '@/components/ActivityGallery.vue';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue';
+import TrackExtensionDataModal from '@/components/TrackExtensionDataModal.vue';
 import ActivityMetadataWidget from '@/components/widgets/ActivityMetadataWidget.vue';
 import {
   ChevronLeft,
@@ -42,6 +45,7 @@ import {
   activitySummaryMetricListClasses,
   buildActivitySummaryMetrics,
 } from '@/utils/activitySummaryMetrics';
+import { getAvailableTrackExtensions, trackExtensionLabels } from '@/utils/trackExtensions';
 
 const props = defineProps<{
   id: string;
@@ -77,8 +81,22 @@ function handlePointHover(index: number | null) {
 
 const showDeleteModal = ref(false);
 const isDeleting = ref(false);
+const showTrackExtensionModal = ref(false);
+const showTrackExtensionConfirmModal = ref(false);
+const selectedTrackExtension = ref<SupportedTrackExtension | null>(null);
+const isRemovingTrackExtension = ref(false);
+const trackExtensionError = ref<string | null>(null);
+const trackExtensionRefreshError = ref<string | null>(null);
+const isRefreshingTrackExtensionData = ref(false);
+const activityHighlightsKey = ref(0);
 const activitySummaryMetrics = computed(() => {
   return activity.value === null ? [] : buildActivitySummaryMetrics(activity.value);
+});
+const availableTrackExtensions = computed(() => getAvailableTrackExtensions(trackData.value));
+const selectedTrackExtensionLabel = computed(() => {
+  return selectedTrackExtension.value === null
+    ? 'sensor'
+    : trackExtensionLabels[selectedTrackExtension.value];
 });
 
 async function loadData() {
@@ -691,6 +709,68 @@ async function handleDeleteConfirm() {
     alert('Failed to delete activity.');
   }
 }
+
+function openTrackExtensionModal() {
+  trackExtensionError.value = null;
+  trackExtensionRefreshError.value = null;
+  showTrackExtensionModal.value = true;
+}
+
+function startTrackExtensionRemoval(extension: SupportedTrackExtension) {
+  selectedTrackExtension.value = extension;
+  trackExtensionError.value = null;
+  showTrackExtensionModal.value = false;
+  showTrackExtensionConfirmModal.value = true;
+}
+
+function closeTrackExtensionConfirmation() {
+  if (isRemovingTrackExtension.value) return;
+  showTrackExtensionConfirmModal.value = false;
+  selectedTrackExtension.value = null;
+  trackExtensionError.value = null;
+}
+
+async function refreshTrackExtensionViews() {
+  isRefreshingTrackExtensionData.value = true;
+  trackExtensionRefreshError.value = null;
+
+  try {
+    const [summaryResponse, trackResponse] = await Promise.all([
+      fetchActivitySummary(props.id),
+      fetchActivityTrack(props.id),
+    ]);
+    activity.value = summaryResponse;
+    trackData.value = trackResponse;
+    await loadSegmentSets();
+    activityHighlightsKey.value += 1;
+  } catch {
+    trackExtensionRefreshError.value =
+      'Sensor data was removed, but this activity could not be refreshed. Try refreshing it again.';
+  } finally {
+    isRefreshingTrackExtensionData.value = false;
+  }
+}
+
+async function handleTrackExtensionRemoval() {
+  if (selectedTrackExtension.value === null) return;
+
+  isRemovingTrackExtension.value = true;
+  trackExtensionError.value = null;
+
+  try {
+    await removeTrackExtensionData(props.id, selectedTrackExtension.value);
+    showTrackExtensionConfirmModal.value = false;
+    selectedTrackExtension.value = null;
+  } catch (e: unknown) {
+    trackExtensionError.value =
+      e instanceof Error ? e.message : 'Failed to remove the selected sensor data.';
+    return;
+  } finally {
+    isRemovingTrackExtension.value = false;
+  }
+
+  await refreshTrackExtensionViews();
+}
 </script>
 
 <template>
@@ -715,6 +795,14 @@ async function handleDeleteConfirm() {
             </p>
           </div>
           <div class="flex items-center space-x-3">
+            <button
+              v-if="availableTrackExtensions.length > 0"
+              type="button"
+              class="px-4 py-2 border border-verve-medium text-verve-brown font-semibold rounded-xl hover:bg-verve-light transition-colors text-sm"
+              @click="openTrackExtensionModal"
+            >
+              Sensor data
+            </button>
             <router-link :to="{ name: 'activity-edit', params: { id: activity.id } }"
               class="px-4 py-2 border border-verve-medium text-verve-brown font-semibold rounded-xl hover:bg-verve-light transition-colors text-sm">
               Edit
@@ -738,11 +826,27 @@ async function handleDeleteConfirm() {
             </p>
           </div>
         </div>
+
+        <div
+          v-if="trackExtensionRefreshError"
+          class="mt-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
+          role="alert"
+        >
+          <p>{{ trackExtensionRefreshError }}</p>
+          <button
+            type="button"
+            :disabled="isRefreshingTrackExtensionData"
+            class="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-2 font-semibold transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            @click="refreshTrackExtensionViews"
+          >
+            {{ isRefreshingTrackExtensionData ? 'Refreshing...' : 'Refresh activity' }}
+          </button>
+        </div>
       </div>
 
       <ActivityMetadataWidget v-if="activityMetadata" :metadata="activityMetadata" />
 
-      <ActivityHighlights :activity-id="id" />
+      <ActivityHighlights :key="activityHighlightsKey" :activity-id="id" />
 
       <div v-if="trackData.length > 0" class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1110,6 +1214,25 @@ async function handleDeleteConfirm() {
   <ConfirmDeleteModal :is-open="showDeleteModal" :is-deleting="isDeleting" title="Delete Activity"
     message="Are you sure you want to delete this activity? This action cannot be undone and will remove all associated data."
     @close="showDeleteModal = false" @confirm="handleDeleteConfirm" />
+
+  <TrackExtensionDataModal
+    :is-open="showTrackExtensionModal"
+    :extensions="availableTrackExtensions"
+    @close="showTrackExtensionModal = false"
+    @remove="startTrackExtensionRemoval"
+  />
+
+  <ConfirmDeleteModal
+    :is-open="showTrackExtensionConfirmModal"
+    :is-deleting="isRemovingTrackExtension"
+    :title="`Remove ${selectedTrackExtensionLabel} data?`"
+    :message="`This permanently removes ${selectedTrackExtensionLabel.toLowerCase()} readings from this activity. This action cannot be undone.`"
+    :confirm-label="`Remove ${selectedTrackExtensionLabel} data`"
+    confirming-label="Removing..."
+    :error-message="trackExtensionError"
+    @close="closeTrackExtensionConfirmation"
+    @confirm="handleTrackExtensionRemoval"
+  />
 </template>
 
 <style scoped>
