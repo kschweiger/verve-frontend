@@ -6,6 +6,9 @@ const props = defineProps<{
   title: string;
   message: string;
   isDeleting: boolean;
+  confirmLabel?: string;
+  confirmingLabel?: string;
+  errorMessage?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -32,7 +35,10 @@ onUnmounted(() => {
     <div v-if="isOpen" class="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-6" role="dialog"
       aria-modal="true">
       <!-- Backdrop -->
-      <div class="fixed inset-0 bg-verve-brown/30 backdrop-blur-sm transition-opacity" @click="$emit('close')"></div>
+      <div
+        class="fixed inset-0 bg-verve-brown/30 backdrop-blur-sm transition-opacity"
+        @click="!isDeleting && emit('close')"
+      ></div>
 
       <!-- Modal Panel -->
       <div
@@ -54,6 +60,9 @@ onUnmounted(() => {
               <h3 class="text-lg font-bold leading-6 text-verve-brown">{{ title }}</h3>
               <div class="mt-2">
                 <p class="text-sm text-verve-brown/70 leading-relaxed">{{ message }}</p>
+                <p v-if="errorMessage" class="mt-3 text-sm font-medium text-red-600">
+                  {{ errorMessage }}
+                </p>
               </div>
             </div>
           </div>
@@ -61,7 +70,7 @@ onUnmounted(() => {
 
         <!-- Actions -->
         <div class="bg-verve-light/10 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-verve-medium/20">
-          <button type="button" @click="$emit('confirm')" :disabled="isDeleting"
+          <button type="button" @click="emit('confirm')" :disabled="isDeleting"
             class="inline-flex w-full justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             <span v-if="isDeleting" class="flex items-center">
               <svg class="animate-spin -ml-1 mr-2 size-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -69,11 +78,11 @@ onUnmounted(() => {
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
-              Deleting...
+              {{ confirmingLabel ?? 'Deleting...' }}
             </span>
-            <span v-else>Delete</span>
+            <span v-else>{{ confirmLabel ?? 'Delete' }}</span>
           </button>
-          <button type="button" @click="$emit('close')" :disabled="isDeleting"
+          <button type="button" @click="emit('close')" :disabled="isDeleting"
             class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-verve-brown shadow-sm ring-1 ring-inset ring-verve-medium/50 hover:bg-verve-light/50 sm:mt-0 sm:w-auto disabled:opacity-50 transition-colors">
             Cancel
           </button>
