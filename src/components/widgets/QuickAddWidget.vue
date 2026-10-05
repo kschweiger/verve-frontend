@@ -2,47 +2,19 @@
 import { onMounted, computed } from 'vue';
 import { useTypeStore } from '@/stores/types';
 import QuickAddBase from './quick-add/QuickAddBase.vue';
+import { quickAddDefinitions, type QuickAddDefinition } from './quick-add/definitions';
 
 const typeStore = useTypeStore();
-
-interface QuickAddDefinition {
-  name: string;
-  typeName: string;
-  subTypeName: string;
-  distanceMode: 'REQUIRED' | 'OPTIONAL' | 'NOT_APPLICABLE';
-}
 
 interface ResolvedQuickAdd extends QuickAddDefinition {
   resolvedTypeId: number;
   resolvedSubTypeId: number;
 }
 
-// Static definitions
-const definitions: QuickAddDefinition[] = [
-  {
-    name: 'Elliptical',
-    typeName: 'Indoor Cardio',
-    subTypeName: 'Elliptical',
-    distanceMode: 'OPTIONAL',
-  },
-  {
-    name: 'Weight Training',
-    typeName: 'Strength Training',
-    subTypeName: 'Weight Training',
-    distanceMode: 'NOT_APPLICABLE',
-  },
-  {
-    name: 'Yoga',
-    typeName: 'Fitness & Flexibility',
-    subTypeName: 'Yoga',
-    distanceMode: 'NOT_APPLICABLE',
-  },
-];
-
 const activeConfigs = computed<ResolvedQuickAdd[]>(() => {
   if (typeStore.activityTypes.length === 0) return [];
 
-  return definitions
+  return quickAddDefinitions
     .map((def) => {
       const type = typeStore.activityTypes.find((t) => t.name === def.typeName);
       if (!type) return null;

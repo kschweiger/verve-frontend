@@ -57,6 +57,7 @@ export interface ActivityCreatePayload {
   type_id: number;
   sub_type_id?: number | null;
   distance?: number | null;
+  elevation_change_up?: number | null;
   duration: string;
   add_default_equipment: boolean;
   meta_data?: Record<string, unknown>;

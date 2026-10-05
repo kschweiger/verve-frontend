@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useActivityStore, type ActivityCreatePayload } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
+import { quickAddDefinitions } from '@/components/widgets/quick-add/definitions';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -19,8 +20,8 @@ const name = ref('');
 const start = ref(new Date().toISOString().slice(0, 16));
 const typeId = ref<number | null>(null);
 const subTypeId = ref<number | null>(null);
-const distanceKm = ref<number>(0);
-const elevationGain = ref<number>(0);
+const distanceKm = ref<number | null>(null);
+const elevationGain = ref<number | null>(null);
 const addDefaultEquipment = ref(true);
 
 // Total Duration
@@ -51,6 +52,15 @@ const availableSubTypes = computed(() => {
   return t ? t.sub_types : [];
 });
 
+const distanceMode = computed(() => {
+  const type = typeStore.activityTypes.find((activityType) => activityType.id === typeId.value);
+  const subType = type?.sub_types.find((activitySubType) => activitySubType.id === subTypeId.value);
+
+  return quickAddDefinitions.find(
+    (definition) => definition.typeName === type?.name && definition.subTypeName === subType?.name,
+  )?.distanceMode ?? 'REQUIRED';
+});
+
 const isSwimming = computed(() => {
   const t = typeStore.activityTypes.find((x) => x.id === typeId.value);
   return t?.name === 'Swimming';
@@ -78,6 +88,10 @@ function toISODuration(h: number, m: number, s: number): string {
   if (m > 0) iso += `${m}M`;
   iso += `${s}S`;
   return iso;
+}
+
+function nullableNumber(value: number | null): number | null {
+  return Number.isFinite(value) ? value : null;
 }
 
 function addSwimSegment() {
@@ -112,7 +126,9 @@ async function handleSubmit() {
     start: new Date(start.value).toISOString(),
     type_id: typeId.value,
     sub_type_id: subTypeId.value,
-    distance: distanceKm.value,
+    distance: distanceMode.value === 'NOT_APPLICABLE' ? null : nullableNumber(distanceKm.value),
+    elevation_change_up:
+      distanceMode.value === 'NOT_APPLICABLE' ? null : nullableNumber(elevationGain.value),
     duration: isoDuration,
     add_default_equipment: addDefaultEquipment.value,
     meta_data: {},
@@ -206,12 +222,15 @@ async function handleSubmit() {
 
       <!-- Stats -->
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Distance (km)</label>
-          <input v-model="distanceKm" type="number" step="0.01" min="0" required
+        <div v-if="distanceMode !== 'NOT_APPLICABLE'">
+          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+            Distance (km)
+            <span v-if="distanceMode === 'OPTIONAL'" class="font-normal opacity-70">(Optional)</span>
+          </label>
+          <input v-model="distanceKm" type="number" step="0.01" min="0" :required="distanceMode === 'REQUIRED'"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
-        <div>
+        <div v-if="distanceMode !== 'NOT_APPLICABLE'">
           <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Elevation (m)</label>
           <input v-model="elevationGain" type="number" step="1" min="0"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
