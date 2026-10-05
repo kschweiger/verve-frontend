@@ -1,4 +1,16 @@
 <!-- insertion marker -->
+<a name="0.13.0"></a>
+
+## [0.13.0](https://github.com/kschweiger/verve-frontend/compare/0.12.1...0.13.0) (2026-10-05)
+
+### Features
+
+- add button to delete sensor data for an activity (#18) ([b8f27f8](https://github.com/kschweiger/verve-frontend/commit/b8f27f81a1c22f9cac313edfba01e2c91b9ae0fe))
+
+### Bug Fixes
+
+- manual activity creation works for types without distance ([958e84a](https://github.com/kschweiger/verve-frontend/commit/958e84a68d8509534066ad5724cb1c30569a661e))
+
 <a name="0.12.1"></a>
 
 ## [0.12.1](https://github.com/kschweiger/verve-frontend/compare/0.12.0...0.12.1) (2026-09-04)
