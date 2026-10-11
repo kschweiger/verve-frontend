@@ -32,6 +32,131 @@ afterEach(() => {
   globalThis.localStorage = originalLocalStorage;
 });
 
+const settingsFixture = (timezone: unknown = 'Europe/Berlin') => ({
+  settings: {
+    default_type_id: 1, defautl_sub_type_id: null, locale: 'en',
+    heatmap_settings: { excluded_activity_types: [] },
+    records_settings: { default_activity_type: 1 }, timezone,
+  },
+});
+
+describe('shared timezone settings', () => {
+  beforeEach(() => useUserStore().setToken('token-123'));
+
+  test('shares pending loads and caches settings without loading the profile', async () => {
+    let requests = 0;
+    globalThis.fetch = mock(async () => {
+      requests++;
+      return jsonResponse(settingsFixture('America/New_York'));
+    }) as typeof fetch;
+    const store = useSettingsStore();
+    const results = await Promise.all([store.ensureSettings(), store.ensureSettings()]);
+    expect(results.every(settings => settings.timezone === 'America/New_York')).toBe(true);
+    expect(store.timezone).toBe('America/New_York');
+    await store.ensureSettings();
+    expect(requests).toBe(1);
+    expect(store.userProfile).toBeNull();
+  });
+
+  test('uses the contract default when timezone is omitted', async () => {
+    const { timezone: omitted, ...settings } = settingsFixture().settings;
+    void omitted;
+    globalThis.fetch = mock(async () => jsonResponse({ settings })) as typeof fetch;
+    expect((await useSettingsStore().ensureSettings()).timezone).toBe('Europe/Berlin');
+  });
+
+  test.each([null, '', 'Mars/Olympus_Mons', 12])('rejects malformed timezone %p', async timezone => {
+    globalThis.fetch = mock(async () => jsonResponse(settingsFixture(timezone))) as typeof fetch;
+    const store = useSettingsStore();
+    await expect(store.ensureSettings()).rejects.toThrow();
+    expect(store.userSettings).toBeNull();
+    expect(store.timezone).toBeNull();
+  });
+
+  test('clears cached settings on logout', async () => {
+    globalThis.fetch = mock(async () => jsonResponse(settingsFixture())) as typeof fetch;
+    const store = useSettingsStore();
+    await store.ensureSettings();
+    useUserStore().logout();
+    expect(store.userSettings).toBeNull();
+    expect(store.timezone).toBeNull();
+  });
+
+  test.each([
+    { heatmap_settings: { excluded_activity_types: null } },
+    { records_settings: { default_activity_type: null } },
+  ])('rejects non-nullable nested settings %p', async invalidSettings => {
+    const fixture = settingsFixture();
+    globalThis.fetch = mock(async () => jsonResponse({
+      settings: { ...fixture.settings, ...invalidSettings },
+    })) as typeof fetch;
+    await expect(useSettingsStore().ensureSettings()).rejects.toThrow();
+  });
+
+  test('retries a failed initial load', async () => {
+    globalThis.fetch = mock(async () => jsonResponse({}, { status: 503 })) as typeof fetch;
+    const store = useSettingsStore();
+    await expect(store.ensureSettings()).rejects.toThrow();
+    globalThis.fetch = mock(async () => jsonResponse(settingsFixture('Asia/Tokyo'))) as typeof fetch;
+    expect((await store.ensureSettings()).timezone).toBe('Asia/Tokyo');
+  });
+
+  test('ignores an old account response', async () => {
+    let resolveResponse!: (response: Response) => void;
+    globalThis.fetch = mock(() => new Promise<Response>(resolve => { resolveResponse = resolve; })) as typeof fetch;
+    const store = useSettingsStore();
+    const pending = store.ensureSettings();
+    useUserStore().logout();
+    resolveResponse(jsonResponse(settingsFixture('Asia/Tokyo')));
+    await expect(pending).rejects.toThrow();
+    expect(store.userSettings).toBeNull();
+  });
+
+  test('saves timezone as an encoded query parameter and refreshes shared settings', async () => {
+    const requests: Array<{ url: string; init?: RequestInit }> = [];
+    globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: input.toString(), init });
+      return init?.method === 'PATCH' ? jsonResponse({}) : jsonResponse(settingsFixture('Etc/GMT+1'));
+    }) as typeof fetch;
+    const store = useSettingsStore();
+    expect(await store.updateTimezone('Etc/GMT+1')).toBe(true);
+    expect(requests[0]?.url.endsWith('/users/me/timezone?timezone_name=Etc%2FGMT%2B1')).toBe(true);
+    expect(requests[0]?.init).toEqual({ method: 'PATCH', headers: { Authorization: 'Bearer token-123' } });
+    expect(store.timezone).toBe('Etc/GMT+1');
+  });
+
+  test('preserves saved timezone and exposes a save failure', async () => {
+    globalThis.fetch = mock(async () => jsonResponse(settingsFixture())) as typeof fetch;
+    const store = useSettingsStore();
+    await store.ensureSettings();
+    globalThis.fetch = mock(async () => jsonResponse({}, { status: 422 })) as typeof fetch;
+    expect(await store.updateTimezone('Asia/Tokyo')).toBe(false);
+    expect(store.timezone).toBe('Europe/Berlin');
+    expect(store.timezoneError).toBeTruthy();
+    expect(store.isSavingTimezone).toBe(false);
+  });
+
+  test('reloads after saving even if a pre-save load fails', async () => {
+    let rejectOldLoad!: (error: Error) => void;
+    let getCount = 0;
+    globalThis.fetch = mock(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'PATCH') return jsonResponse({});
+      getCount++;
+      if (getCount === 1) return new Promise<Response>((_resolve, reject) => { rejectOldLoad = reject; });
+      return jsonResponse(settingsFixture('Asia/Tokyo'));
+    }) as typeof fetch;
+    const store = useSettingsStore();
+    const oldLoad = store.ensureSettings().catch(() => undefined);
+    const save = store.updateTimezone('Asia/Tokyo');
+    await Promise.resolve();
+    await Promise.resolve();
+    rejectOldLoad(new Error('Old request failed.'));
+    await oldLoad;
+    expect(await save).toBe(true);
+    expect(store.timezone).toBe('Asia/Tokyo');
+  });
+});
+
 describe('settings store records settings', () => {
   test('loads records_settings from user settings', async () => {
     const userStore = useUserStore();
@@ -43,7 +168,7 @@ describe('settings store records settings', () => {
           name: 'runner',
           email: 'runner@example.com',
           full_name: null,
-          is_active: true,
+          id: '00000000-0000-4000-8000-000000000001',
         });
       }
       return jsonResponse({
@@ -89,7 +214,7 @@ describe('settings store records settings', () => {
           name: 'runner',
           email: 'runner@example.com',
           full_name: null,
-          is_active: true,
+          id: '00000000-0000-4000-8000-000000000001',
         });
       }
       return jsonResponse({
