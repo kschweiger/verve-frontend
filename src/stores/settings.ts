@@ -1,13 +1,14 @@
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
+import { fetchUserSettings, parseUserProfile, saveUserTimezone } from '../services/settings';
 
 // --- INTERFACES ---
 export interface UserProfile {
   name: string;
   email: string;
   full_name: string | null;
-  is_active: boolean;
+  id: string;
 }
 
 export interface HeatmapSettings {
@@ -19,9 +20,10 @@ export interface RecordsSettings {
 }
 
 export interface UserSettings {
-  default_type_id: number | null;
+  default_type_id: number;
   defautl_sub_type_id: number | null; // API typo 'defautl' kept for compatibility
   locale: string;
+  timezone: string;
   heatmap_settings: HeatmapSettings;
   records_settings: RecordsSettings | null;
 }
@@ -37,26 +39,81 @@ export interface PasswordUpdatePayload {
   new_password: string;
 }
 
-interface SettingsResponse {
-  settings: UserSettings;
-}
-
 export const useSettingsStore = defineStore('settings', () => {
   // --- STATE ---
   const userProfile = ref<UserProfile | null>(null);
   const userSettings = ref<UserSettings | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const timezone = computed(() => userSettings.value?.timezone ?? null);
+  const isSavingTimezone = ref(false);
+  const timezoneError = ref<string | null>(null);
+  const userStore = useUserStore();
+  let session = 0;
+  let settingsRequest: Promise<UserSettings> | null = null;
+
+  watch(() => userStore.token, () => {
+    session++;
+    userProfile.value = null;
+    userSettings.value = null;
+    settingsRequest = null;
+    isLoading.value = false;
+    isSavingTimezone.value = false;
+    error.value = null;
+    timezoneError.value = null;
+  }, { flush: 'sync' });
+
+  function ensureSettings(refresh = false): Promise<UserSettings> {
+    if (!userStore.token) return Promise.reject(new Error('Not authenticated.'));
+    if (settingsRequest) return settingsRequest;
+    if (!refresh && userSettings.value) return Promise.resolve(userSettings.value);
+    const currentSession = session;
+    const request = fetchUserSettings().then(settings => {
+      if (currentSession !== session) throw new Error('Account changed while loading settings.');
+      userSettings.value = settings;
+      return settings;
+    }).finally(() => {
+      if (settingsRequest === request) settingsRequest = null;
+    });
+    settingsRequest = request;
+    return request;
+  }
+
+  async function updateTimezone(value: string): Promise<boolean> {
+    if (isSavingTimezone.value) return false;
+    const currentSession = session;
+    isSavingTimezone.value = true;
+    timezoneError.value = null;
+    try {
+      await saveUserTimezone(value);
+      if (currentSession !== session) return false;
+      // A pre-save load may be obsolete; its failure must not prevent the refresh.
+      if (settingsRequest) await settingsRequest.catch(() => undefined);
+      if (currentSession !== session) return false;
+      await ensureSettings(true);
+      return currentSession === session;
+    } catch (e: unknown) {
+      if (currentSession === session) {
+        timezoneError.value = e instanceof Error ? e.message : 'Failed to save timezone.';
+      }
+      return false;
+    } finally {
+      if (currentSession === session) isSavingTimezone.value = false;
+    }
+  }
 
   // --- ACTIONS ---
 
   async function fetchAllSettings() {
-    if (isLoading.value) return;
+    if (isLoading.value) {
+      if (settingsRequest) await settingsRequest.catch(() => undefined);
+      return;
+    }
 
     isLoading.value = true;
     error.value = null;
 
-    const userStore = useUserStore();
+    const currentSession = session;
     if (!userStore.token) {
       error.value = 'Not authenticated.';
       isLoading.value = false;
@@ -64,30 +121,24 @@ export const useSettingsStore = defineStore('settings', () => {
     }
 
     try {
-      const [profileResponse, settingsResponse] = await Promise.all([
+      const [profileResponse] = await Promise.all([
         fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${userStore.token}` },
         }),
-        fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/settings`, {
-          method: 'GET',
-          headers: { Authorization: `Bearer ${userStore.token}` },
-        }),
+        ensureSettings(true),
       ]);
 
       if (!profileResponse.ok) throw new Error('Failed to load user profile.');
-      if (!settingsResponse.ok) throw new Error('Failed to load user settings.');
-
-      const profileData: UserProfile = await profileResponse.json();
-      const settingsData: SettingsResponse = await settingsResponse.json();
-
-      userProfile.value = profileData;
-      userSettings.value = settingsData.settings;
+      const profileData: unknown = await profileResponse.json();
+      const profile = parseUserProfile(profileData);
+      if (currentSession === session) userProfile.value = profile;
     } catch (e: unknown) {
-      console.error(e);
-      error.value = e instanceof Error ? e.message : 'An error occurred while loading settings.';
+      if (currentSession === session) {
+        error.value = e instanceof Error ? e.message : 'An error occurred while loading settings.';
+      }
     } finally {
-      isLoading.value = false;
+      if (currentSession === session) isLoading.value = false;
     }
   }
 
@@ -246,6 +297,11 @@ export const useSettingsStore = defineStore('settings', () => {
     userSettings,
     isLoading,
     error,
+    timezone,
+    isSavingTimezone,
+    timezoneError,
+    ensureSettings,
+    updateTimezone,
     fetchAllSettings,
     updateUserProfile,
     updatePassword,

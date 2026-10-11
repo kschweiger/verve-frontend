@@ -7,6 +7,7 @@ import PasswordChangeForm from '@/components/forms/PasswordChangeForm.vue';
 import AppSettingsForm from '@/components/forms/AppSettingsForm.vue';
 import HeatmapSettingsForm from '@/components/forms/HeatmapSettingsForm.vue';
 import RecordsSettingsForm from '@/components/forms/RecordsSettingsForm.vue';
+import TimezoneSettingsForm from '@/components/forms/TimezoneSettingsForm.vue';
 
 const appVersion = import.meta.env.VITE_APP_VERSION || 'Dev';
 
@@ -19,6 +20,7 @@ const isPasswordEditing = ref(false);
 const isAppSettingsEditing = ref(false);
 const isHeatmapEditing = ref(false);
 const isRecordsEditing = ref(false);
+const isTimezoneEditing = ref(false);
 
 // --- Computed Helpers ---
 const defaultTypeName = computed(() => {
@@ -75,6 +77,15 @@ async function handleHeatmapSave(excludedTypes: Array<[number, number | null]>) 
 async function handleRecordsSave(defaultActivityType: number) {
   const success = await settingsStore.updateRecordsSettings(defaultActivityType);
   if (success) isRecordsEditing.value = false;
+}
+
+async function handleTimezoneSave(timezone: string) {
+  if (await settingsStore.updateTimezone(timezone)) isTimezoneEditing.value = false;
+}
+
+function editTimezone() {
+  settingsStore.timezoneError = null;
+  isTimezoneEditing.value = true;
 }
 
 const getExcludedLabel = (tuple: [number, number | null]) => {
@@ -190,6 +201,21 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
             </div>
           </div>
         </div>
+
+        <section class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30" aria-labelledby="timezone-heading">
+          <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
+            <h2 id="timezone-heading" class="text-xl font-bold text-verve-brown">Timezone</h2>
+            <button v-if="!isTimezoneEditing" type="button" :disabled="!settingsStore.timezone"
+              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50"
+              @click="editTimezone">
+              Edit Timezone
+            </button>
+          </div>
+          <TimezoneSettingsForm v-if="isTimezoneEditing && settingsStore.timezone"
+            :initial-timezone="settingsStore.timezone" :is-saving="settingsStore.isSavingTimezone"
+            :error="settingsStore.timezoneError" @save="handleTimezoneSave" @cancel="isTimezoneEditing = false" />
+          <p v-else class="text-verve-brown font-medium">{{ settingsStore.timezone ?? 'Not loaded' }}</p>
+        </section>
 
         <!-- SECTION 4: Heatmap Configuration -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
