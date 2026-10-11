@@ -61,7 +61,7 @@ const parseForgotResponse = (value: unknown): PasswordForgotResult => {
 
 export async function requestPasswordReset(email: string): Promise<PasswordForgotResult> {
   const payload: PasswordForgotPayload = { email };
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login/forgot-password`, {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login/forgot_password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -76,7 +76,7 @@ export async function requestPasswordReset(email: string): Promise<PasswordForgo
 }
 
 export async function resetPassword(payload: PasswordResetPayload): Promise<void> {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login/reset-password`, {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login/reset_password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

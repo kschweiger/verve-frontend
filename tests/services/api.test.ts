@@ -173,7 +173,7 @@ describe('track extension API requests', () => {
     await removeTrackExtensionData('activity-123', 'heartrate');
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `${import.meta.env.VITE_API_BASE_URL}/track/clear-track-extension-data/activity-123?extension=heartrate`,
+      `${import.meta.env.VITE_API_BASE_URL}/track/clear_track_extension_data/activity-123?extension=heartrate`,
       expect.objectContaining({
         method: 'PATCH',
         headers: { Authorization: 'Bearer token-123' },
