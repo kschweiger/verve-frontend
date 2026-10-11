@@ -46,6 +46,8 @@ import {
   buildActivitySummaryMetrics,
 } from '@/utils/activitySummaryMetrics';
 import { getAvailableTrackExtensions, trackExtensionLabels } from '@/utils/trackExtensions';
+import { useActivityDateTime } from '@/composables/useActivityDateTime';
+import { elapsedSecondsBetweenInstants } from '@/utils/datetime';
 
 const props = defineProps<{
   id: string;
@@ -57,6 +59,7 @@ const locationStore = useLocationStore();
 
 // Local state for this view
 const activity = ref<Activity | null>(null);
+const activityDateTime = useActivityDateTime(activity);
 const trackData = ref<TrackPoint[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
@@ -313,11 +316,7 @@ function trackPointForBoundaryIndex(boundaryIndex: number) {
 function secondsBetweenTrackPoints(startPoint: TrackPoint | null, endPoint: TrackPoint | null) {
   if (!startPoint || !endPoint) return null;
 
-  const startMs = new Date(startPoint.time).getTime();
-  const endMs = new Date(endPoint.time).getTime();
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
-
-  return Math.max(0, (endMs - startMs) / 1000);
+  return elapsedSecondsBetweenInstants(startPoint.time, endPoint.time);
 }
 
 function durationBeforeCut(cutIndex: number) {
@@ -788,10 +787,11 @@ async function handleTrackExtensionRemoval() {
         <div class="flex justify-between items-start mb-6">
           <div>
             <h1 class="text-3xl font-bold text-verve-brown">
-              {{ activity.name || new Date(activity.start).toLocaleDateString() }}
+              {{ activity.name || activityDateTime.date }}
             </h1>
-            <p v-if="activity.name" class="text-sm text-verve-brown/60 mt-1">
-              {{ new Date(activity.start).toLocaleString() }}
+            <p class="text-sm text-verve-brown/60 mt-1">
+              <time :datetime="activity.start">{{ activityDateTime.dateTime }}</time>
+              <span class="block break-words">{{ activity.timezone }}</span>
             </p>
           </div>
           <div class="flex items-center space-x-3">

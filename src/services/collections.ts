@@ -1,7 +1,7 @@
 import { useUserStore } from '../stores/auth';
 import type { Activity } from '../stores/activity';
-import { mapApiActivity, type ApiActivity, type TrackPoint } from './api';
-import { formatDuration, parseISODuration } from '../utils/datetime';
+import { mapApiActivity, type TrackPoint } from './api';
+import { formatDuration, isAwareTimestamp, parseISODuration } from '../utils/datetime';
 
 export interface CollectionListFilters {
   limit?: number;
@@ -197,8 +197,7 @@ export function parseCollectionDetailResponse(value: unknown): CollectionDetail 
     parsedMovingDuration?.seconds ?? null
   );
   const activities = value.activities
-    .filter(isRecord)
-    .map((activity) => mapApiActivity(activity as unknown as ApiActivity))
+    .map(mapApiActivity)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
   return {
@@ -225,7 +224,7 @@ function parseCollectionTrackPoint(value: unknown): CollectionTrackPoint {
   const activityIndex = toNumber(value.activity_index);
   const time = toString(value.time);
 
-  if (id === null || activityId === null || activityIndex === null || time === null) {
+  if (id === null || activityId === null || activityIndex === null || !isAwareTimestamp(time)) {
     throw new Error('Invalid collection track point.');
   }
 
