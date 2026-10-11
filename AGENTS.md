@@ -1,53 +1,35 @@
 # AGENTS.md
 
-## Purpose
-This repository is agent-first and harness-oriented.
-`AGENTS.md` is intentionally short: it is a map, not the full manual.
+Verve is a Vue frontend for reviewing, organizing, and comparing activity data.
 
-## Start Here
-1. Read `ARCHITECTURE.md`.
-2. Open the indexes:
-   - `docs/design-docs/index.md`
-   - `docs/product-specs/index.md`
-   - `docs/references/index.md`
-3. For frontend implementation, read `docs/FRONTEND.md`.
-4. For backend-facing work, read `backend_openapi.json` and `docs/generated/backend-openapi-summary.json`.
+## Backend API Contract — Required
 
-## Navigation Map
-- Architecture and boundaries: `ARCHITECTURE.md`
-- Frontend coding rules: `docs/FRONTEND.md`
-- Product judgment: `docs/PRODUCT_SENSE.md`
-- Design guidance: `docs/DESIGN.md`
-- Reliability and security: `docs/RELIABILITY.md`, `docs/SECURITY.md`
-- Plans and debt: `docs/PLANS.md`, `docs/exec-plans/tech-debt-tracker.md`
-- End-to-end operating skill: `SKILL.md`
+**`backend_openapi.json` is the canonical source of truth for the backend API. Before adding or changing any API integration, read the relevant paths and schemas in this file.** This includes requests, response parsing, API types, and stores or UI that consume backend data.
 
-## Agent-First Rules
-- Use progressive disclosure: indexes first, details second.
-- Repository-local, versioned artifacts are the source of truth.
-- Define one concrete success check before editing.
-- Save checked-in execution plans only under `docs/exec-plans/active/` or `docs/exec-plans/completed/`; never use `docs/superpowers/plans/`.
-- Keep runtime Vue behavior unchanged unless the task explicitly asks for product behavior.
-- If behavior or policy changes, update docs and enforcement in the same change set.
+- Derive endpoint paths, HTTP methods, parameters, payloads, response shapes, and nullability from the OpenAPI contract. Never guess them from existing code, examples, product specs, or UI needs.
+- If another repository artifact conflicts with `backend_openapi.json` about the API contract, follow `backend_openapi.json` and correct the conflicting artifact.
+- If required behavior is missing or ambiguous in the contract, flag the gap before implementing dependent API code. Do not invent backend capabilities or silently change the contract to fit the frontend.
+- Parse unknown API boundary data before using it; TypeScript assertions do not validate responses.
 
-## Frontend Invariants
-- Vue 3 Composition API only. Never use Options API objects such as `data`, `methods`, or `computed`.
-- Every component script must use `<script setup lang="ts">`.
-- TypeScript must be strict. Do not introduce `any`; use `unknown`, explicit interfaces, or generated API types.
-- Tailwind CSS v4 is CSS-first. Use `@theme`, `grow`, slash opacity, and theme variables.
-- Use Pinia for shared state, Lucide for icons, PascalCase component files, and camelCase variables.
-- API-facing code must derive shapes from `backend_openapi.json`; do not guess backend response data.
-- Do not use `v-html`, CommonJS `require`, or `this` in scripts.
+## Context
 
-## Validation Loop
-- Run `bun run check` before handoff for non-trivial changes.
-- Run narrower checks during the loop when they directly match the edit.
-- Existing ESLint issues are frozen in `docs/generated/eslint-baseline.json`; do not add new ones.
-- Final handoff should include a diff distribution report from `bun run diff:distribution`.
+- Read the relevant [product specs](docs/product-specs/index.md) when changing business behavior. Keep them current when that behavior changes.
+- App code lives in `src/`; tests live in `tests/`. Follow nearby patterns and preserve unrelated changes.
 
-## Escalation Policy
-Escalate to a human when:
-- destructive or irreversible production action is required,
-- security or billing posture changes are needed,
-- secrets or external credentials are required,
-- policy intent cannot be inferred from repository artifacts.
+## Conventions
+
+- Vue 3 Composition API with `<script setup lang="ts">` only.
+- Strict TypeScript; do not introduce `any`, Options API, `this` in scripts, CommonJS `require`, or `v-html`.
+- Tailwind CSS v4: CSS-first `@theme`, `grow`, slash opacity, and existing theme variables in `src/assets/main.css`.
+- Use Pinia for shared state, Lucide icons, PascalCase component files, and camelCase variables. Extract reusable logic into `src/composables/use*.ts`.
+- Keep controls accessible, with semantic elements, accessible names, and visible focus states. Preserve the Verve palette and avoid nested cards.
+- Keep authentication headers in existing API helpers. Never log tokens, credentials, or sensitive user data.
+
+## Commands
+
+- `bun run dev` starts the app.
+- `bun run check` runs the ESLint baseline check, Vue type check, and production build. Run it before handing off non-trivial changes.
+- `bun test` runs the test suite; use focused tests for affected behavior.
+- `bun run lint:check` checks against existing lint debt in `docs/generated/eslint-baseline.json`. Do not expand the baseline to accept new violations.
+
+Ask before destructive production actions or changes to security, billing, or external credentials.

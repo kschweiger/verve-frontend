@@ -319,3 +319,12 @@ For sets, `averageSwolf` should represent the average of the included lap SWOLF 
 ## Frontend Display Extension
 
 Activity metadata display is dispatched by `meta_data.target`. To add a new metadata type in the frontend, add a parser, a domain-specific widget, a registry definition, and a renderer-map entry. Unknown metadata targets are intentionally hidden until a display implementation exists.
+
+## Frontend Display Rules
+
+- The swimming widget is read-only and consumes backend core `meta_data`, rather than the portable file envelope.
+- Hide the widget for missing, unknown, malformed, or empty metadata. Ignore malformed set entries without crashing the activity view.
+- Show available Pool, Laps, Sets, Strokes, Avg SWOLF, and stroke-style information.
+- Render sets only when present, ordered by index with user-facing numbering starting at one. Show distance, duration, laps, style, strokes, average SWOLF, and rest; use `-` for missing optional values.
+- Normalize backend duration strings for display. Preserve the backend spelling `avg_swofl` at the API boundary.
+- Lap-level display and migration of legacy manual swimming segments are outside the current widget's scope.

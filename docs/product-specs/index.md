@@ -1,7 +1,12 @@
-# Product Specs Index
+# Product Specs
 
-| spec | status | purpose |
-|---|---|---|
-| `agent-harness-contract.md` | active | Operating contract for the coding harness. |
-| `backend-api-contract.md` | active | How frontend agents consume the backend OpenAPI contract. |
-| `verve-swimming-metadata.md` | active | Swimming metadata contract for imported/exported activity metadata and backend `meta_data`. |
+Business behavior and data contracts. Read the specs relevant to the feature being changed.
+
+| Spec                                                | Purpose                                                                |
+| --------------------------------------------------- | ---------------------------------------------------------------------- |
+| [Dashboard and calendar](dashboard-and-calendar.md) | Activity history, summaries, responsive layouts, and month navigation. |
+| [Records](records.md)                               | Trophy case, time scopes, and activity type settings.                  |
+| [Activity collections](activity-collections.md)     | Manual creation, membership policy, totals, and maps.                  |
+| [Password reset](password-reset.md)                 | Unauthenticated reset flow and token handling.                         |
+| [Activity segment sets](activity-segment-sets.md)   | Interval statistics and track-point cut editing.                       |
+| [Swimming metadata](verve-swimming-metadata.md)     | Portable swim metadata, backend representation, and display.           |

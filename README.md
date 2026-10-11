@@ -19,3 +19,14 @@ Run the dev server with
 ```bash
 bun run dev
 ```
+
+## Development
+
+Repository guidance is in [AGENTS.md](AGENTS.md), and business behavior is documented in the [product specs](docs/product-specs/index.md). The backend API contract is `backend_openapi.json`.
+
+```bash
+bun run check # ESLint baseline, Vue type check, production build
+bun test      # test suite
+```
+
+The lint check retains a baseline of existing issues so new violations fail validation.
