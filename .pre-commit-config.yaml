@@ -3,6 +3,15 @@
 # Install: pip install pre-commit && pre-commit install
 
 repos:
+  - repo: local
+    hooks:
+      - id: sync-timezone-fixtures
+        name: Sync backend timezone fixtures
+        entry: bun run sync:timezone-fixtures --pre-commit
+        language: system
+        pass_filenames: false
+        always_run: true
+
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
