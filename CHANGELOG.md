@@ -1,4 +1,15 @@
 <!-- insertion marker -->
+<a name="0.14.0"></a>
+
+## [0.14.0](https://github.com/kschweiger/verve-frontend/compare/0.13.0...0.14.0) (2026-10-11)
+
+### Features
+
+- improve timezone selection ([0c95540](https://github.com/kschweiger/verve-frontend/commit/0c955406dc590594bb1f13521fa23fb990abfc39))
+- make activity timezone aware ([28ab0fb](https://github.com/kschweiger/verve-frontend/commit/28ab0fb4e7381413613874546e0dcb8ce7cfeb08))
+- **settings:** add timezone support ([56c326a](https://github.com/kschweiger/verve-frontend/commit/56c326ae8a8fa9819ac67bd19f05f308eb7274b4))
+- **equipment:** add editing and deletion ([73d8808](https://github.com/kschweiger/verve-frontend/commit/73d8808ed7885285f370663bbcd8d7c40444201b))
+
 <a name="0.13.0"></a>
 
 ## [0.13.0](https://github.com/kschweiger/verve-frontend/compare/0.12.1...0.13.0) (2026-10-05)
