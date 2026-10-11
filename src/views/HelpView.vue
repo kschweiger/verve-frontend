@@ -701,6 +701,12 @@ const swimmingMetadataExample = `{
                   <td class="px-4 py-2 text-xs text-center text-verve-orange font-bold">Yes</td>
                   <td class="px-4 py-2 text-xs text-verve-brown/60">ISO 8601 Timestamp.</td>
                 </tr>
+                <tr>
+                  <td class="px-4 py-2 font-mono text-xs">timezone</td>
+                  <td class="px-4 py-2 text-xs">String or null</td>
+                  <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">Recorded IANA timezone; omitted when unavailable.</td>
+                </tr>
 
                 <tr class="bg-verve-light/10">
                   <td colspan="4" class="px-4 py-2 font-bold text-verve-brown text-xs uppercase tracking-wider">Metrics
