@@ -9,6 +9,7 @@ import type { Activity } from '../../src/stores/activity';
 const baseActivity: Activity = {
   id: 'activity-1',
   start: '2026-06-01T08:00:00Z',
+  timezone: 'Europe/Berlin',
   duration: '1h 0m',
   distance: 10,
   durationSeconds: 3600,

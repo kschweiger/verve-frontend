@@ -1,7 +1,9 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
-import { mapApiActivity, type ApiActivity } from '@/services/api';
+import { mapApiActivity } from '../services/api';
+import { parseActivityPageData } from '../services/activityResponses';
+import { isSupportedTimezone } from '../services/timezones';
 import type { ActivityTagPublic } from './tags';
 
 type ApiError = {
@@ -12,6 +14,7 @@ type ApiError = {
 export interface Activity {
   id: string;
   start: string;
+  timezone: string;
   duration: string;
   distance: number | null;
   durationSeconds: number;
@@ -44,6 +47,7 @@ export interface ActivityFilters {
 }
 
 export interface ActivityUpdatePayload {
+  timezone?: string;
   name?: string;
   type_id?: number | null;
   sub_type_id?: number | null;
@@ -111,8 +115,8 @@ export const useActivityStore = defineStore('activity', () => {
 
       if (!response.ok) throw new Error('Failed to fetch activities.');
 
-      const data = await response.json();
-      recentActivities.value = (data.data as ApiActivity[]).map(mapApiActivity);
+      const data: unknown = await response.json();
+      recentActivities.value = parseActivityPageData(data).map(mapApiActivity);
     } catch (e: unknown) {
       recentError.value = e instanceof Error ? e.message : 'An unknown error occurred.';
     } finally {
@@ -160,8 +164,8 @@ export const useActivityStore = defineStore('activity', () => {
 
       if (!response.ok) throw new Error('Failed to fetch paginated activities.');
 
-      const data = await response.json();
-      const newActivities = (data.data as ApiActivity[]).map(mapApiActivity);
+      const data: unknown = await response.json();
+      const newActivities = parseActivityPageData(data).map(mapApiActivity);
 
       if (loadMore) {
         paginatedActivities.value.push(...newActivities);
@@ -169,7 +173,7 @@ export const useActivityStore = defineStore('activity', () => {
         paginatedActivities.value = newActivities;
       }
 
-      if (data.data.length < ACTIVITIES_PER_PAGE) canLoadMore.value = false;
+      if (newActivities.length < ACTIVITIES_PER_PAGE) canLoadMore.value = false;
       currentPage.value++;
     } catch (e: unknown) {
       listError.value = e instanceof Error ? e.message : String(e);
@@ -232,6 +236,9 @@ export const useActivityStore = defineStore('activity', () => {
     if (!userStore.token) return false;
 
     try {
+      if (payload.timezone !== undefined && !isSupportedTimezone(payload.timezone)) {
+        throw new Error('Select a supported timezone.');
+      }
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}`, {
         method: 'PATCH',
         headers: {
@@ -242,11 +249,16 @@ export const useActivityStore = defineStore('activity', () => {
       });
 
       if (!response.ok) throw new Error('Failed to update activity.');
-
+      const data: unknown = await response.json();
+      const updatedActivity = mapApiActivity(data);
+      if (updatedActivity.id !== activityId) throw new Error('Unexpected activity update response.');
+      recentActivities.value = recentActivities.value.map(activity =>
+        activity.id === activityId ? updatedActivity : activity);
+      paginatedActivities.value = paginatedActivities.value.map(activity =>
+        activity.id === activityId ? updatedActivity : activity);
       notifyUpdate();
       return true;
-    } catch (e) {
-      console.error(e);
+    } catch {
       return false;
     }
   }

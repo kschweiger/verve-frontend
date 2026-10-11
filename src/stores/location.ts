@@ -3,7 +3,8 @@ import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 import type { Activity } from './activity';
-import { mapApiActivity, type ApiActivity } from '@/services/api';
+import { mapApiActivity } from '@/services/api';
+import { parseActivityPageData } from '@/services/activityResponses';
 
 // --- Interfaces ---
 export interface Location {
@@ -143,8 +144,8 @@ export const useLocationStore = defineStore('location', () => {
         headers: getHeaders(),
       });
       if (actResponse.ok) {
-        const actData = await actResponse.json();
-        selectedLocationActivities.value = (actData.data as ApiActivity[]).map(mapApiActivity);
+        const actData: unknown = await actResponse.json();
+        selectedLocationActivities.value = parseActivityPageData(actData).map(mapApiActivity);
       }
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : String(e);

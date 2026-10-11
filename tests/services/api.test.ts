@@ -36,8 +36,9 @@ afterEach(() => {
 describe('activity API page helper', () => {
   test('maps moving duration as primary effective duration when available', () => {
     const result = mapApiActivity({
-      id: 'activity-1',
+      id: '00000000-0000-4000-8000-000000000001',
       start: '2026-06-01T08:00:00Z',
+      timezone: 'Europe/Berlin',
       duration: 'PT1H',
       moving_duration: 'PT45M',
       distance: 10,
@@ -58,8 +59,9 @@ describe('activity API page helper', () => {
 
   test('falls back to total duration for effective duration when moving duration is missing or zero', () => {
     const missingMoving = mapApiActivity({
-      id: 'activity-1',
+      id: '00000000-0000-4000-8000-000000000001',
       start: '2026-06-01T08:00:00Z',
+      timezone: 'Europe/Berlin',
       duration: 'PT1H',
       moving_duration: null,
       distance: 10,
@@ -70,8 +72,9 @@ describe('activity API page helper', () => {
       tags: [],
     });
     const zeroMoving = mapApiActivity({
-      id: 'activity-2',
+      id: '00000000-0000-4000-8000-000000000002',
       start: '2026-06-01T08:00:00Z',
+      timezone: 'Europe/Berlin',
       duration: 'PT1H',
       moving_duration: 'PT0S',
       distance: 10,
@@ -92,8 +95,9 @@ describe('activity API page helper', () => {
 
   test('maps available average and max activity metrics', () => {
     const result = mapApiActivity({
-      id: 'activity-1',
+      id: '00000000-0000-4000-8000-000000000001',
       start: '2026-06-01T08:00:00Z',
+      timezone: 'Europe/Berlin',
       duration: 'PT1H',
       distance: 10,
       type_id: 1,
@@ -124,8 +128,9 @@ describe('activity API page helper', () => {
       jsonResponse({
         data: [
           {
-            id: 'activity-1',
+            id: '00000000-0000-4000-8000-000000000001',
             start: '2026-06-01T08:00:00Z',
+      timezone: 'Europe/Berlin',
             duration: 'PT1H',
             distance: 10,
             type_id: 1,
@@ -154,7 +159,7 @@ describe('activity API page helper', () => {
         headers: { Authorization: 'Bearer token-123' },
       })
     );
-    expect(result[0]?.id).toBe('activity-1');
+    expect(result[0]?.id).toBe('00000000-0000-4000-8000-000000000001');
     expect(result[0]?.duration).toBe('1h 0m');
   });
 

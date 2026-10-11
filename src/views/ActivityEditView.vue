@@ -4,7 +4,8 @@ import { useRouter } from 'vue-router';
 import { useActivityStore, type ActivityUpdatePayload } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
 import { fetchActivitySummary } from '@/services/api';
-import { toISODuration } from '@/utils/datetime';
+import { buildActivityUpdate, toActivityEditValues, type ActivityEditValues } from '@/utils/activityEdit';
+import { supportedTimezones } from '@/services/timezones';
 
 const props = defineProps<{
   id: string;
@@ -15,19 +16,14 @@ const activityStore = useActivityStore();
 const typeStore = useTypeStore();
 
 // Original activity state to check for changes
-const originalActivity = ref<{
-  name: string;
-  type_id: number | null;
-  sub_type_id: number | null;
-  distance: number | null;
-  durationSeconds: number;
-} | null>(null);
+const originalActivity = ref<ActivityEditValues | null>(null);
 
 // Form state
 const name = ref('');
 const selectedTypeId = ref<number | null>(null);
 const selectedSubTypeId = ref<number | null>(null);
 const distance = ref<number | null>(null);
+const selectedTimezone = ref('');
 
 // Duration components
 const durHours = ref<number>(0);
@@ -41,22 +37,17 @@ const isSaving = ref(false);
 
 onMounted(async () => {
   try {
-    const [_, currentActivity] = await Promise.all([
+    const [, currentActivity] = await Promise.all([
       typeStore.fetchActivityTypes(),
       fetchActivitySummary(props.id),
     ]);
 
     // Store original values
-    originalActivity.value = {
-      name: currentActivity.name || '',
-      type_id: currentActivity.type_id,
-      sub_type_id: currentActivity.sub_type_id,
-      distance: currentActivity.distance,
-      durationSeconds: currentActivity.durationSeconds,
-    };
+    originalActivity.value = toActivityEditValues(currentActivity);
 
     // Pre-fill the form
     name.value = originalActivity.value.name;
+    selectedTimezone.value = originalActivity.value.timezone;
     selectedTypeId.value = originalActivity.value.type_id;
     selectedSubTypeId.value = originalActivity.value.sub_type_id;
     if (originalActivity.value.distance != null) {
@@ -75,7 +66,7 @@ onMounted(async () => {
     watch(selectedTypeId, () => {
       selectedSubTypeId.value = null;
     });
-  } catch (e: unknown) {
+  } catch {
     error.value = 'Failed to load activity data.';
   } finally {
     isLoading.value = false;
@@ -89,7 +80,7 @@ const availableSubTypes = computed(() => {
 });
 
 async function handleSubmit() {
-  if (!originalActivity.value) return;
+  if (!originalActivity.value || isSaving.value) return;
   isSaving.value = true;
   error.value = null;
 
@@ -97,30 +88,21 @@ async function handleSubmit() {
   const newTotalSeconds =
     (durHours.value || 0) * 3600 + (durMinutes.value || 0) * 60 + (durSeconds.value || 0);
 
-  const payload: ActivityUpdatePayload = {};
-
-  if (name.value !== originalActivity.value.name) {
-    payload.name = name.value;
-  }
-  if (selectedTypeId.value !== originalActivity.value.type_id) {
-    payload.type_id = selectedTypeId.value;
-  }
-  if (selectedSubTypeId.value !== originalActivity.value.sub_type_id) {
-    payload.sub_type_id = selectedSubTypeId.value;
-  }
-  if (distance.value !== originalActivity.value.distance) {
-    payload.distance = distance.value;
-  }
-  if (newTotalSeconds !== originalActivity.value.durationSeconds) {
-    if (newTotalSeconds === 0) {
-      error.value = "Duration cannot be zero.";
-      isSaving.value = false;
-      return;
-    }
-    payload.duration = toISODuration(durHours.value || 0, durMinutes.value || 0, durSeconds.value || 0);
+  let payload: ActivityUpdatePayload;
+  try {
+    payload = buildActivityUpdate(originalActivity.value, {
+      name: name.value, timezone: selectedTimezone.value,
+      type_id: selectedTypeId.value, sub_type_id: selectedSubTypeId.value,
+      distance: distance.value, durationSeconds: newTotalSeconds,
+    });
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Invalid activity settings.';
+    isSaving.value = false;
+    return;
   }
 
   if (Object.keys(payload).length === 0) {
+    isSaving.value = false;
     router.push({ name: 'activity-detail', params: { id: props.id } });
     return;
   }
@@ -143,15 +125,27 @@ async function handleSubmit() {
         <span class="animate-pulse">Loading...</span>
       </div>
 
-      <div v-else-if="error && !isSaving" class="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 shadow-sm">
+      <div v-else-if="error && !originalActivity" role="alert" class="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100 shadow-sm">
         {{ error }}
       </div>
 
-      <form v-else @submit.prevent="handleSubmit"
+      <form v-else-if="originalActivity" :aria-busy="isSaving" @submit.prevent="handleSubmit"
         class="bg-white p-8 rounded-xl shadow-sm border border-verve-medium/30 space-y-6">
         <h1 class="text-2xl font-bold text-verve-brown border-b border-verve-medium/30 pb-4">
           Edit Activity
         </h1>
+
+        <div>
+          <label for="activity-timezone" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Timezone</label>
+          <select id="activity-timezone" v-model="selectedTimezone" :disabled="isSaving"
+            aria-describedby="activity-timezone-help"
+            class="w-full border border-verve-medium rounded-xl text-sm py-2.5 px-3 text-verve-brown bg-white focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">
+            <option v-for="timezone in supportedTimezones" :key="timezone" :value="timezone">{{ timezone }}</option>
+          </select>
+          <p id="activity-timezone-help" class="mt-2 text-sm text-verve-brown/60">
+            Changing the timezone updates the displayed local time without changing when the activity happened.
+          </p>
+        </div>
 
         <!-- Name Input -->
         <div>
@@ -222,7 +216,7 @@ async function handleSubmit() {
         </div>
 
         <!-- Submission Error -->
-        <div v-if="error && isSaving" class="text-red-600 text-sm p-3 bg-red-50 rounded-lg border border-red-100">
+        <div v-if="error" role="alert" class="text-red-600 text-sm p-3 bg-red-50 rounded-lg border border-red-100">
           {{ error }}
         </div>
 

@@ -25,6 +25,7 @@ const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
 const apiActivity = (id: string, start: string) => ({
   id,
   start,
+  timezone: 'Europe/Berlin',
   duration: 'PT1H30M',
   distance: 20,
   type_id: 1,
@@ -36,7 +37,7 @@ const apiActivity = (id: string, start: string) => ({
 
 const overview = {
   id: 'collection-1',
-  activity_ids: ['activity-2', 'activity-1'],
+  activity_ids: ['00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001'],
   name: 'Weekend ride',
   description: 'Two linked rides',
   count: 2,
@@ -88,8 +89,8 @@ describe('collection response parsing', () => {
       name: 'Trip',
       description: null,
       activities: [
-        apiActivity('activity-2', '2026-06-02T08:00:00Z'),
-        apiActivity('activity-1', '2026-06-01T08:00:00Z'),
+        apiActivity('00000000-0000-4000-8000-000000000002', '2026-06-02T08:00:00Z'),
+        apiActivity('00000000-0000-4000-8000-000000000001', '2026-06-01T08:00:00Z'),
       ],
       total_distance: 40,
       total_duration: 'PT3H',
@@ -98,7 +99,7 @@ describe('collection response parsing', () => {
       total_elevation_change_down: 490,
     });
 
-    expect(result.activities.map((activity) => activity.id)).toEqual(['activity-1', 'activity-2']);
+    expect(result.activities.map((activity) => activity.id)).toEqual(['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002']);
     expect(result.totalDuration).toBe('3h 0m');
     expect(result.totalMovingDuration).toBe('2h 30m');
     expect(result.effectiveDuration).toBe('2h 30m');
@@ -112,7 +113,7 @@ describe('collection response parsing', () => {
       id: 'collection-1',
       name: 'Trip',
       description: null,
-      activities: [apiActivity('activity-1', '2026-06-01T08:00:00Z')],
+      activities: [apiActivity('00000000-0000-4000-8000-000000000001', '2026-06-01T08:00:00Z')],
       total_distance: 40,
       total_duration: 'PT3H',
       total_moving_duration: null,
@@ -144,7 +145,7 @@ describe('collection response parsing', () => {
           heartrate: null,
           cadence: null,
           power: null,
-          activity_id: 'activity-1',
+          activity_id: '00000000-0000-4000-8000-000000000001',
           activity_index: 0,
           collection_cum_distance: 0,
         },
@@ -156,11 +157,20 @@ describe('collection response parsing', () => {
         id: 1,
         lat: 47.1,
         lon: 8.1,
-        activityId: 'activity-1',
+        activityId: '00000000-0000-4000-8000-000000000001',
         activityIndex: 0,
         collectionDist: 0,
       })
     );
+  });
+
+  test.each(['2026-06-01T08:00:00', '2026-02-30T08:00:00Z'])('rejects invalid collection track timestamp %s', (time) => {
+    expect(() => parseCollectionTrackResponse({ data: [{
+      id: 1,
+      activity_id: '00000000-0000-4000-8000-000000000001',
+      activity_index: 0,
+      time,
+    }] })).toThrow('Invalid collection track point');
   });
 
   test('rejects malformed collection response shapes', () => {
@@ -197,7 +207,7 @@ describe('collection API requests', () => {
         name: 'Trip',
         description: null,
         created_at: '2026-06-01T08:00:00Z',
-        activity_ids: ['activity-1'],
+        activity_ids: ['00000000-0000-4000-8000-000000000001'],
       })
     );
     globalThis.fetch = fetchMock as typeof fetch;
@@ -205,7 +215,7 @@ describe('collection API requests', () => {
     const result = await createCollection({
       name: 'Trip',
       description: null,
-      activityIds: ['activity-1'],
+      activityIds: ['00000000-0000-4000-8000-000000000001'],
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -219,7 +229,7 @@ describe('collection API requests', () => {
         body: JSON.stringify({
           name: 'Trip',
           description: null,
-          activity_ids: ['activity-1'],
+          activity_ids: ['00000000-0000-4000-8000-000000000001'],
         }),
       })
     );
@@ -235,7 +245,7 @@ describe('collection API requests', () => {
         name: 'Trip updated',
         description: 'Updated',
         created_at: '2026-06-01T08:00:00Z',
-        activity_ids: ['activity-1', 'activity-2'],
+        activity_ids: ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'],
       })
     );
     globalThis.fetch = fetchMock as typeof fetch;
@@ -243,7 +253,7 @@ describe('collection API requests', () => {
     await updateCollection('collection-1', {
       name: 'Trip updated',
       description: 'Updated',
-      activityIds: ['activity-2'],
+      activityIds: ['00000000-0000-4000-8000-000000000002'],
       replaceActivities: false,
     });
 
@@ -254,7 +264,7 @@ describe('collection API requests', () => {
         body: JSON.stringify({
           name: 'Trip updated',
           description: 'Updated',
-          activity_ids: ['activity-2'],
+          activity_ids: ['00000000-0000-4000-8000-000000000002'],
           replace_activities: false,
         }),
       })
@@ -276,7 +286,7 @@ describe('collection API requests', () => {
         id: 'collection-1',
         name: 'Trip',
         description: null,
-        activities: [apiActivity('activity-1', '2026-06-01T08:00:00Z')],
+        activities: [apiActivity('00000000-0000-4000-8000-000000000001', '2026-06-01T08:00:00Z')],
         total_distance: 20,
         total_duration: 'PT1H',
         total_moving_duration: null,

@@ -6,15 +6,16 @@
 export function parseISODuration(duration: string): number {
   if (!duration) return 0;
 
-  // Parse PT format (e.g., "PT2H", "PT3H21M8S")
-  const matches = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/);
+  // Timedelta responses may include days, e.g. P1DT2H30M.
+  const matches = duration.match(/^P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$/);
   if (!matches) return 0;
 
-  const hours = parseInt(matches[1] || '0', 10);
-  const minutes = parseInt(matches[2] || '0', 10);
-  const seconds = parseFloat(matches[3] || '0');
+  const days = Number(matches[1] || 0);
+  const hours = Number(matches[2] || 0);
+  const minutes = Number(matches[3] || 0);
+  const seconds = Number(matches[4] || 0);
 
-  return hours * 3600 + minutes * 60 + seconds;
+  return days * 86400 + hours * 3600 + minutes * 60 + seconds;
 }
 
 /**
@@ -46,4 +47,53 @@ export function toISODuration(h: number, m: number, s: number): string {
   if (m > 0) iso += `${m}M`;
   if (s > 0 || iso === 'PT') iso += `${s}S`;
   return iso;
+}
+
+/** Accept API instants only: a calendar date and an explicit UTC/offset suffix. */
+export function isAwareTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[Zz]|([+-])(\d{2}):(\d{2}))$/);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  return daysInMonth !== undefined && day >= 1 && day <= daysInMonth &&
+    Number(match[4]) < 24 && Number(match[5]) < 60 && Number(match[6]) < 60 &&
+    (match[7] === undefined || (Number(match[8]) < 24 && Number(match[9]) < 60)) &&
+    Number.isFinite(Date.parse(value));
+}
+
+export interface FormattedActivityTimestamp {
+  text: string;
+  isLocalTimeAvailable: boolean;
+}
+
+export function formatActivityTimestamp(
+  timestamp: string,
+  timezone: string,
+  options: Intl.DateTimeFormatOptions = {},
+  locale?: string | string[]
+): FormattedActivityTimestamp {
+  const unavailable = {
+    text: `Local time unavailable · ${timestamp} · ${timezone}`,
+    isLocalTimeAvailable: false,
+  };
+  if (!isAwareTimestamp(timestamp)) return unavailable;
+  try {
+    return {
+      text: new Intl.DateTimeFormat(locale, { ...options, timeZone: timezone }).format(new Date(timestamp)),
+      isLocalTimeAvailable: true,
+    };
+  } catch (error: unknown) {
+    if (error instanceof RangeError) return unavailable;
+    throw error;
+  }
+}
+
+/** Elapsed time is measured between instants, never between displayed wall times. */
+export function elapsedSecondsBetweenInstants(start: string, end: string): number | null {
+  if (!isAwareTimestamp(start) || !isAwareTimestamp(end)) return null;
+  return Math.max(0, (Date.parse(end) - Date.parse(start)) / 1000);
 }

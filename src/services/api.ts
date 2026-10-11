@@ -2,27 +2,30 @@
 import { useUserStore } from '../stores/auth';
 import type { Activity } from '../stores/activity';
 import type { ActivityTagPublic } from '../stores/tags';
-import { parseISODuration, formatDuration } from '../utils/datetime';
+import { parseISODuration, formatDuration, isAwareTimestamp } from '../utils/datetime';
+import { parseApiActivity, parseActivityPageData } from './activityResponses';
 
 export interface ApiActivity {
   id: string;
   start: string;
+  timezone: string;
+  created_at: string;
   duration: string;
   moving_duration?: string | null;
   distance: number | null;
   elevation_change_up?: number | null;
   elevation_change_down?: number | null;
   type_id: number;
-  sub_type_id?: number | null;
-  name?: string | null;
+  sub_type_id: number | null;
+  name: string;
   avg_speed?: number | null;
   max_speed?: number | null;
   avg_heartrate?: number | null;
   max_heartrate?: number | null;
   avg_power?: number | null;
   max_power?: number | null;
-  meta_data?: Record<string, unknown> | null;
-  tags?: ActivityTagPublic[];
+  meta_data?: Record<string, unknown>;
+  tags: ActivityTagPublic[];
 }
 
 export interface ActivityPageParams {
@@ -128,7 +131,8 @@ const getJsonAuthHeaders = (): HeadersInit => ({
   'Content-Type': 'application/json',
 });
 
-export const mapApiActivity = (apiActivity: ApiActivity): Activity => {
+export const mapApiActivity = (value: unknown): Activity => {
+  const apiActivity = parseApiActivity(value);
   const durationSeconds = parseISODuration(apiActivity.duration);
   const movingDurationSeconds =
     apiActivity.moving_duration === null || apiActivity.moving_duration === undefined
@@ -140,6 +144,7 @@ export const mapApiActivity = (apiActivity: ApiActivity): Activity => {
   return {
     id: apiActivity.id,
     start: apiActivity.start,
+    timezone: apiActivity.timezone,
     duration: formatDuration(durationSeconds),
     durationSeconds: durationSeconds,
     movingDuration: movingDurationSeconds === null ? null : formatDuration(movingDurationSeconds),
@@ -297,7 +302,7 @@ const mapSegmentSetPublic = (value: unknown): SegmentSetPublic => {
 
 const mapApiTrackPoint = (point: ApiTrackPointResponse): TrackPoint | null => {
   if (typeof point.id !== 'number') return null;
-  if (typeof point.time !== 'string') return null;
+  if (!isAwareTimestamp(point.time)) throw new Error('Invalid track timestamp. Expected an explicit UTC offset.');
 
   return {
     id: point.id,
@@ -321,7 +326,7 @@ export async function fetchActivitySummary(activityId: string): Promise<Activity
 
   if (!response.ok) throw new Error('Activity not found.');
 
-  const apiActivity: ApiActivity = await response.json();
+  const apiActivity: unknown = await response.json();
   return mapApiActivity(apiActivity);
 }
 
@@ -350,13 +355,7 @@ export async function fetchActivityPage(params: ActivityPageParams): Promise<Act
   if (!response.ok) throw new Error('Failed to fetch activities.');
 
   const responseData: unknown = await response.json();
-  if (!isRecord(responseData) || !Array.isArray(responseData.data)) {
-    throw new Error('Invalid activities response.');
-  }
-
-  return responseData.data
-    .filter(isRecord)
-    .map((activity) => mapApiActivity(activity as unknown as ApiActivity));
+  return parseActivityPageData(responseData).map(mapApiActivity);
 }
 
 export async function fetchActivityTrack(activityId: string): Promise<TrackPoint[]> {

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import type { Activity } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
+import { useActivityDateTime } from '@/composables/useActivityDateTime';
 
 const props = defineProps<{
   activity: Activity;
@@ -9,6 +10,7 @@ const props = defineProps<{
 }>();
 
 const typeStore = useTypeStore();
+const activityDateTime = useActivityDateTime(() => props.activity);
 
 const activityType = computed(() => {
   return typeStore.activityTypes.find((t) => t.id === props.activity.type_id);
@@ -25,20 +27,6 @@ const hasDistinctTotalDuration = computed(() => {
   return props.activity.durationSeconds !== props.activity.effectiveDurationSeconds;
 });
 
-const formatDate = (isoDate: string) => {
-  return new Date(isoDate).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
-const formatTime = (isoDate: string) => {
-  return new Date(isoDate).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
 </script>
 
 <template>
@@ -53,8 +41,10 @@ const formatTime = (isoDate: string) => {
       <div class="flex justify-between items-start mb-2">
         <div class="overflow-hidden">
           <p class="font-bold text-verve-brown text-sm truncate">{{ activity.name }}</p>
-          <p class="text-xs text-verve-brown/60">
-            {{ formatDate(activity.start) }} &bull; {{ formatTime(activity.start) }}
+          <p class="text-xs text-verve-brown/60" :title="activity.timezone">
+            <time :datetime="activity.start" :aria-label="`${activityDateTime.dateTime} · ${activity.timezone}`">
+              {{ activityDateTime.shortDate }}<template v-if="activityDateTime.time"> &bull; {{ activityDateTime.time }}</template>
+            </time>
           </p>
         </div>
         <span v-if="activityType"
@@ -94,8 +84,11 @@ const formatTime = (isoDate: string) => {
 
       <!-- Date and Time -->
       <div class="col-span-2 md:col-span-1">
-        <p class="font-semibold text-verve-brown/80 text-sm">{{ formatDate(activity.start) }}</p>
-        <p class="text-xs text-verve-brown/50">{{ formatTime(activity.start) }}</p>
+        <time :datetime="activity.start" :title="activity.timezone"
+          :aria-label="`${activityDateTime.dateTime} · ${activity.timezone}`">
+          <span class="block font-semibold text-verve-brown/80 text-sm">{{ activityDateTime.shortDate }}</span>
+          <span v-if="activityDateTime.time" class="block text-xs text-verve-brown/50">{{ activityDateTime.time }}</span>
+        </time>
       </div>
 
       <!-- Activity Type and Sub-Type -->

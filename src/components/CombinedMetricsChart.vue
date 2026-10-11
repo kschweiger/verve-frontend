@@ -17,6 +17,7 @@ import {
 import annotationPlugin from 'chartjs-plugin-annotation';
 import type { TrackPoint } from '@/services/api';
 import { VERVE_COLORS, hexToRgba } from '@/utils/colors';
+import { elapsedSecondsBetweenInstants } from '@/utils/datetime';
 
 ChartJS.register(
   Title,
@@ -143,11 +144,7 @@ const elapsedSecondsAtIndex = (index: number) => {
   const point = props.trackData[index];
   if (!firstPoint || !point) return index;
 
-  const start = Date.parse(firstPoint.time);
-  const current = Date.parse(point.time);
-  if (Number.isNaN(start) || Number.isNaN(current)) return index;
-
-  return Math.max(0, (current - start) / 1000);
+  return elapsedSecondsBetweenInstants(firstPoint.time, point.time) ?? index;
 };
 
 const chartData = computed(() => {
