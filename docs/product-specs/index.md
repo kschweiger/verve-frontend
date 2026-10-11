@@ -9,6 +9,7 @@ Business behavior and data contracts. Read the specs relevant to the feature bei
 | [Activity collections](activity-collections.md)     | Manual creation, membership policy, totals, and maps.                  |
 | [Password reset](password-reset.md)                 | Unauthenticated reset flow and token handling.                         |
 | [User settings](user-settings.md)                   | Shared settings loading and timezone editing.                          |
+| [Admin](admin.md)                                  | Admin navigation, user maintenance, and background task status.         |
 | [Activity timezones](activity-timezones.md)         | Activity-local dates, timezone correction, and elapsed time.            |
 | [Equipment](equipment.md)                           | Personal equipment, individual item edits, deletion, and sets.         |
 | [Activity segment sets](activity-segment-sets.md)   | Interval statistics and track-point cut editing.                       |

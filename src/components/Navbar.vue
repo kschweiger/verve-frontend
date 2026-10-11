@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/stores/auth';
 import { Menu, X } from '@lucide/vue';
@@ -10,6 +10,22 @@ const router = useRouter();
 const route = useRoute();
 
 const isMobileMenuOpen = ref(false);
+const accountButton = ref<HTMLButtonElement | null>(null);
+
+function loadAccount() {
+  void userStore.ensureCurrentUser().catch(() => undefined);
+}
+
+onMounted(loadAccount);
+watch(() => userStore.token, token => {
+  if (token) loadAccount();
+  else void router.push({ name: 'login' });
+});
+
+function closeAccountMenu() {
+  activeMenu.value = null;
+  accountButton.value?.focus();
+}
 
 function handleLogout() {
   userStore.logout();
@@ -21,6 +37,7 @@ watch(
   () => route.fullPath,
   () => {
     isMobileMenuOpen.value = false;
+    activeMenu.value = null;
   }
 );
 
@@ -186,9 +203,10 @@ const toggleMenu = (menu: string) => {
             </div>
 
             <!-- User Menu Dropdown -->
-            <div class="relative" @mouseenter="openMenu('user')" @mouseleave="closeMenu" @click="toggleMenu('user')">
-              <button
-                class="flex items-center gap-2 text-verve-dark hover:text-verve-brown transition-colors focus:outline-none py-2">
+            <div class="relative" @mouseenter="openMenu('user')" @mouseleave="closeMenu" @keydown.esc="closeAccountMenu">
+              <button ref="accountButton" type="button" aria-label="Account menu" aria-controls="account-menu"
+                :aria-expanded="activeMenu === 'user'" @click="toggleMenu('user')"
+                class="flex items-center gap-2 text-verve-dark hover:text-verve-brown transition-colors focus-visible:outline-2 focus-visible:outline-verve-orange focus-visible:outline-offset-2 rounded-lg py-2">
                 <div class="flex flex-col items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -203,13 +221,21 @@ const toggleMenu = (menu: string) => {
                 enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0"
                 leave-active-class="transition ease-in duration-75" leave-from-class="opacity-100 translate-y-0"
                 leave-to-class="opacity-0 translate-y-1">
-                <div v-show="activeMenu === 'user'"
+                <div id="account-menu" v-show="activeMenu === 'user'"
                   class="absolute right-0 mt-0 w-48 bg-white shadow-xl rounded-xl py-2 z-50 border border-verve-medium/20">
                   <div class="px-4 py-2 border-b border-verve-light mb-1">
                     <p class="text-xs text-verve-brown/60">Signed in as</p>
                     <p class="text-sm font-bold text-verve-brown truncate">
                       {{ userStore.user_name }}
                     </p>
+                  </div>
+
+                  <div v-if="userStore.currentUserError" class="px-4 py-2 text-xs text-red-600" role="alert">
+                    {{ userStore.currentUserError }}
+                    <button type="button" :disabled="userStore.isLoadingCurrentUser" @click="loadAccount"
+                      class="block mt-1 underline focus-visible:outline-2 focus-visible:outline-verve-orange">
+                      Retry account loading
+                    </button>
                   </div>
 
                   <router-link to="/settings"
@@ -223,6 +249,10 @@ const toggleMenu = (menu: string) => {
                   <router-link to="/tags"
                     class="block px-4 py-2 text-sm text-verve-brown/80 hover:bg-verve-light hover:text-verve-brown">
                     Tags & Categories
+                  </router-link>
+                  <router-link v-if="userStore.isAdmin" :to="{ name: 'admin' }"
+                    class="block px-4 py-2 text-sm text-verve-brown/80 hover:bg-verve-light hover:text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-orange focus-visible:outline-offset-[-2px]">
+                    Admin
                   </router-link>
 
                   <div class="border-t border-verve-light my-1"></div>

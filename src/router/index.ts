@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { useUserStore } from '@/stores/auth';
+import { resolveAdminAccess } from './adminGuard';
 
 // Layouts & Views
 import MainLayout from '@/layouts/MainLayout.vue';
@@ -12,6 +13,7 @@ import DashboardView from '@/views/DashboardView.vue';
 declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean;
+    requiresAdmin?: boolean;
   }
 }
 
@@ -115,6 +117,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/EquipmentView.vue'),
       },
       {
+        path: 'admin',
+        name: 'admin',
+        component: () => import('@/views/AdminView.vue'),
+        meta: { requiresAdmin: true },
+      },
+      {
         path: 'settings',
         name: 'settings',
         component: () => import('@/views/SettingsView.vue'),
@@ -138,7 +146,7 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useUserStore();
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
@@ -148,6 +156,8 @@ router.beforeEach((to) => {
   if (to.name === 'login' && auth.isAuthenticated) {
     return { name: 'dashboard' };
   }
+
+  if (to.meta.requiresAdmin) return resolveAdminAccess();
 
   return true;
 });
