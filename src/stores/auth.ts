@@ -72,7 +72,7 @@ export const useUserStore = defineStore('user', () => {
       body.append('username', email);
       body.append('password', password);
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login/access-token`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login/access_token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

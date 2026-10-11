@@ -26,7 +26,7 @@ describe('password reset service', () => {
     const result = await requestPasswordReset('user@example.com');
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `${import.meta.env.VITE_API_BASE_URL}/login/forgot-password`,
+      `${import.meta.env.VITE_API_BASE_URL}/login/forgot_password`,
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,7 +64,7 @@ describe('password reset service', () => {
     await resetPassword({ token: 'abc', new_password: 'newpassword123' });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `${import.meta.env.VITE_API_BASE_URL}/login/reset-password`,
+      `${import.meta.env.VITE_API_BASE_URL}/login/reset_password`,
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

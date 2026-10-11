@@ -245,7 +245,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
       params.append('weeks', weeks.toString());
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/statistics/activity-grid?${params.toString()}`,
+        `${import.meta.env.VITE_API_BASE_URL}/statistics/activity_grid?${params.toString()}`,
         {
           method: 'GET',
           headers: { Authorization: `Bearer ${userStore.token}` },

@@ -398,7 +398,7 @@ export async function removeTrackExtensionData(
 ): Promise<void> {
   const query = new URLSearchParams({ extension });
   const response = await fetch(
-    `${import.meta.env.VITE_API_BASE_URL}/track/clear-track-extension-data/${activityId}?${query.toString()}`,
+    `${import.meta.env.VITE_API_BASE_URL}/track/clear_track_extension_data/${activityId}?${query.toString()}`,
     {
       method: 'PATCH',
       headers: getAuthHeaders(),
