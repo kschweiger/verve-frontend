@@ -1,9 +1,11 @@
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { defineStore } from 'pinia';
+import { fetchCurrentUser, type UserMe } from '../services/users';
+import { ApiResponseError } from '../services/authHeaders';
 
 interface LoginResponse {
   access_token: string;
-  token_type: string;
+  token_type?: string;
 }
 
 interface UserInfoPayload {
@@ -11,18 +13,63 @@ interface UserInfoPayload {
   fullName?: string | null;
 }
 
-interface UserMeResponse {
-  name: string;
-  full_name: string;
-  email: string;
-  // add other fields if needed
-}
-
 export const useUserStore = defineStore('user', () => {
   // --- STATE ---
   const token = ref<string | null>(localStorage.getItem('auth_token'));
   const user_full_name = ref<string | null>(localStorage.getItem('user_full_name'));
   const user_name = ref<string | null>(localStorage.getItem('user_name'));
+
+  const currentUser = ref<UserMe | null>(null);
+  const currentUserError = ref<string | null>(null);
+  const isLoadingCurrentUser = ref(false);
+  let session = 0;
+  let loginAttempt = 0;
+  let userRequest: Promise<UserMe> | null = null;
+
+  watch(token, () => {
+    session++;
+    currentUser.value = null;
+    currentUserError.value = null;
+    isLoadingCurrentUser.value = false;
+    userRequest = null;
+    clearUserInfo();
+  }, { flush: 'sync' });
+
+  const isAdmin = computed(() => isAuthenticated.value && currentUser.value?.is_admin === true);
+
+  function ensureCurrentUser(refresh = false): Promise<UserMe> {
+    if (!token.value) return Promise.reject(new Error('Not authenticated.'));
+    if (userRequest) return userRequest;
+    if (!refresh && currentUser.value) return Promise.resolve(currentUser.value);
+    const currentSession = session;
+    isLoadingCurrentUser.value = true;
+    currentUserError.value = null;
+    const request = fetchCurrentUser().then(user => {
+      if (currentSession !== session) throw new Error('Account changed while loading your profile.');
+      currentUser.value = user;
+      setUserInfo({ name: user.name, fullName: user.full_name });
+      return user;
+    }).catch((error: unknown) => {
+      if (currentSession === session) {
+        currentUser.value = null;
+        currentUserError.value = error instanceof Error ? error.message : 'Failed to load your account.';
+        if (error instanceof ApiResponseError && error.status === 401) logout();
+      }
+      throw error;
+    }).finally(() => {
+      if (currentSession === session) isLoadingCurrentUser.value = false;
+      if (userRequest === request) userRequest = null;
+    });
+    userRequest = request;
+    return request;
+  }
+
+  function revokeAdmin() {
+    session++;
+    userRequest = null;
+    isLoadingCurrentUser.value = false;
+    if (currentUser.value) currentUser.value = { ...currentUser.value, is_admin: false };
+  }
 
   // --- GETTERS ---
   const isAuthenticated = computed(() => !!token.value);
@@ -67,6 +114,8 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function login(email: string, password: string): Promise<boolean> {
+    const attempt = ++loginAttempt;
+    let loginSession = session;
     try {
       const body = new URLSearchParams();
       body.append('username', email);
@@ -83,36 +132,22 @@ export const useUserStore = defineStore('user', () => {
       if (!response.ok) return false;
 
       const data: LoginResponse = await response.json();
+      if (attempt !== loginAttempt || loginSession !== session) return false;
       if (!data.access_token) return false;
 
       setToken(data.access_token);
+      loginSession = session;
+      await ensureCurrentUser(true);
+      return attempt === loginAttempt && loginSession === session;
 
-      // Fetch User Details immediately
-      const responseUser = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${data.access_token}`,
-        },
-      });
-
-      if (!responseUser.ok) {
-        clearToken();
-        return false;
-      }
-
-      const dataUser: UserMeResponse = await responseUser.json();
-      setUserInfo({ name: dataUser.name, fullName: dataUser.full_name });
-      return true;
-
-    } catch (error) {
-      console.error('Login API call error:', error);
-      clearToken();
-      clearUserInfo();
+    } catch {
+      if (attempt === loginAttempt && loginSession === session) logout();
       return false;
     }
   }
 
   function logout() {
+    loginAttempt++;
     clearToken();
     clearUserInfo();
   }
@@ -122,6 +157,12 @@ export const useUserStore = defineStore('user', () => {
     user_full_name,
     user_name,
     isAuthenticated,
+    currentUser,
+    currentUserError,
+    isLoadingCurrentUser,
+    isAdmin,
+    ensureCurrentUser,
+    revokeAdmin,
     login,
     logout,
     setToken,

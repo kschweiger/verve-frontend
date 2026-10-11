@@ -9,7 +9,7 @@ Verve is a Vue frontend for reviewing, organizing, and comparing activity data.
 - Derive endpoint paths, HTTP methods, parameters, payloads, response shapes, and nullability from the OpenAPI contract. Never guess them from existing code, examples, product specs, or UI needs.
 - If another repository artifact conflicts with `backend_openapi.json` about the API contract, follow `backend_openapi.json` and correct the conflicting artifact.
 - If required behavior is missing or ambiguous in the contract, flag the gap before implementing dependent API code. Do not invent backend capabilities or silently change the contract to fit the frontend.
-- Parse unknown API boundary data before using it; TypeScript assertions do not validate responses.
+- Define TypeScript interfaces and types from the OpenAPI response schemas, including required fields and nullability. Trust backend responses to conform to this contract; use these types when reading JSON. Do not add runtime response validators or duplicate backend validation rules unless explicitly requested.
 
 ## Context
 
