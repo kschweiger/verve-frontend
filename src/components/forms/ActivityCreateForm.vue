@@ -3,6 +3,9 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useActivityStore, type ActivityCreatePayload } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
 import { quickAddDefinitions } from '@/components/widgets/quick-add/definitions';
+import { useSettingsStore } from '@/stores/settings';
+import TimezonePicker from './TimezonePicker.vue';
+import { currentActivityLocalTime, localActivityTimeToInstant } from '@/utils/manualActivityTime';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -11,13 +14,16 @@ const emit = defineEmits<{
 
 const activityStore = useActivityStore();
 const typeStore = useTypeStore();
+const settingsStore = useSettingsStore();
+const selectedTimezone = ref('');
+const isTimezoneLoading = ref(true);
 
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 
 // --- Core Form State ---
 const name = ref('');
-const start = ref(new Date().toISOString().slice(0, 16));
+const start = ref('');
 const typeId = ref<number | null>(null);
 const subTypeId = ref<number | null>(null);
 const distanceKm = ref<number | null>(null);
@@ -72,8 +78,17 @@ watch(isSwimming, (newVal) => {
   }
 });
 
-onMounted(() => {
+onMounted(async () => {
   typeStore.fetchActivityTypes();
+  try {
+    const settings = await settingsStore.ensureSettings();
+    selectedTimezone.value = settings.timezone;
+    start.value = currentActivityLocalTime(settings.timezone);
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Unable to load your timezone.';
+  } finally {
+    isTimezoneLoading.value = false;
+  }
 });
 
 // --- Methods ---
@@ -110,11 +125,19 @@ function removeSwimSegment(index: number) {
 }
 
 async function handleSubmit() {
+  if (isLoading.value || isTimezoneLoading.value) return;
   if (!typeId.value) {
     error.value = 'Activity Type is required.';
     return;
   }
 
+  let instant: string;
+  try {
+    instant = localActivityTimeToInstant(start.value, selectedTimezone.value);
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Unable to interpret the date and time.';
+    return;
+  }
   isLoading.value = true;
   error.value = null;
 
@@ -123,7 +146,7 @@ async function handleSubmit() {
   // 1. Build Base Payload
   const payload: ActivityCreatePayload = {
     name: name.value || 'Manual Activity',
-    start: new Date(start.value).toISOString(),
+    start: instant,
     type_id: typeId.value,
     sub_type_id: subTypeId.value,
     distance: distanceMode.value === 'NOT_APPLICABLE' ? null : nullableNumber(distanceKm.value),
@@ -152,7 +175,7 @@ async function handleSubmit() {
     };
   }
 
-  const result = await activityStore.createManualActivity(payload, selectedFile.value);
+  const result = await activityStore.createManualActivity(payload, selectedFile.value, selectedTimezone.value);
 
   isLoading.value = false;
 
@@ -177,7 +200,7 @@ async function handleSubmit() {
     </div>
 
     <!-- Error Banner -->
-    <div v-if="error" class="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
+    <div v-if="error" role="alert" class="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
       {{ error }}
     </div>
 
@@ -190,10 +213,17 @@ async function handleSubmit() {
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Date & Time</label>
-          <input v-model="start" type="datetime-local" required
+          <label for="manual-start" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Date & Time</label>
+          <input id="manual-start" v-model="start" type="datetime-local" required :disabled="isTimezoneLoading || isLoading" aria-describedby="manual-timezone-help"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
         </div>
+      </div>
+
+      <div>
+        <TimezonePicker id="manual-timezone" v-model="selectedTimezone" label="Timezone"
+          :disabled="isTimezoneLoading || isLoading" :suggested-timezone="settingsStore.timezone ?? undefined"
+          described-by="manual-timezone-help" />
+        <p id="manual-timezone-help" class="mt-1 text-xs text-verve-brown/60">Date &amp; Time is local time in {{ selectedTimezone || 'the selected timezone' }}.</p>
       </div>
 
       <!-- Type & SubType -->
@@ -337,7 +367,7 @@ async function handleSubmit() {
           class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
           Cancel
         </button>
-        <button type="submit" :disabled="isLoading"
+        <button type="submit" :disabled="isLoading || isTimezoneLoading"
           class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-verve-dark/5">
           {{ isLoading ? 'Saving...' : 'Save Activity' }}
         </button>

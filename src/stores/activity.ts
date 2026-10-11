@@ -6,10 +6,17 @@ import { parseActivityPageData } from '../services/activityResponses';
 import { isSupportedTimezone } from '../services/timezones';
 import type { ActivityTagPublic } from './tags';
 
-type ApiError = {
-  message: string;
-  detail?: string | Array<{ msg: string }>;
-};
+function activityErrorMessage(value: unknown, fallback: string): string {
+  if (typeof value !== 'object' || value === null || !('detail' in value)) return fallback;
+  if (typeof value.detail === 'string') return value.detail;
+  if (Array.isArray(value.detail)) {
+    const first: unknown = value.detail[0];
+    if (typeof first === 'object' && first !== null && 'msg' in first && typeof first.msg === 'string') {
+      return first.msg;
+    }
+  }
+  return fallback;
+}
 
 export interface Activity {
   id: string;
@@ -186,10 +193,15 @@ export const useActivityStore = defineStore('activity', () => {
   async function uploadActivity(
     file: File,
     typeId: number | null,
-    subTypeId: number | null
+    subTypeId: number | null,
+    timezoneName?: string
   ): Promise<{ success: boolean; message: string }> {
     if (!userStore.token) {
       return { success: false, message: 'Not authenticated.' };
+    }
+
+    if (timezoneName !== undefined && !isSupportedTimezone(timezoneName)) {
+      return { success: false, message: 'Select a supported timezone.' };
     }
 
     const formData = new FormData();
@@ -198,6 +210,7 @@ export const useActivityStore = defineStore('activity', () => {
     const params = new URLSearchParams();
     if (typeId) params.append('type_id', typeId.toString());
     if (subTypeId) params.append('sub_type_id', subTypeId.toString());
+    if (timezoneName !== undefined) params.set('timezone_name', timezoneName);
 
     const queryString = params.toString();
     const url = `${import.meta.env.VITE_API_BASE_URL}/activity/auto/${queryString ? '?' + queryString : ''}`;
@@ -210,15 +223,8 @@ export const useActivityStore = defineStore('activity', () => {
       });
 
       if (!response.ok) {
-        const errorData: ApiError = await response.json();
-        let msg = 'Upload failed.';
-        if (errorData.detail) {
-          msg =
-            typeof errorData.detail === 'string'
-              ? errorData.detail
-              : errorData.detail[0]?.msg || JSON.stringify(errorData.detail);
-        }
-        throw new Error(msg);
+        const errorData: unknown = await response.json();
+        throw new Error(activityErrorMessage(errorData, 'Upload failed.'));
       }
 
       fetchRecentActivities();
@@ -265,12 +271,17 @@ export const useActivityStore = defineStore('activity', () => {
 
   async function createManualActivity(
     payload: ActivityCreatePayload,
-    file: File | null
+    file: File | null,
+    timezoneName?: string
   ): Promise<{ success: boolean; message: string }> {
     if (!userStore.token) return { success: false, message: 'Not authenticated.' };
 
     try {
       const query = new URLSearchParams();
+      if (timezoneName !== undefined) {
+        if (!isSupportedTimezone(timezoneName)) throw new Error('Select a supported timezone.');
+        query.set('timezone_name', timezoneName);
+      }
       if (payload.add_default_equipment) query.append('add_default_equipment', 'true');
 
       const response = await fetch(
@@ -286,17 +297,19 @@ export const useActivityStore = defineStore('activity', () => {
       );
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail?.[0]?.msg || 'Failed to create activity.');
+        const err: unknown = await response.json();
+        throw new Error(activityErrorMessage(err, 'Failed to create activity.'));
       }
 
-      const newActivity = await response.json();
+      const newActivity = mapApiActivity(await response.json());
 
       if (file) {
         const formData = new FormData();
         formData.append('file', file);
+        const trackQuery = new URLSearchParams({ activity_id: newActivity.id });
+        if (timezoneName !== undefined) trackQuery.set('timezone_name', timezoneName);
         const trackResponse = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/track/?activity_id=${newActivity.id}`,
+          `${import.meta.env.VITE_API_BASE_URL}/track/?${trackQuery.toString()}`,
           {
             method: 'PUT',
             headers: { Authorization: `Bearer ${userStore.token}` },

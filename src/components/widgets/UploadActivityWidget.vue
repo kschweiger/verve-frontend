@@ -3,10 +3,13 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useTypeStore } from '@/stores/types';
 import { useActivityStore } from '@/stores/activity';
 import ActivityCreateForm from '@/components/forms/ActivityCreateForm.vue';
+import TimezonePicker from '@/components/forms/TimezonePicker.vue';
+import { useSettingsStore } from '@/stores/settings';
 import { FileText, CheckCircle, XCircle, Loader2, RefreshCw, HelpCircle } from 'lucide-vue-next';
 
 const typeStore = useTypeStore();
 const activityStore = useActivityStore();
+const settingsStore = useSettingsStore();
 
 defineProps<{
   embedded?: boolean;
@@ -29,6 +32,7 @@ const hasFinished = ref(false);
 
 const selectedTypeId = ref<number | null>(null);
 const selectedSubTypeId = ref<number | null>(null);
+const selectedTimezone = ref('');
 
 // Dependent dropdown logic
 const availableSubTypes = computed(() => {
@@ -43,6 +47,7 @@ watch(selectedTypeId, () => {
 
 onMounted(() => {
   typeStore.fetchActivityTypes();
+  void settingsStore.ensureSettings().catch(() => undefined);
 });
 
 // --- Methods ---
@@ -61,7 +66,8 @@ function handleFileChange(event: Event) {
 }
 
 async function handleBatchUpload() {
-  if (uploadQueue.value.length === 0) return;
+  if (uploadQueue.value.length === 0 || isProcessing.value) return;
+  const timezoneName = selectedTimezone.value || undefined;
 
   isProcessing.value = true;
   hasFinished.value = false;
@@ -77,7 +83,8 @@ async function handleBatchUpload() {
     const result = await activityStore.uploadActivity(
       item.file,
       selectedTypeId.value,
-      selectedSubTypeId.value
+      selectedSubTypeId.value,
+      timezoneName
     );
 
     if (result.success) {
@@ -102,6 +109,7 @@ function resetForm() {
   hasFinished.value = false;
   selectedTypeId.value = null;
   selectedSubTypeId.value = null;
+  selectedTimezone.value = '';
 }
 
 // Computed for summary
@@ -208,6 +216,12 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
               </option>
             </select>
           </div>
+        </div>
+
+        <div>
+          <TimezonePicker id="upload-timezone" v-model="selectedTimezone" label="Timezone (optional)" allow-empty
+            :disabled="isProcessing" :suggested-timezone="settingsStore.timezone ?? undefined" described-by="upload-timezone-help" />
+          <p id="upload-timezone-help" class="mt-1 text-xs text-verve-brown/60">Applies to all selected files. Leave blank to let the backend choose.</p>
         </div>
 
         <p class="text-xs text-verve-brown/60 italic">

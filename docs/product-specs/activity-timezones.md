@@ -8,6 +8,15 @@
 - If the browser cannot format a contract-valid zone, show Local time unavailable together with the original timestamp and zone. Never substitute the browser or user's timezone.
 - Calendars, grouping, period filters, statistics, and goals use the user timezone. Their frontend adoption and separate Records date labels are later work; activity-local labels do not change grouping.
 
+## Upload and Manual Entry
+
+- Upload, manual entry, and activity editing use the shared searchable IANA picker described in the user settings spec. Search and suggestions do not change their defaults, date conversion, or request semantics.
+
+- File upload offers an optional backend-supported IANA timezone selector. Its empty default omits `timezone_name`; an explicit selection is sent as a query parameter to the auto-upload endpoint for every file in the batch. Upload More clears the selection. Files and timestamps are unchanged by the frontend.
+- Manual entry loads and preselects the saved user timezone. Date & Time starts at the current local time in that zone; changing zones preserves the entered wall time and interprets it in the new zone. The selected zone is shown beside the field.
+- Native `Intl.DateTimeFormat` converts the manual wall time to an aware UTC `start`, independent of browser timezone. Repeated clock times use the earlier occurrence; nonexistent times shift forward by the clock-change gap. Invalid input or an unavailable timezone produces an inline error and preserves the form.
+- Send manual `timezone_name` on creation and optional track attachment. Parse the creation response before using its ID. Settings loading disables submission; a loading failure stays inline and permits an explicit timezone selection. No external date library is required.
+
 ## Correction
 
 - Edit Activity provides a timezone selector initialized from the saved activity. Options come from the OpenAPI timezone enum shared with user settings.

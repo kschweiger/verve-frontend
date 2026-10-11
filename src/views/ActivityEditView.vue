@@ -5,7 +5,8 @@ import { useActivityStore, type ActivityUpdatePayload } from '@/stores/activity'
 import { useTypeStore } from '@/stores/types';
 import { fetchActivitySummary } from '@/services/api';
 import { buildActivityUpdate, toActivityEditValues, type ActivityEditValues } from '@/utils/activityEdit';
-import { supportedTimezones } from '@/services/timezones';
+import TimezonePicker from '@/components/forms/TimezonePicker.vue';
+import { useSettingsStore } from '@/stores/settings';
 
 const props = defineProps<{
   id: string;
@@ -14,6 +15,7 @@ const props = defineProps<{
 const router = useRouter();
 const activityStore = useActivityStore();
 const typeStore = useTypeStore();
+const settingsStore = useSettingsStore();
 
 // Original activity state to check for changes
 const originalActivity = ref<ActivityEditValues | null>(null);
@@ -36,6 +38,7 @@ const error = ref<string | null>(null);
 const isSaving = ref(false);
 
 onMounted(async () => {
+  void settingsStore.ensureSettings().catch(() => undefined);
   try {
     const [, currentActivity] = await Promise.all([
       typeStore.fetchActivityTypes(),
@@ -136,12 +139,8 @@ async function handleSubmit() {
         </h1>
 
         <div>
-          <label for="activity-timezone" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Timezone</label>
-          <select id="activity-timezone" v-model="selectedTimezone" :disabled="isSaving"
-            aria-describedby="activity-timezone-help"
-            class="w-full border border-verve-medium rounded-xl text-sm py-2.5 px-3 text-verve-brown bg-white focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">
-            <option v-for="timezone in supportedTimezones" :key="timezone" :value="timezone">{{ timezone }}</option>
-          </select>
+          <TimezonePicker id="activity-timezone" v-model="selectedTimezone" label="Timezone" :disabled="isSaving"
+            :suggested-timezone="settingsStore.timezone ?? undefined" described-by="activity-timezone-help" />
           <p id="activity-timezone-help" class="mt-2 text-sm text-verve-brown/60">
             Changing the timezone updates the displayed local time without changing when the activity happened.
           </p>

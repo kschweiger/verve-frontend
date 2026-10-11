@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { supportedTimezones } from '@/services/timezones';
+import TimezonePicker from './TimezonePicker.vue';
 
 const props = defineProps<{
   initialTimezone: string;
@@ -17,16 +17,8 @@ const selectedTimezone = ref(props.initialTimezone);
 <template>
   <form class="space-y-4" @submit.prevent="emit('save', selectedTimezone)">
     <div>
-      <label for="user-timezone" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
-        Timezone
-      </label>
-      <select id="user-timezone" v-model="selectedTimezone" :disabled="isSaving"
-        aria-describedby="timezone-help timezone-error"
-        class="w-full rounded-xl border border-verve-medium bg-white px-3 py-2 text-sm text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">
-        <option v-for="timezone in supportedTimezones" :key="timezone" :value="timezone">
-          {{ timezone }}
-        </option>
-      </select>
+      <TimezonePicker id="user-timezone" v-model="selectedTimezone" label="Timezone" :disabled="isSaving"
+        :suggested-timezone="initialTimezone" described-by="timezone-help timezone-error" />
       <p id="timezone-help" class="mt-2 text-sm text-verve-brown/60">
         Your saved timezone will be used as timezone support is added to activity views.
       </p>
