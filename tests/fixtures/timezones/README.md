@@ -1,9 +1,22 @@
-Source: https://github.com/kschweiger/verve-backend/tree/49b0be92be869c38fc71f1af33e448a6f9e309c0/tests/resources/timezones
-Copied without modifications from commit 49b0be92be869c38fc71f1af33e448a6f9e309c0; this provenance header is the only addition.
-
 # Activity timezone fixtures
 
 Copy this entire folder to reuse these files in another client. No Python code or generation step is required.
+
+The backend publishes a SHA-256 digest at `tests/resources/timezones.sha256` and
+a reproducible ZIP at `tests/resources/timezones.zip`. The digest covers every
+file in this folder using sorted relative paths and file bytes. A frontend sync
+script can compare its saved digest with the published digest, download the ZIP
+when they differ, replace its fixture copy, and save the new digest. A digest
+change is a cue to review frontend behavior against the updated scenarios.
+
+For the `main` branch, the raw download URLs are:
+
+- Digest: `https://raw.githubusercontent.com/kschweiger/verve-backend/main/tests/resources/timezones.sha256`
+- Archive: `https://raw.githubusercontent.com/kschweiger/verve-backend/main/tests/resources/timezones.zip`
+
+After changing fixtures, regenerate the published files with
+`python scripts/timezone_fixtures.py --write`. Check them with
+`python scripts/timezone_fixtures.py --check`; pre-commit runs the same check.
 
 `cases.json` gives each scenario's user timezone, optional request override, upload routes, and expected activity/track instants. `expected.local_start` is the local time a frontend should display using `expected.timezone`; it is not a timestamp to send to the API.
 
