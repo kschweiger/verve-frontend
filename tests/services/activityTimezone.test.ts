@@ -45,6 +45,70 @@ afterEach(() => {
   globalThis.localStorage = originalLocalStorage;
 });
 
+describe('upload timezone requests', () => {
+  test.each([undefined, 'Europe/Berlin', 'Etc/GMT+1'])('sends optional file timezone %p without changing the file', async (timezone) => {
+    const requests: { url: string; init?: RequestInit }[] = [];
+    globalThis.fetch = mock(async (input: string | URL | Request, init?: RequestInit) => {
+      requests.push({ url: String(input), init });
+      return json({ data: [] });
+    });
+    const file = new File(['original bytes'], 'test.gpx');
+    const result = await useActivityStore().uploadActivity(file, 1, 2, timezone);
+    expect(result.success).toBe(true);
+    const request = requests.find(request => request.init?.method === 'POST');
+    expect(request).toBeDefined();
+    const params = new URL(request!.url, 'https://example.test').searchParams;
+    expect(params.get('timezone_name')).toBe(timezone ?? null);
+    expect(params.get('type_id')).toBe('1');
+    expect(params.get('sub_type_id')).toBe('2');
+    const body = request!.init?.body;
+    expect(body).toBeInstanceOf(FormData);
+    if (!(body instanceof FormData)) throw new Error('Expected file form');
+    const uploaded = body.get('file');
+    if (!(uploaded instanceof Blob)) throw new Error('Expected file');
+    expect(await uploaded.text()).toBe('original bytes');
+  });
+
+  test.each([undefined, 'America/Los_Angeles'])('sends manual timezone %p to creation and track attachment', async (timezone) => {
+    const requests: { url: string; init?: RequestInit }[] = [];
+    globalThis.fetch = mock(async (input: string | URL | Request, init?: RequestInit) => {
+      requests.push({ url: String(input), init });
+      return init?.method === 'POST' ? json(activityResponse()) : json({ data: [] });
+    });
+    const start = '2026-08-10T16:00:00.000Z';
+    const result = await useActivityStore().createManualActivity({
+      start, name: 'Manual', type_id: 1, sub_type_id: null, distance: 1,
+      duration: 'PT10M', add_default_equipment: true,
+    }, new File(['track bytes'], 'test.gpx'), timezone);
+    expect(result.success).toBe(true);
+    const writes = requests.filter(request => ['POST', 'PUT'].includes(request.init?.method ?? ''));
+    expect(writes).toHaveLength(2);
+    for (const request of writes) {
+      expect(new URL(request.url, 'https://example.test').searchParams.get('timezone_name')).toBe(timezone ?? null);
+    }
+    expect(JSON.parse(String(writes[0]!.init?.body)).start).toBe(start);
+    expect(new URL(writes[1]!.url, 'https://example.test').searchParams.get('activity_id')).toBe(activityResponse().id);
+  });
+
+  test('rejects unsupported overrides before sending any request', async () => {
+    const fetchMock = mock(async () => json({}));
+    globalThis.fetch = fetchMock;
+    expect((await useActivityStore().uploadActivity(new File([''], 'test.gpx'), null, null, 'Mars/Test')).success).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test('does not attach a track after a malformed creation response', async () => {
+    const fetchMock = mock(async () => json({ id: 'unvalidated' }));
+    globalThis.fetch = fetchMock;
+    const result = await useActivityStore().createManualActivity({
+      start: '2026-08-10T16:00:00Z', name: 'Manual', type_id: 1, distance: null,
+      duration: 'PT10M', add_default_equipment: false,
+    }, new File(['track'], 'test.gpx'), 'Europe/Berlin');
+    expect(result.success).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('validated activity timezone responses', () => {
   test.each(cases.cases)('$id preserves the API timezone and instant', ({ expected }) => {
     const result = mapApiActivity(
