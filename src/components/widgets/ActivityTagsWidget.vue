@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useTagsStore, type ActivityTagPublic, type TagSearchResult } from '@/stores/tags';
-import { Plus, X, Tag, Search, Loader2 } from 'lucide-vue-next';
+import { Plus, X, Tag, Search, Loader2 } from '@lucide/vue';
 
 const props = defineProps<{
   activityId: string;

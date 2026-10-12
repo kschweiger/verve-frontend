@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
-import { ChevronDown, Check, Search } from 'lucide-vue-next';
+import { ChevronDown, Check, Search } from '@lucide/vue';
 import { timezoneLabel, useTimezonePicker } from '@/composables/useTimezonePicker';
 
 const props = withDefaults(

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { FileText, HelpCircle, Info, Rocket } from 'lucide-vue-next';
+import { FileText, HelpCircle, Info, Rocket } from '@lucide/vue';
 const appVersion = import.meta.env.VITE_APP_VERSION;
 const route = useRoute();
 const activeTab = ref(route.hash.replace('#', '') || 'faq');

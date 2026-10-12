@@ -9,7 +9,7 @@ import {
   Dumbbell,
   HeartPulse,
   Rocket,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 
 const props = defineProps<{
   typeId?: number;

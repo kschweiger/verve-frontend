@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { useTagsStore, type TagSearchResult } from '@/stores/tags';
-import { Trash2, Plus, Search, Loader2, X } from 'lucide-vue-next';
+import { Trash2, Plus, Search, Loader2, X } from '@lucide/vue';
 
 const tagsStore = useTagsStore();
 

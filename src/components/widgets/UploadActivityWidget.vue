@@ -5,7 +5,7 @@ import { useActivityStore } from '@/stores/activity';
 import ActivityCreateForm from '@/components/forms/ActivityCreateForm.vue';
 import TimezonePicker from '@/components/forms/TimezonePicker.vue';
 import { useSettingsStore } from '@/stores/settings';
-import { FileText, CheckCircle, XCircle, Loader2, RefreshCw, HelpCircle } from 'lucide-vue-next';
+import { FileText, CheckCircle, XCircle, Loader2, RefreshCw, HelpCircle } from '@lucide/vue';
 
 const typeStore = useTypeStore();
 const activityStore = useActivityStore();

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { SwimmingMetaData, SwimmingSetMeta } from '@/activityMetadata/swimming';
-import { Info } from 'lucide-vue-next';
+import { Info } from '@lucide/vue';
 
 const props = defineProps<{
   metadata: SwimmingMetaData;

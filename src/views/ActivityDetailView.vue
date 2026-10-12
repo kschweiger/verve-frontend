@@ -34,7 +34,7 @@ import {
   ChevronsRight,
   Plus,
   Trash2,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import ActivityLocationsWidget from '@/components/widgets/ActivityLocationsWidget.vue';
 import CombinedMetricsChart from '@/components/CombinedMetricsChart.vue';
 import { useLocationStore } from '@/stores/location';

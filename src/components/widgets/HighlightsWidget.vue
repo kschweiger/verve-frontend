@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { Trophy } from 'lucide-vue-next';
+import { Trophy } from '@lucide/vue';
 import { useHighlightStore } from '@/stores/highlights';
 import { type Activity } from '@/stores/activity';
 import { fetchActivitySummary } from '@/services/api';

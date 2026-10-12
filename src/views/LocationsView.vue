@@ -7,7 +7,7 @@ import { useLocationStore, type Location } from '@/stores/location';
 import { useTypeStore } from '@/stores/types';
 import { VERVE_COLORS, getCategoryColor } from '@/utils/colors'; // Import helper
 import ActivityListItem from '@/components/ActivityListItem.vue';
-import { Trash2, Plus, Edit2, Check, X as IconX } from 'lucide-vue-next';
+import { Trash2, Plus, Edit2, Check, X as IconX } from '@lucide/vue';
 import LocationCreateModal from '@/components/forms/LocationCreateModal.vue';
 import LocationGoalCreateForm from '@/components/forms/LocationGoalCreateForm.vue';
 

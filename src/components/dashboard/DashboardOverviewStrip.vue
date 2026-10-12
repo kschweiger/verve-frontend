@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Activity, CalendarDays, Clock, Flame } from 'lucide-vue-next';
+import { Activity, CalendarDays, Clock, Flame } from '@lucide/vue';
 import { useStatisticsStore } from '@/stores/statistics';
 import {
   formatActivityGridDuration,

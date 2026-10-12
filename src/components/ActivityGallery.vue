@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useActivityStore, type ActivityImage } from '@/stores/activity';
-import { Trash2, Plus } from 'lucide-vue-next';
+import { Trash2, Plus } from '@lucide/vue';
 
 const props = defineProps<{
   activityId: string;

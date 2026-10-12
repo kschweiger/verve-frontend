@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { Edit, Trash2 } from 'lucide-vue-next';
+import { Edit, Trash2 } from '@lucide/vue';
 import ActivityListItem from '@/components/ActivityListItem.vue';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue';
 import CollectionMap from '@/components/collections/CollectionMap.vue';

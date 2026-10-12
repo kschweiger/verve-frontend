@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { Check, Plus, X } from 'lucide-vue-next';
+import { Check, Plus, X } from '@lucide/vue';
 import ActivityFilter from '@/components/ActivityFilter.vue';
 import ActivityListItem from '@/components/ActivityListItem.vue';
 import { fetchActivityPage, type ActivityPageParams } from '@/services/api';

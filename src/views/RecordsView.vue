@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
-import { CalendarDays, ChevronLeft, ChevronRight, Filter, Medal, Trophy } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, Filter, Medal, Trophy } from '@lucide/vue';
 import { useRecordsStore } from '@/stores/records';
 import { useSettingsStore } from '@/stores/settings';
 import { useTypeStore } from '@/stores/types';

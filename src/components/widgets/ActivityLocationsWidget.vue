@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useLocationStore, type LocationSearchResult } from '@/stores/location';
-import { Plus, X, Search, Loader2 } from 'lucide-vue-next';
+import { Plus, X, Search, Loader2 } from '@lucide/vue';
 
 const route = useRoute();
 const locationStore = useLocationStore();

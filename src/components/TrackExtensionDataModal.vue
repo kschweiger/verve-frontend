@@ -2,7 +2,7 @@
 import { onUnmounted, watch } from 'vue';
 import type { SupportedTrackExtension } from '@/services/api';
 import { trackExtensionLabels } from '@/utils/trackExtensions';
-import { Trash2 } from 'lucide-vue-next';
+import { Trash2 } from '@lucide/vue';
 
 const props = defineProps<{
   isOpen: boolean;

@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/stores/auth';
-import { Menu, X } from 'lucide-vue-next';
+import { Menu, X } from '@lucide/vue';
 import logo from '@/assets/logo.svg';
 
 const userStore = useUserStore();

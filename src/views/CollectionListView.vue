@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { Plus } from 'lucide-vue-next';
+import { Plus } from '@lucide/vue';
 import CollectionListItem from '@/components/collections/CollectionListItem.vue';
 import { fetchCollections, type CollectionOverview } from '@/services/collections';
 

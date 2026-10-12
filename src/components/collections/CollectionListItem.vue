@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Layers } from 'lucide-vue-next';
+import { Layers } from '@lucide/vue';
 import type { CollectionOverview } from '@/services/collections';
 
 const props = defineProps<{

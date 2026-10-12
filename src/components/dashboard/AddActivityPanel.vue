@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Plus, X } from 'lucide-vue-next';
+import { Plus, X } from '@lucide/vue';
 import UploadActivityWidget from '@/components/widgets/UploadActivityWidget.vue';
 
 const isOpen = ref(false);
