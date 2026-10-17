@@ -4,7 +4,7 @@ import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 import { mapApiActivity } from '../services/api';
-import { parseActivityPageData } from '../services/activityResponses';
+import type { ActivityPublic, ListResponse } from '../types/api';
 import { isSupportedTimezone } from '../services/timezones';
 import type { ActivityTagPublic } from './tags';
 
@@ -150,9 +150,9 @@ export const useActivityStore = defineStore('activity', () => {
 
       if (!response.ok) throw new Error('Failed to fetch activities.');
 
-      const data: unknown = await response.json();
+      const data: ListResponse<ActivityPublic> = await response.json();
       if (!isCurrent()) return;
-      recentActivities.value = parseActivityPageData(data).map(mapApiActivity);
+      recentActivities.value = data.data.map(mapApiActivity);
     } catch (e: unknown) {
       if (!isCurrent()) return;
       recentError.value = e instanceof Error ? e.message : 'An unknown error occurred.';
@@ -210,9 +210,9 @@ export const useActivityStore = defineStore('activity', () => {
 
       if (!response.ok) throw new Error('Failed to fetch paginated activities.');
 
-      const data: unknown = await response.json();
+      const data: ListResponse<ActivityPublic> = await response.json();
       if (!isCurrent()) return;
-      const newActivities = parseActivityPageData(data).map(mapApiActivity);
+      const newActivities = data.data.map(mapApiActivity);
 
       if (loadMore) {
         paginatedActivities.value.push(...newActivities);
@@ -306,11 +306,9 @@ export const useActivityStore = defineStore('activity', () => {
       if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to update activity.');
-      const data: unknown = await response.json();
+      const data: ActivityPublic = await response.json();
       if (!isCurrent()) return false;
       const updatedActivity = mapApiActivity(data);
-      if (updatedActivity.id !== activityId)
-        throw new Error('Unexpected activity update response.');
       recentActivities.value = recentActivities.value.map((activity) =>
         activity.id === activityId ? updatedActivity : activity
       );
@@ -362,15 +360,15 @@ export const useActivityStore = defineStore('activity', () => {
         throw new Error(activityErrorMessage(err, 'Failed to create activity.'));
       }
 
-      const activityData: unknown = await response.json();
+      const activityData: ActivityPublic = await response.json();
       if (!isCurrent())
         return { success: false, message: 'Account changed while processing the request.' };
-      const newActivity = mapApiActivity(activityData);
+      const newActivityId = activityData.id;
 
       if (file) {
         const formData = new FormData();
         formData.append('file', file);
-        const trackQuery = new URLSearchParams({ activity_id: newActivity.id });
+        const trackQuery = new URLSearchParams({ activity_id: newActivityId });
         if (timezoneName !== undefined) trackQuery.set('timezone_name', timezoneName);
         const trackResponse = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/track/?${trackQuery.toString()}`,

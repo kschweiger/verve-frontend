@@ -1,7 +1,8 @@
+import type * as Backend from '../types/api';
 import { useUserStore } from '../stores/auth';
 import type { Activity } from '../stores/activity';
-import { mapApiActivity, type TrackPoint } from './api';
-import { formatDuration, isAwareTimestamp, parseISODuration } from '../utils/datetime';
+import { mapApiActivity, mapApiTrackPoint, type TrackPoint } from './api';
+import { formatDuration, parseISODuration } from '../utils/datetime';
 
 export interface CollectionListFilters {
   limit?: number;
@@ -76,19 +77,6 @@ export interface CollectionTrackPoint extends TrackPoint {
   collectionDist: number | null;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-const toString = (value: unknown): string | null => (typeof value === 'string' ? value : null);
-
-const toNumber = (value: unknown): number | null => (typeof value === 'number' ? value : null);
-
-const toNullableNumber = (value: unknown): number | null =>
-  typeof value === 'number' ? value : null;
-
-const toStringArray = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
-
 const parseDuration = (duration: string) => {
   const seconds = parseISODuration(duration);
   return {
@@ -97,14 +85,15 @@ const parseDuration = (duration: string) => {
   };
 };
 
-const deriveEffectiveDuration = (
-  durationSeconds: number,
-  movingDurationSeconds: number | null
-) => {
+const deriveEffectiveDuration = (durationSeconds: number, movingDurationSeconds: number | null) => {
   const effectiveDurationSeconds =
-    movingDurationSeconds !== null && movingDurationSeconds > 0 ? movingDurationSeconds : durationSeconds;
+    movingDurationSeconds !== null && movingDurationSeconds > 0
+      ? movingDurationSeconds
+      : durationSeconds;
   const pauseDurationSeconds =
-    movingDurationSeconds !== null && movingDurationSeconds > 0 && durationSeconds > movingDurationSeconds
+    movingDurationSeconds !== null &&
+    movingDurationSeconds > 0 &&
+    durationSeconds > movingDurationSeconds
       ? durationSeconds - movingDurationSeconds
       : null;
 
@@ -116,31 +105,10 @@ const deriveEffectiveDuration = (
   };
 };
 
-function parseOverview(value: unknown): CollectionOverview {
-  if (!isRecord(value)) throw new Error('Invalid collection overview.');
-
-  const id = toString(value.id);
-  const name = toString(value.name);
-  const activityIds = toStringArray(value.activity_ids);
-  const count = toNumber(value.count);
-  const duration = toString(value.duration);
-  const start = toString(value.start);
-  const end = toString(value.end);
-
-  if (
-    id === null ||
-    name === null ||
-    activityIds.length === 0 ||
-    count === null ||
-    duration === null ||
-    start === null ||
-    end === null
-  ) {
-    throw new Error('Invalid collection overview.');
-  }
-
+function mapOverview(value: Backend.CollectionOverview): CollectionOverview {
+  const { id, name, activity_ids: activityIds, count, duration, start, end } = value;
   const parsedDuration = parseDuration(duration);
-  const movingDuration = toString(value.moving_duration);
+  const movingDuration = value.moving_duration;
   const parsedMovingDuration = movingDuration === null ? null : parseDuration(movingDuration);
   const effectiveDuration = deriveEffectiveDuration(
     parsedDuration.seconds,
@@ -151,9 +119,9 @@ function parseOverview(value: unknown): CollectionOverview {
     id,
     activityIds,
     name,
-    description: toString(value.description),
+    description: value.description ?? null,
     count,
-    distance: toNullableNumber(value.distance),
+    distance: value.distance ?? null,
     movingDuration: parsedMovingDuration?.label ?? null,
     movingDurationSeconds: parsedMovingDuration?.seconds ?? null,
     ...effectiveDuration,
@@ -161,36 +129,25 @@ function parseOverview(value: unknown): CollectionOverview {
     durationSeconds: parsedDuration.seconds,
     start,
     end,
-    elevationGain: toNullableNumber(value.elevation_change_up),
-    elevationLoss: toNullableNumber(value.elevation_change_down),
+    elevationGain: value.elevation_change_up ?? null,
+    elevationLoss: value.elevation_change_down ?? null,
   };
 }
 
-export function parseCollectionListResponse(value: unknown): CollectionOverview[] {
-  if (!isRecord(value) || !Array.isArray(value.data)) {
-    throw new Error('Invalid collection list response.');
-  }
-
+export function mapCollectionListResponse(
+  value: Backend.ListResponse<Backend.CollectionOverview>
+): CollectionOverview[] {
   return value.data
-    .map(parseOverview)
+    .map(mapOverview)
     .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
 }
 
-export function parseCollectionDetailResponse(value: unknown): CollectionDetail {
-  if (!isRecord(value) || !Array.isArray(value.activities)) {
-    throw new Error('Invalid collection detail response.');
-  }
-
-  const id = toString(value.id);
-  const name = toString(value.name);
-  const totalDuration = toString(value.total_duration);
-
-  if (id === null || name === null || totalDuration === null) {
-    throw new Error('Invalid collection detail response.');
-  }
-
+export function mapCollectionDetailResponse(
+  value: Backend.CollectionDetailResponse
+): CollectionDetail {
+  const { id, name, total_duration: totalDuration } = value;
   const parsedDuration = parseDuration(totalDuration);
-  const movingDuration = toString(value.total_moving_duration);
+  const movingDuration = value.total_moving_duration;
   const parsedMovingDuration = movingDuration === null ? null : parseDuration(movingDuration);
   const effectiveDuration = deriveEffectiveDuration(
     parsedDuration.seconds,
@@ -203,54 +160,28 @@ export function parseCollectionDetailResponse(value: unknown): CollectionDetail 
   return {
     id,
     name,
-    description: toString(value.description),
+    description: value.description ?? null,
     activities,
-    totalDistance: toNullableNumber(value.total_distance),
+    totalDistance: value.total_distance ?? null,
     totalDuration: parsedDuration.label,
     totalDurationSeconds: parsedDuration.seconds,
     totalMovingDuration: parsedMovingDuration?.label ?? null,
     totalMovingDurationSeconds: parsedMovingDuration?.seconds ?? null,
     ...effectiveDuration,
-    totalElevationGain: toNullableNumber(value.total_elevation_change_up),
-    totalElevationLoss: toNullableNumber(value.total_elevation_change_down),
+    totalElevationGain: value.total_elevation_change_up ?? null,
+    totalElevationLoss: value.total_elevation_change_down ?? null,
   };
 }
 
-function parseCollectionTrackPoint(value: unknown): CollectionTrackPoint {
-  if (!isRecord(value)) throw new Error('Invalid collection track point.');
-
-  const id = toNumber(value.id);
-  const activityId = toString(value.activity_id);
-  const activityIndex = toNumber(value.activity_index);
-  const time = toString(value.time);
-
-  if (id === null || activityId === null || activityIndex === null || !isAwareTimestamp(time)) {
-    throw new Error('Invalid collection track point.');
-  }
-
-  return {
-    id,
-    lat: toNullableNumber(value.latitude),
-    lon: toNullableNumber(value.longitude),
-    ele: toNullableNumber(value.elevation),
-    time,
-    dist: toNullableNumber(value.cum_distance) ?? 0,
-    speed: toNullableNumber(value.speed),
-    hr: toNullableNumber(value.heartrate),
-    cad: toNullableNumber(value.cadence),
-    power: toNullableNumber(value.power),
-    activityId,
-    activityIndex,
-    collectionDist: toNullableNumber(value.collection_cum_distance),
-  };
-}
-
-export function parseCollectionTrackResponse(value: unknown): CollectionTrackPoint[] {
-  if (!isRecord(value) || !Array.isArray(value.data)) {
-    throw new Error('Invalid collection track response.');
-  }
-
-  return value.data.map(parseCollectionTrackPoint);
+export function mapCollectionTrackResponse(
+  value: Backend.ListResponse<Backend.CollectionTrackPointResponse>
+): CollectionTrackPoint[] {
+  return value.data.map((point) => ({
+    ...mapApiTrackPoint(point),
+    activityId: point.activity_id,
+    activityIndex: point.activity_index,
+    collectionDist: point.collection_cum_distance,
+  }));
 }
 
 const getAuthHeaders = (): HeadersInit => {
@@ -283,27 +214,17 @@ const buildCollectionQuery = (filters: CollectionListFilters) => {
   return query.toString();
 };
 
-const parseMutationResult = (value: unknown): CollectionMutationResult => {
-  if (!isRecord(value)) throw new Error('Invalid collection mutation response.');
+const mapMutationResult = (value: Backend.ActivityCollectionPublic): CollectionMutationResult => ({
+  id: value.id,
+  name: value.name,
+  description: value.description ?? null,
+  createdAt: value.created_at,
+  activityIds: value.activity_ids,
+});
 
-  const id = toString(value.id);
-  const name = toString(value.name);
-  const createdAt = toString(value.created_at);
-
-  if (id === null || name === null || createdAt === null) {
-    throw new Error('Invalid collection mutation response.');
-  }
-
-  return {
-    id,
-    name,
-    description: toString(value.description),
-    createdAt,
-    activityIds: toStringArray(value.activity_ids),
-  };
-};
-
-export async function fetchCollections(filters: CollectionListFilters): Promise<CollectionOverview[]> {
+export async function fetchCollections(
+  filters: CollectionListFilters
+): Promise<CollectionOverview[]> {
   const query = buildCollectionQuery(filters);
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/collection?${query}`, {
     method: 'GET',
@@ -311,7 +232,8 @@ export async function fetchCollections(filters: CollectionListFilters): Promise<
   });
 
   if (!response.ok) throw new Error('Failed to fetch collections.');
-  return parseCollectionListResponse(await response.json());
+  const data: Backend.ListResponse<Backend.CollectionOverview> = await response.json();
+  return mapCollectionListResponse(data);
 }
 
 export async function createCollection(
@@ -328,7 +250,8 @@ export async function createCollection(
   });
 
   if (!response.ok) throw new Error('Failed to create collection.');
-  return parseMutationResult(await response.json());
+  const data: Backend.ActivityCollectionPublic = await response.json();
+  return mapMutationResult(data);
 }
 
 export async function fetchCollection(collectionId: string): Promise<CollectionDetail> {
@@ -338,7 +261,8 @@ export async function fetchCollection(collectionId: string): Promise<CollectionD
   });
 
   if (!response.ok) throw new Error('Failed to fetch collection.');
-  return parseCollectionDetailResponse(await response.json());
+  const data: Backend.CollectionDetailResponse = await response.json();
+  return mapCollectionDetailResponse(data);
 }
 
 export async function updateCollection(
@@ -358,7 +282,8 @@ export async function updateCollection(
   });
 
   if (!response.ok) throw new Error('Failed to update collection.');
-  return parseMutationResult(await response.json());
+  const data: Backend.ActivityCollectionPublic = await response.json();
+  return mapMutationResult(data);
 }
 
 export async function deleteCollection(collectionId: string): Promise<void> {
@@ -371,11 +296,15 @@ export async function deleteCollection(collectionId: string): Promise<void> {
 }
 
 export async function fetchCollectionTrack(collectionId: string): Promise<CollectionTrackPoint[]> {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/collection/${collectionId}/track`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/collection/${collectionId}/track`,
+    {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    }
+  );
 
   if (!response.ok) throw new Error('Failed to fetch collection track.');
-  return parseCollectionTrackResponse(await response.json());
+  const data: Backend.ListResponse<Backend.CollectionTrackPointResponse> = await response.json();
+  return mapCollectionTrackResponse(data);
 }

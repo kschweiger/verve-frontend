@@ -1,3 +1,4 @@
+import type { ActivityCalendarItem } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
@@ -14,15 +15,7 @@ export interface StatsMetric {
   elevation_gain: number;
 }
 
-export interface ActivityCalendarItem {
-  id: string;
-  name: string | null;
-  type_id: number;
-  distance: number | null;
-  duration: number | string; // API might return ISO string or seconds
-  effective_duration: number;
-  elevation_gain: number | null;
-}
+export type { ActivityCalendarItem } from '../types/api';
 
 export interface CalendarDay {
   date: string;

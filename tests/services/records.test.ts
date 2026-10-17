@@ -4,7 +4,7 @@ import { useUserStore } from '../../src/stores/auth';
 import {
   buildRecordsQuery,
   fetchRecordsOverview,
-  parseHighlightsByMetricResponse,
+  mapHighlightsByMetricResponse,
 } from '../../src/services/records';
 
 const originalFetch = globalThis.fetch;
@@ -59,7 +59,7 @@ describe('records service', () => {
   });
 
   test('parses a valid overview dictionary into metric groups', () => {
-    const result = parseHighlightsByMetricResponse({
+    const result = mapHighlightsByMetricResponse({
       data: {
         distance: [
           validRecord({ activity_id: 'activity-2', rank: 2 }),
@@ -98,7 +98,7 @@ describe('records service', () => {
   });
 
   test('maps missing nullable fields to null', () => {
-    const result = parseHighlightsByMetricResponse({
+    const result = mapHighlightsByMetricResponse({
       data: {
         distance: [validRecord({ year: undefined, track_id: undefined })],
       },
@@ -108,40 +108,12 @@ describe('records service', () => {
     expect(result[0]?.records[0]?.track_id).toBeNull();
   });
 
-  test('rejects unknown metric keys', () => {
-    expect(() =>
-      parseHighlightsByMetricResponse({
-        data: {
-          calories: [validRecord({ metric: 'calories' })],
-        },
-      })
-    ).toThrow('Unknown records metric');
-  });
-
-  test('rejects invalid record fields and malformed response data', () => {
-    expect(() =>
-      parseHighlightsByMetricResponse({ data: { distance: [validRecord({ scope: 'monthly' })] } })
-    ).toThrow('Invalid activity highlight');
-    expect(() =>
-      parseHighlightsByMetricResponse({ data: { distance: [validRecord({ rank: 0 })] } })
-    ).toThrow('Invalid activity highlight');
-    expect(() =>
-      parseHighlightsByMetricResponse({ data: { distance: [validRecord({ value: false })] } })
-    ).toThrow('Invalid activity highlight');
-    expect(() =>
-      parseHighlightsByMetricResponse({ data: { distance: [validRecord({ activity_id: undefined })] } })
-    ).toThrow('Invalid activity highlight');
-    expect(() => parseHighlightsByMetricResponse({ data: [] })).toThrow('Invalid records response');
-  });
-
-  test('rejects records whose metric does not match the containing metric key', () => {
-    expect(() =>
-      parseHighlightsByMetricResponse({
-        data: {
-          distance: [validRecord({ metric: 'duration' })],
-        },
-      })
-    ).toThrow('Record metric does not match group metric');
+  test('preserves duration values and unrestricted integer ranks from the contract', () => {
+    const result = mapHighlightsByMetricResponse({
+      data: { duration: [validRecord({ metric: 'duration', value: 'P1D', rank: 0 })] },
+    });
+    expect(result[0]?.records[0]?.value).toBe('P1D');
+    expect(result[0]?.records[0]?.rank).toBe(0);
   });
 
   test('fetches the overview with auth headers and parses the response', async () => {

@@ -1,3 +1,4 @@
+import type * as Backend from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
@@ -5,7 +6,7 @@ import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 
 export const equipmentTypeValues = ['bike', 'shoes', 'skis', 'snowboard', 'hometrainer'] as const;
-export type EquipmentType = (typeof equipmentTypeValues)[number];
+export type EquipmentType = Backend.EquipmentType;
 
 export interface Equipment {
   id: string;
@@ -17,81 +18,18 @@ export interface Equipment {
   purchase_date: string | null;
 }
 
-export interface EquipmentSet {
-  id: string;
-  name: string;
-  items: string[];
-}
+export type EquipmentSet = Backend.EquipmentSetPublic;
+export type EquipmentCreatePayload = Backend.EquipmentCreate;
+export type EquipmentUpdatePayload = Backend.EquipmentUpdate;
 
-export interface EquipmentCreatePayload {
-  name: string;
-  equipment_type: EquipmentType;
-  brand?: string | null;
-  model?: string | null;
-  description?: string | null;
-  purchase_date?: string | null;
-}
-
-export interface EquipmentUpdatePayload {
-  name?: string | null;
-  equipment_type?: EquipmentType | null;
-  brand?: string | null;
-  model?: string | null;
-  description?: string | null;
-  purchase_date?: string | null;
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-function parseEquipment(value: unknown): Equipment {
-  if (!isRecord(value)) throw new Error('Invalid equipment response.');
-  const { id, name, equipment_type, brand, model, description, purchase_date } = value;
-  if (
-    typeof id !== 'string' ||
-    typeof name !== 'string' ||
-    typeof equipment_type !== 'string' ||
-    !equipmentTypeValues.includes(equipment_type as EquipmentType) ||
-    ![brand, model, description, purchase_date].every(
-      (field) => field === undefined || field === null || typeof field === 'string'
-    )
-  ) {
-    throw new Error('Invalid equipment response.');
-  }
+function mapEquipment(value: Backend.EquipmentPublic): Equipment {
   return {
-    id,
-    name,
-    equipment_type: equipment_type as EquipmentType,
-    brand: (brand as string | null | undefined) ?? null,
-    model: (model as string | null | undefined) ?? null,
-    description: (description as string | null | undefined) ?? null,
-    purchase_date: (purchase_date as string | null | undefined) ?? null,
+    ...value,
+    brand: value.brand ?? null,
+    model: value.model ?? null,
+    description: value.description ?? null,
+    purchase_date: value.purchase_date ?? null,
   };
-}
-
-function parseEquipmentListResponse(value: unknown): Equipment[] {
-  if (!isRecord(value) || !Array.isArray(value.data)) {
-    throw new Error('Invalid equipment list response.');
-  }
-  return value.data.map(parseEquipment);
-}
-
-function parseEquipmentSetsResponse(value: unknown): EquipmentSet[] {
-  if (!isRecord(value) || !Array.isArray(value.data)) {
-    throw new Error('Invalid equipment sets response.');
-  }
-  return value.data.map((set): EquipmentSet => {
-    if (
-      !isRecord(set) ||
-      typeof set.id !== 'string' ||
-      typeof set.name !== 'string' ||
-      !Array.isArray(set.items) ||
-      !set.items.every((item) => typeof item === 'string')
-    ) {
-      throw new Error('Invalid equipment sets response.');
-    }
-    return { id: set.id, name: set.name, items: set.items };
-  });
 }
 
 export const useEquipmentStore = defineStore('equipment', () => {
@@ -131,14 +69,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/types`);
       if (!isCurrent()) return;
       if (response.ok) {
-        const data: unknown = await response.json();
+        const data: Backend.ListResponse<EquipmentType> = await response.json();
         if (!isCurrent()) return;
-        if (isRecord(data) && Array.isArray(data.data)) {
-          equipmentTypes.value = data.data.filter(
-            (type): type is EquipmentType =>
-              typeof type === 'string' && equipmentTypeValues.includes(type as EquipmentType)
-          );
-        }
+        equipmentTypes.value = data.data;
       }
     } catch (error: unknown) {
       if (!isCurrent()) return;
@@ -159,9 +92,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
       });
       if (!isCurrent()) return;
       if (response.ok) {
-        const data: unknown = await response.json();
+        const data: Backend.ListResponse<Backend.EquipmentPublic> = await response.json();
         if (!isCurrent()) return;
-        allEquipment.value = parseEquipmentListResponse(data);
+        allEquipment.value = data.data.map(mapEquipment);
       }
     } catch (error: unknown) {
       if (!isCurrent()) return;
@@ -182,9 +115,6 @@ export const useEquipmentStore = defineStore('equipment', () => {
     });
     if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to create equipment.');
-    const created: unknown = await response.json();
-    if (!isCurrent()) return;
-    parseEquipment(created);
     await fetchAllEquipment();
   }
 
@@ -197,9 +127,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
     });
     if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to update equipment.');
-    const data: unknown = await response.json();
+    const data: Backend.EquipmentPublic = await response.json();
     if (!isCurrent()) return;
-    const updated = parseEquipment(data);
+    const updated = mapEquipment(data);
     allEquipment.value = allEquipment.value.map((item) => (item.id === id ? updated : item));
     activityEquipment.value = activityEquipment.value.map((item) =>
       item.id === id ? updated : item
@@ -223,9 +153,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
       });
       if (!isCurrent() || !ownsSets()) return;
       if (!setsResponse.ok) throw new Error();
-      const setsData: unknown = await setsResponse.json();
+      const setsData: Backend.ListResponse<EquipmentSet> = await setsResponse.json();
       if (!isCurrent() || !ownsSets()) return;
-      equipmentSets.value = parseEquipmentSetsResponse(setsData);
+      equipmentSets.value = setsData.data;
     } catch {
       if (!isCurrent() || !ownsSets()) return;
       throw new Error('Equipment was deleted, but equipment sets could not be refreshed.');
@@ -240,9 +170,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
       });
       if (!isCurrent()) return;
       if (response.ok) {
-        const data: unknown = await response.json();
+        const data: Backend.ListResponse<EquipmentSet> = await response.json();
         if (!isCurrent()) return;
-        equipmentSets.value = parseEquipmentSetsResponse(data);
+        equipmentSets.value = data.data;
       }
     } catch (e) {
       if (!isCurrent()) return;
@@ -329,9 +259,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
     );
     if (!isCurrent()) return;
     if (response.ok) {
-      const data: unknown = await response.json();
+      const data: Backend.ListResponse<Backend.EquipmentPublic> = await response.json();
       if (!isCurrent()) return;
-      activityEquipment.value = parseEquipmentListResponse(data);
+      activityEquipment.value = data.data.map(mapEquipment);
     } else {
       activityEquipment.value = [];
     }

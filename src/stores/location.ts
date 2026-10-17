@@ -6,7 +6,7 @@ import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 import type { Activity } from './activity';
 import { mapApiActivity } from '../services/api';
-import { parseActivityPageData } from '../services/activityResponses';
+import type { ActivityPublic, ListResponse } from '../types/api';
 
 // --- Interfaces ---
 export interface Location {
@@ -198,9 +198,9 @@ export const useLocationStore = defineStore('location', () => {
       );
       if (!isCurrent()) return;
       if (actResponse.ok) {
-        const actData: unknown = await actResponse.json();
+        const actData: ListResponse<ActivityPublic> = await actResponse.json();
         if (!isCurrent()) return;
-        selectedLocationActivities.value = parseActivityPageData(actData).map(mapApiActivity);
+        selectedLocationActivities.value = actData.data.map(mapApiActivity);
       }
     } catch (e: unknown) {
       if (!isCurrent()) return;

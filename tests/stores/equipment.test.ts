@@ -66,13 +66,13 @@ describe('equipment item mutations', () => {
     expect(store.activityEquipment).toEqual([updated]);
   });
 
-  test('rejects malformed update responses without changing cached items', async () => {
-    globalThis.fetch = mock(async () => jsonResponse({ id: equipment.id })) as typeof fetch;
+  test('preserves cached items when an update request fails', async () => {
+    globalThis.fetch = mock(async () => jsonResponse({}, { status: 503 })) as typeof fetch;
     const store = useEquipmentStore();
     store.allEquipment = [equipment];
 
     await expect(store.updateEquipment(equipment.id, { name: 'Changed' })).rejects.toThrow(
-      'Invalid equipment response.'
+      'Failed to update equipment.'
     );
     expect(store.allEquipment).toEqual([equipment]);
   });

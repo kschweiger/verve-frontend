@@ -161,7 +161,7 @@ const cases: AccountStoreCase[] = [
     load: () => useHeatmapStore().fetchHeatmapData({}),
     response: { points: [[48, 11, 1]], center: [48, 11] },
     populated: { heatmapPoints: [[48, 11, 1]], heatmapCenter: [48, 11], isLoading: true },
-    cleared: { heatmapPoints: [], heatmapCenter: [0, 0], isLoading: false },
+    cleared: { heatmapPoints: [], heatmapCenter: null, isLoading: false },
   },
   {
     name: 'highlights',

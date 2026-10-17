@@ -210,6 +210,20 @@ test('a failed segment load is local to the segment panel', async () => {
   expect(segments.canStartNewSegmentSet.value).toBe(true);
 });
 
+test('segment statistics accept an empty display-metrics list from the API', async () => {
+  globalThis.fetch = (async (input: RequestInfo | URL) =>
+    Response.json(
+      input.toString().includes('/sets/')
+        ? { data: [setId] }
+        : { ...statistics([]), display_metadata: { primary_metric: 'speed', display_metrics: [] } }
+    )) as typeof fetch;
+  const segments = inScope(() => useActivitySegments(ref(firstId), track, ref(null)));
+  await settled(segments.isLoadingSegmentSets);
+  expect(segments.segmentSetError.value).toBeNull();
+  expect(segments.selectedSegmentStatistics.value?.displayMetadata.speedUnit).toBe('km/h');
+  expect(segments.displayMetrics.value).toEqual(['speed']);
+});
+
 test('a segment draft cannot start while the available sets are still loading', async () => {
   let complete!: (response: Response) => void;
   globalThis.fetch = (() =>
