@@ -76,9 +76,9 @@ repos:
     hooks:
       - id: vue-tsc
         name: Vue TypeScript check
-        entry: bun run vue-tsc --noEmit
+        entry: bun run type-check
         language: system
-        files: \.vue$
+        files: \.(ts|tsx|vue|json)$
         pass_filenames: false
 
   # Dependency audit runs on demand; advisories do not block commits.

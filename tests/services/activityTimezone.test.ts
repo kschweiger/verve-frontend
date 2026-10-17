@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -50,10 +51,12 @@ describe('upload timezone requests', () => {
     'sends optional file timezone %p without changing the file',
     async (timezone) => {
       const requests: { url: string; init?: RequestInit }[] = [];
-      globalThis.fetch = mock(async (input: string | URL | Request, init?: RequestInit) => {
-        requests.push({ url: String(input), init });
-        return json({ data: [] });
-      });
+      globalThis.fetch = stubFetch(
+        mock(async (input: string | URL | Request, init?: RequestInit) => {
+          requests.push({ url: String(input), init });
+          return json({ data: [] });
+        })
+      );
       const file = new File(['original bytes'], 'test.gpx');
       const result = await useActivityStore().uploadActivity(file, 1, 2, timezone);
       expect(result.success).toBe(true);
@@ -76,10 +79,12 @@ describe('upload timezone requests', () => {
     'sends manual timezone %p to creation and track attachment',
     async (timezone) => {
       const requests: { url: string; init?: RequestInit }[] = [];
-      globalThis.fetch = mock(async (input: string | URL | Request, init?: RequestInit) => {
-        requests.push({ url: String(input), init });
-        return init?.method === 'POST' ? json(activityResponse()) : json({ data: [] });
-      });
+      globalThis.fetch = stubFetch(
+        mock(async (input: string | URL | Request, init?: RequestInit) => {
+          requests.push({ url: String(input), init });
+          return init?.method === 'POST' ? json(activityResponse()) : json({ data: [] });
+        })
+      );
       const start = '2026-08-10T16:00:00.000Z';
       const result = await useActivityStore().createManualActivity(
         {
@@ -113,7 +118,7 @@ describe('upload timezone requests', () => {
 
   test('rejects unsupported overrides before sending any request', async () => {
     const fetchMock = mock(async () => json({}));
-    globalThis.fetch = fetchMock;
+    globalThis.fetch = stubFetch(fetchMock);
     expect(
       (await useActivityStore().uploadActivity(new File([''], 'test.gpx'), null, null, 'Mars/Test'))
         .success
@@ -123,7 +128,7 @@ describe('upload timezone requests', () => {
 
   test('does not attach a track when activity creation fails', async () => {
     const fetchMock = mock(async () => json({}, 422));
-    globalThis.fetch = fetchMock;
+    globalThis.fetch = stubFetch(fetchMock);
     const result = await useActivityStore().createManualActivity(
       {
         start: '2026-08-10T16:00:00Z',
@@ -160,13 +165,15 @@ describe('activity timezone response mapping', () => {
   });
 
   test('maps timezone data in detail, page, and both store loaders', async () => {
-    globalThis.fetch = mock(async (input: RequestInfo | URL) =>
-      json(
-        input.toString().includes('/activity/?')
-          ? { data: [activityResponse()] }
-          : activityResponse()
+    globalThis.fetch = stubFetch(
+      mock(async (input: RequestInfo | URL) =>
+        json(
+          input.toString().includes('/activity/?')
+            ? { data: [activityResponse()] }
+            : activityResponse()
+        )
       )
-    ) as typeof fetch;
+    );
     expect((await fetchActivitySummary('activity-id')).timezone).toBe('America/Los_Angeles');
     expect((await fetchActivityPage({}))[0]?.timezone).toBe('America/Los_Angeles');
     const store = useActivityStore();
@@ -178,25 +185,27 @@ describe('activity timezone response mapping', () => {
 
   test('maps DST track data without changing heart rates or elapsed positions', async () => {
     const scenario = cases.cases.find((item) => item.id === 'berlin-dst-fallback')!;
-    globalThis.fetch = mock(async () =>
-      json({
-        data: scenario.expected.point_times.map((time, i) => ({
-          id: i + 1,
-          segment_id: 1,
-          latitude: 52.5,
-          longitude: 13.4,
-          elevation: 50,
-          time,
-          diff_time: i === 0 ? null : 300,
-          diff_distance: null,
-          cum_distance: i * 500,
-          speed: null,
-          heartrate: scenario.expected.heart_rates[i],
-          cadence: null,
-          power: null,
-        })),
-      })
-    ) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(async () =>
+        json({
+          data: scenario.expected.point_times.map((time, i) => ({
+            id: i + 1,
+            segment_id: 1,
+            latitude: 52.5,
+            longitude: 13.4,
+            elevation: 50,
+            time,
+            diff_time: i === 0 ? null : 300,
+            diff_distance: null,
+            cum_distance: i * 500,
+            speed: null,
+            heartrate: scenario.expected.heart_rates[i],
+            cadence: null,
+            power: null,
+          })),
+        })
+      )
+    );
     const points = await fetchActivityTrack('activity-id');
     expect(points.map((point) => point.time)).toEqual(scenario.expected.point_times);
     expect(points.map((point) => point.hr)).toEqual([96, 108, 120]);
@@ -214,11 +223,13 @@ describe('activity timezone correction', () => {
     store.paginatedActivities = [initial];
     let request: RequestInit | undefined;
     let requestUrl = '';
-    globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-      requestUrl = input.toString();
-      request = init;
-      return json(activityResponse({ timezone: 'Europe/Berlin' }));
-    }) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+        requestUrl = input.toString();
+        request = init;
+        return json(activityResponse({ timezone: 'Europe/Berlin' }));
+      })
+    );
     expect(await store.updateActivity(initial.id, { timezone: 'Europe/Berlin' })).toBe(true);
     expect(requestUrl.endsWith(`/activity/${initial.id}`)).toBe(true);
     expect(request?.body).toBe(JSON.stringify({ timezone: 'Europe/Berlin' }));
@@ -234,7 +245,7 @@ describe('activity timezone correction', () => {
     const initial = mapApiActivity(activityResponse());
     store.recentActivities = [initial];
     const lastUpdate = store.lastUpdate;
-    globalThis.fetch = mock(async () => json({}, status)) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => json({}, status)));
     expect(await store.updateActivity(initial.id, { timezone: 'Europe/Berlin' })).toBe(false);
     expect(store.recentActivities[0]?.timezone).toBe('America/Los_Angeles');
     expect(store.lastUpdate).toBe(lastUpdate);

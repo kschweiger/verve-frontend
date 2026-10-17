@@ -28,8 +28,8 @@ Verve is a Vue frontend for reviewing, organizing, and comparing activity data.
 ## Commands
 
 - `bun run dev` starts the app.
-- `bun run check` runs the ESLint baseline check, Vue type check, and production build. Run it before handing off non-trivial changes.
+- `bun run check` runs ESLint, app/tooling/test type checks, and the production build. Run it before handing off non-trivial changes.
 - `bun test` runs the test suite; use focused tests for affected behavior.
-- `bun run lint:check` checks against existing lint debt in `docs/generated/eslint-baseline.json`. Do not expand the baseline to accept new violations.
+- `bun run lint:check` requires zero ESLint warnings or errors. Fix violations instead of suppressing them.
 
 Ask before destructive production actions or changes to security, billing, or external credentials.

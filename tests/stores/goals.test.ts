@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -41,13 +42,13 @@ afterEach(() => {
 test('manual progress sends direction and amount to the documented endpoint and updates every cache', async () => {
   const updated = { ...goal, current: 7, progress: 0.7 };
   const requests: Array<{ url: URL; method: string | undefined }> = [];
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
     requests.push({
       url: new URL(input.toString(), 'https://api.example.test'),
       method: init?.method,
     });
     return Response.json(updated);
-  }) as typeof fetch;
+  });
   const store = useGoalStore();
   const other = { ...goal, id: '00000000-0000-4000-8000-000000000002', name: 'Other' };
   store.goals = [goal, other];
@@ -68,10 +69,10 @@ test('manual progress sends direction and amount to the documented endpoint and 
 
 test('manual progress can decrease by the default amount of one', async () => {
   let requestUrl: URL | undefined;
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) => {
     requestUrl = new URL(input.toString(), 'https://api.example.test');
     return Response.json({ ...goal, current: 3, progress: 0.3 });
-  }) as typeof fetch;
+  });
   const store = useGoalStore();
   store.goals = [goal];
   expect(await store.modifyManualGoal(goal.id, false)).toBe(true);
@@ -81,7 +82,7 @@ test('manual progress can decrease by the default amount of one', async () => {
 });
 
 test('failed manual progress keeps all cached goals and exposes the error', async () => {
-  globalThis.fetch = (async () => Response.json({}, { status: 503 })) as typeof fetch;
+  globalThis.fetch = stubFetch(async () => Response.json({}, { status: 503 }));
   const store = useGoalStore();
   store.goals = [goal];
   store.yearlyGoals = [goal];

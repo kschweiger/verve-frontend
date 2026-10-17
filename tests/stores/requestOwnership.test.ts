@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -229,7 +230,7 @@ const cases: QueryCase[] = [
     name: 'heatmap filters',
     load: (v) => useHeatmapStore().fetchHeatmapData({ year: 2024 + v }),
     response: (v) => ({ points: [[v, 11, 1]], center: [v, 11] }),
-    read: () => useHeatmapStore().heatmapCenter[0],
+    read: () => useHeatmapStore().heatmapCenter?.[0],
     expected: 2,
   },
   {
@@ -317,8 +318,7 @@ for (const entry of cases) {
   describe(entry.name, () => {
     test('a slower old query cannot overwrite the latest result', async () => {
       const pending: Array<(response: Response) => void> = [];
-      globalThis.fetch = (() =>
-        new Promise<Response>((resolve) => pending.push(resolve))) as typeof fetch;
+      globalThis.fetch = stubFetch(() => new Promise<Response>((resolve) => pending.push(resolve)));
       const oldRequest = entry.load(1);
       const latestRequest = entry.load(2);
       expect(pending).toHaveLength(2);
@@ -334,8 +334,7 @@ for (const entry of cases) {
 
 test('an outdated filter failure cannot finish the current request or show its error', async () => {
   const pending: Array<(response: Response) => void> = [];
-  globalThis.fetch = (() =>
-    new Promise<Response>((resolve) => pending.push(resolve))) as typeof fetch;
+  globalThis.fetch = stubFetch(() => new Promise<Response>((resolve) => pending.push(resolve)));
   const store = useActivityStore();
   const oldRequest = store.fetchActivities({ year: 2025 });
   const latestRequest = store.fetchActivities({ year: 2026 });
@@ -349,22 +348,23 @@ test('an outdated filter failure cannot finish the current request or show its e
 });
 
 test('duplicate load-more actions request and append a page only once', async () => {
-  globalThis.fetch = (async () =>
+  globalThis.fetch = stubFetch(async () =>
     Response.json({
       data: Array.from({ length: 5 }, (_, i) => ({
         ...activity(1),
         id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
       })),
       count: 6,
-    })) as typeof fetch;
+    })
+  );
   const store = useActivityStore();
   await store.fetchActivities({});
   const pending: Array<(response: Response) => void> = [];
   const urls: string[] = [];
-  globalThis.fetch = ((input: RequestInfo | URL) => {
+  globalThis.fetch = stubFetch((input: RequestInfo | URL) => {
     urls.push(input.toString());
     return new Promise<Response>((resolve) => pending.push(resolve));
-  }) as typeof fetch;
+  });
   const first = store.fetchActivities({}, true);
   const second = store.fetchActivities({}, true);
   expect(urls).toHaveLength(1);
@@ -382,8 +382,7 @@ test('duplicate load-more actions request and append a page only once', async ()
 
 test('the goal dashboard keeps the latest selected period', async () => {
   const pending: Array<(response: Response) => void> = [];
-  globalThis.fetch = (() =>
-    new Promise<Response>((resolve) => pending.push(resolve))) as typeof fetch;
+  globalThis.fetch = stubFetch(() => new Promise<Response>((resolve) => pending.push(resolve)));
   const store = useGoalStore();
   const oldRequest = store.fetchAllGoalsForView(2025, 1);
   const latestRequest = store.fetchAllGoalsForView(2026, 2);
@@ -399,10 +398,11 @@ test('the goal dashboard keeps the latest selected period', async () => {
 
 test('selecting a new location prevents the previous detail request from replacing it', async () => {
   const pending: Array<(response: Response) => void> = [];
-  globalThis.fetch = ((input: RequestInfo | URL) =>
+  globalThis.fetch = stubFetch((input: RequestInfo | URL) =>
     input.toString().endsWith('/activities')
       ? Promise.resolve(Response.json({ data: [], count: 0 }))
-      : new Promise<Response>((resolve) => pending.push(resolve))) as typeof fetch;
+      : new Promise<Response>((resolve) => pending.push(resolve))
+  );
   const store = useLocationStore();
   const oldRequest = store.selectLocation('old-location');
   const latestRequest = store.selectLocation('new-location');
@@ -415,8 +415,7 @@ test('selecting a new location prevents the previous detail request from replaci
 
 test('year and calendar requests keep independent loading and error state', async () => {
   const pending: Array<(response: Response) => void> = [];
-  globalThis.fetch = (() =>
-    new Promise<Response>((resolve) => pending.push(resolve))) as typeof fetch;
+  globalThis.fetch = stubFetch(() => new Promise<Response>((resolve) => pending.push(resolve)));
   const store = useStatisticsStore();
   const year = store.fetchYearlyStats(2026);
   const month = store.fetchCalendar(2026, 2);
@@ -433,10 +432,11 @@ test('year and calendar requests keep independent loading and error state', asyn
 
 test('location bounds loading cannot finish selected-location loading', async () => {
   const pending: Array<(response: Response) => void> = [];
-  globalThis.fetch = ((input: RequestInfo | URL) =>
+  globalThis.fetch = stubFetch((input: RequestInfo | URL) =>
     input.toString().endsWith('/activities')
       ? Promise.resolve(Response.json({ data: [], count: 0 }))
-      : new Promise<Response>((resolve) => pending.push(resolve))) as typeof fetch;
+      : new Promise<Response>((resolve) => pending.push(resolve))
+  );
   const store = useLocationStore();
   const bounds = store.fetchLocationsInBounds({ latMin: 0, latMax: 1, lngMin: 0, lngMax: 1 });
   const detail = store.selectLocation(id);
@@ -451,8 +451,7 @@ test('location bounds loading cannot finish selected-location loading', async ()
 
 test('general goals and dashboard periods keep independent request status', async () => {
   const pending: Array<(response: Response) => void> = [];
-  globalThis.fetch = (() =>
-    new Promise<Response>((resolve) => pending.push(resolve))) as typeof fetch;
+  globalThis.fetch = stubFetch(() => new Promise<Response>((resolve) => pending.push(resolve)));
   const store = useGoalStore();
   const general = store.fetchGoals(2025);
   const periods = store.fetchAllGoalsForView(2026, 2);
@@ -469,12 +468,13 @@ test('general goals and dashboard periods keep independent request status', asyn
 
 test('goal creation cannot own the loading and error state of a period query', async () => {
   let completeCreation!: (response: Response) => void;
-  globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+  globalThis.fetch = stubFetch((_input: RequestInfo | URL, init?: RequestInit) =>
     init?.method === 'PUT'
       ? new Promise<Response>((resolve) => {
           completeCreation = resolve;
         })
-      : Promise.resolve(Response.json({ data: [], count: 0 }))) as typeof fetch;
+      : Promise.resolve(Response.json({ data: [], count: 0 }))
+  );
   const store = useGoalStore();
   const creation = store.createGoal({
     name: 'Read',
@@ -496,8 +496,7 @@ test('goal creation cannot own the loading and error state of a period query', a
 
 test('activity highlights cannot end the loading state of dashboard highlights', async () => {
   const pending: Array<(response: Response) => void> = [];
-  globalThis.fetch = (() =>
-    new Promise<Response>((resolve) => pending.push(resolve))) as typeof fetch;
+  globalThis.fetch = stubFetch(() => new Promise<Response>((resolve) => pending.push(resolve)));
   const store = useHighlightStore();
   const detail = store.fetchHighlightsForActivity(id);
   const dashboard = store.fetchDashboardHighlights('distance', 2026);
@@ -515,13 +514,13 @@ test('a deletion-triggered sets refresh cannot replace a newer sets query', asyn
   const refreshStarted = new Promise<void>((resolve) => {
     notifyRefreshStarted = resolve;
   });
-  globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) => {
+  globalThis.fetch = stubFetch((_input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === 'DELETE') return Promise.resolve(new Response(null, { status: 204 }));
     return new Promise<Response>((resolve) => {
       pending.push(resolve);
       notifyRefreshStarted();
     });
-  }) as typeof fetch;
+  });
   const store = useEquipmentStore();
   const deletion = store.deleteEquipment(id);
   await refreshStarted;

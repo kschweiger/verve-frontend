@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { effectScope, nextTick, ref, watch, type EffectScope, type Ref } from 'vue';
@@ -99,11 +100,11 @@ afterEach(() => {
 });
 
 test('activity data becomes usable while optional segment loading is still pending', async () => {
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) => {
     const url = input.toString();
     if (url.includes('/track/segments/')) return new Promise<Response>(() => undefined);
     return Response.json(url.includes('/track/') ? trackResponse : activity(firstId));
-  }) as typeof fetch;
+  });
   const detail = inScope(() => useActivityDetail(ref(firstId)));
   const segments = inScope(() => useActivitySegments(ref(firstId), track, ref(null)));
   await settled(detail.isLoading);
@@ -116,14 +117,13 @@ test.each([200, 503])(
   'route ID changes replace all core data and discard an old response (%i)',
   async (status) => {
     const activityId = ref(firstId);
-    globalThis.fetch = (async (input: RequestInfo | URL) =>
-      Response.json(
-        input.toString().includes('/track/') ? trackResponse : activity(firstId)
-      )) as typeof fetch;
+    globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
+      Response.json(input.toString().includes('/track/') ? trackResponse : activity(firstId))
+    );
     const detail = inScope(() => useActivityDetail(activityId));
     await settled(detail.isLoading);
     const old: Array<{ url: string; complete: (response: Response) => void }> = [];
-    globalThis.fetch = ((input: RequestInfo | URL) => {
+    globalThis.fetch = stubFetch((input: RequestInfo | URL) => {
       const url = input.toString();
       if (url.endsWith(secondId))
         return Promise.resolve(
@@ -132,7 +132,7 @@ test.each([200, 503])(
           )
         );
       return new Promise<Response>((complete) => old.push({ url, complete }));
-    }) as typeof fetch;
+    });
     const obsolete = detail.reload();
     activityId.value = secondId;
     await nextTick();
@@ -155,21 +155,21 @@ test.each([200, 503])(
 
 test('summary refresh preserves the track and failed background refresh preserves the usable activity', async () => {
   const requests: string[] = [];
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) => {
     requests.push(input.toString());
     return Response.json(input.toString().includes('/track/') ? trackResponse : activity(firstId));
-  }) as typeof fetch;
+  });
   const detail = inScope(() => useActivityDetail(ref(firstId)));
   await settled(detail.isLoading);
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) => {
     requests.push(input.toString());
     return Response.json(activity(firstId, 'Edited'));
-  }) as typeof fetch;
+  });
   await detail.refreshSummary();
   expect(detail.activity.value?.name).toBe('Edited');
   expect(detail.trackData.value).toHaveLength(4);
   expect(requests.filter((url) => url.includes('/track/'))).toHaveLength(1);
-  globalThis.fetch = (async () => Response.json({}, { status: 503 })) as typeof fetch;
+  globalThis.fetch = stubFetch(async () => Response.json({}, { status: 503 }));
   await expect(detail.refresh()).rejects.toThrow();
   expect(detail.activity.value?.name).toBe('Edited');
   expect(detail.error.value).toBeNull();
@@ -178,7 +178,7 @@ test('summary refresh preserves the track and failed background refresh preserve
 test('segment editing submits track-point IDs and refreshes backend statistics', async () => {
   let savedCuts = [20];
   let patch: unknown;
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = input.toString();
     if (init?.method === 'PATCH') {
       patch = JSON.parse(String(init.body));
@@ -188,7 +188,7 @@ test('segment editing submits track-point IDs and refreshes backend statistics',
     return Response.json(
       url.includes('/sets/') ? { data: [setId], count: 1 } : statistics(savedCuts)
     );
-  }) as typeof fetch;
+  });
   const segments = inScope(() => useActivitySegments(ref(firstId), track, ref(null)));
   await settled(segments.isLoadingSegmentSets);
   segments.startSegmentCutEdit();
@@ -202,7 +202,7 @@ test('segment editing submits track-point IDs and refreshes backend statistics',
 });
 
 test('a failed segment load is local to the segment panel', async () => {
-  globalThis.fetch = (async () => Response.json({}, { status: 503 })) as typeof fetch;
+  globalThis.fetch = stubFetch(async () => Response.json({}, { status: 503 }));
   const segments = inScope(() => useActivitySegments(ref(firstId), track, ref(null)));
   await settled(segments.isLoadingSegmentSets);
   expect(segments.segmentSetError.value).toBe('Failed to fetch segment sets.');
@@ -211,12 +211,13 @@ test('a failed segment load is local to the segment panel', async () => {
 });
 
 test('segment statistics accept an empty display-metrics list from the API', async () => {
-  globalThis.fetch = (async (input: RequestInfo | URL) =>
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
     Response.json(
       input.toString().includes('/sets/')
         ? { data: [setId] }
         : { ...statistics([]), display_metadata: { primary_metric: 'speed', display_metrics: [] } }
-    )) as typeof fetch;
+    )
+  );
   const segments = inScope(() => useActivitySegments(ref(firstId), track, ref(null)));
   await settled(segments.isLoadingSegmentSets);
   expect(segments.segmentSetError.value).toBeNull();
@@ -226,10 +227,12 @@ test('segment statistics accept an empty display-metrics list from the API', asy
 
 test('a segment draft cannot start while the available sets are still loading', async () => {
   let complete!: (response: Response) => void;
-  globalThis.fetch = (() =>
-    new Promise<Response>((resolve) => {
-      complete = resolve;
-    })) as typeof fetch;
+  globalThis.fetch = stubFetch(
+    () =>
+      new Promise<Response>((resolve) => {
+        complete = resolve;
+      })
+  );
   const segments = inScope(() => useActivitySegments(ref(firstId), track, ref(null)));
   expect(segments.canStartNewSegmentSet.value).toBe(false);
   complete(Response.json({ data: [], count: 0 }));
@@ -266,7 +269,7 @@ const activityCaches = [
       const old = {
         activity_id: firstId,
         type_id: 1,
-        metric: 'distance',
+        metric: 'distance' as const,
         scope: 'yearly' as const,
         year: 2026,
         value: 1,
@@ -306,10 +309,12 @@ const activityCaches = [
 for (const entry of activityCaches) {
   test(`previous activity ${entry.name} are cleared before the next activity loads`, async () => {
     let complete!: (response: Response) => void;
-    globalThis.fetch = (() =>
-      new Promise<Response>((resolve) => {
-        complete = resolve;
-      })) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      () =>
+        new Promise<Response>((resolve) => {
+          complete = resolve;
+        })
+    );
     const cache = entry.setup();
     const request = cache.load();
     expect(cache.read()).toEqual([]);
@@ -395,18 +400,18 @@ for (const [name, setup] of mutationRefreshes) {
     `a pending ${name} refreshes only its displayed activity (navigated: %s)`,
     async (navigated) => {
       const cache = setup();
-      globalThis.fetch = (async () => Response.json({ data: [], count: 0 })) as typeof fetch;
+      globalThis.fetch = stubFetch(async () => Response.json({ data: [], count: 0 }));
       await cache.load(firstId);
       let complete!: (response: Response) => void;
       const loads: string[] = [];
-      globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+      globalThis.fetch = stubFetch((input: RequestInfo | URL, init?: RequestInit) => {
         if (init?.method && init.method !== 'GET')
           return new Promise<Response>((resolve) => {
             complete = resolve;
           });
         loads.push(input.toString());
         return Promise.resolve(Response.json({ data: [], count: 0 }));
-      }) as typeof fetch;
+      });
       const pending = cache.mutate();
       await cache.load(navigated ? secondId : firstId);
       complete(new Response(null, { status: 204 }));

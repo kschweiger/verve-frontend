@@ -12,7 +12,7 @@ import {
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement);
 
-const props = defineProps<{
+defineProps<{
   chartData: ChartData<'pie'>;
   chartOptions?: ChartOptions<'pie'>;
 }>();

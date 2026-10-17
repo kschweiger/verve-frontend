@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { requestPasswordReset, resetPassword } from '../../src/services/passwordReset';
 
@@ -21,7 +22,7 @@ describe('password reset service', () => {
         reset_link: '/reset-password?token=abc',
       })
     );
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     const result = await requestPasswordReset('user@example.com');
 
@@ -41,15 +42,17 @@ describe('password reset service', () => {
 
   test('returns null resetLink when reset_link is missing or null', async () => {
     const missingFetchMock = mock(async () => jsonResponse({ message: 'Email sent.' }));
-    globalThis.fetch = missingFetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(missingFetchMock);
 
     await expect(requestPasswordReset('user@example.com')).resolves.toEqual({
       message: 'Email sent.',
       resetLink: null,
     });
 
-    const nullFetchMock = mock(async () => jsonResponse({ message: 'Email sent.', reset_link: null }));
-    globalThis.fetch = nullFetchMock as typeof fetch;
+    const nullFetchMock = mock(async () =>
+      jsonResponse({ message: 'Email sent.', reset_link: null })
+    );
+    globalThis.fetch = stubFetch(nullFetchMock);
 
     await expect(requestPasswordReset('user@example.com')).resolves.toEqual({
       message: 'Email sent.',
@@ -59,7 +62,7 @@ describe('password reset service', () => {
 
   test('posts the reset-password payload', async () => {
     const fetchMock = mock(async () => jsonResponse({}));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     await resetPassword({ token: 'abc', new_password: 'newpassword123' });
 
@@ -88,7 +91,7 @@ describe('password reset service', () => {
         { status: 422 }
       )
     );
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     await expect(resetPassword({ token: 'abc', new_password: 'short' })).rejects.toThrow(
       'String should have at least 8 characters'

@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import Navbar from '@/components/Navbar.vue';
-import Footer from '@/components/Footer.vue';
+import AppNavbar from '@/components/AppNavbar.vue';
+import AppFooter from '@/components/AppFooter.vue';
 </script>
 
 <template>
   <div class="min-h-screen bg-verve-light font-sans text-verve-brown">
-    <Navbar />
+    <AppNavbar />
 
     <main>
       <router-view />
     </main>
 
-    <Footer />
+    <AppFooter />
   </div>
 </template>

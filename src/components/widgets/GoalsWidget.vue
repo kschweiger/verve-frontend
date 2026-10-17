@@ -35,14 +35,12 @@ onMounted(refreshGoals);
 watch(() => activityStore.lastUpdate, refreshGoals);
 
 const currentGoals = computed(() => {
-  switch (activeTab.value) {
-    case 'weekly':
-      return goalStore.weeklyGoals;
-    case 'monthly':
-      return goalStore.monthlyGoals;
-    case 'yearly':
-      return goalStore.yearlyGoals;
-  }
+  const goalsByPeriod: Record<Tab, Goal[]> = {
+    weekly: goalStore.weeklyGoals,
+    monthly: goalStore.monthlyGoals,
+    yearly: goalStore.yearlyGoals,
+  };
+  return goalsByPeriod[activeTab.value];
 });
 
 // --- Manual Step Logic ---

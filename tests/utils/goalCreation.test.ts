@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { effectScope, ref, type EffectScope } from 'vue';
@@ -80,7 +81,7 @@ test('both goal kinds prevent duplicate submission and preserve a visible failur
   const state = scope.run(() => useGoalCreation(draft))!;
   let complete!: (response: Response) => void;
   const requests: RequestInit[] = [];
-  globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) => {
+  globalThis.fetch = stubFetch((_input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === 'PUT') {
       requests.push(init);
       return new Promise<Response>((resolve) => {
@@ -88,7 +89,7 @@ test('both goal kinds prevent duplicate submission and preserve a visible failur
       });
     }
     return Promise.resolve(Response.json({ data: [], count: 0 }));
-  }) as typeof fetch;
+  });
   const options = {
     type: 'location' as const,
     aggregation: 'count' as const,
@@ -125,10 +126,10 @@ test('weekly validation is shared by location and activity creation', async () =
   });
   const state = scope.run(() => useGoalCreation(draft))!;
   let requested = false;
-  globalThis.fetch = (async () => {
+  globalThis.fetch = stubFetch(async () => {
     requested = true;
     return Response.json({});
-  }) as typeof fetch;
+  });
   expect(await state.submit({ type: 'location', aggregation: 'count' })).toBe(false);
   expect(state.errors.value.week).toBeTruthy();
   expect(requested).toBe(false);

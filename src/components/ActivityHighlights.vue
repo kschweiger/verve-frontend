@@ -13,7 +13,6 @@ const formatMetricName = (metric: string) => {
 
 // Helper to get color safely
 const getRankColor = (rank: number) => {
-  // @ts-ignore - access safe via index
   return RANK_COLORS[rank] || '#000000';
 };
 

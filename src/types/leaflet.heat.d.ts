@@ -7,7 +7,7 @@ declare module 'leaflet' {
     max?: number;
     radius?: number;
     blur?: number;
-    gradient?: any;
+    gradient?: Record<number, string>;
   }
 
   function heatLayer(latlngs: L.LatLngExpression[], options?: HeatLayerOptions): L.Layer;

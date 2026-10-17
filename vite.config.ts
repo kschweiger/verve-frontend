@@ -10,7 +10,7 @@ import tailwindcss from '@tailwindcss/vite';
 let appVersion = '0.0.0';
 try {
   appVersion = readFileSync('./VERSION', 'utf-8').trim();
-} catch (e) {
+} catch {
   console.warn('VERSION file not found, defaulting to 0.0.0');
 }
 

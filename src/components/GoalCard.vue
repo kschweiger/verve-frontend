@@ -8,7 +8,7 @@ const props = defineProps<{
   goal: Goal;
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'edit', goal: Goal): void;
   (e: 'delete', goal: Goal): void;
   (e: 'clone', goal: Goal): void;

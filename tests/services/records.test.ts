@@ -1,3 +1,5 @@
+import { stubFetch } from '../helpers/fetch';
+import type { ActivityHighlightPublic } from '../../src/types/api';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -16,7 +18,9 @@ const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
     ...init,
   });
 
-const validRecord = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+const validRecord = (
+  overrides: Partial<ActivityHighlightPublic> = {}
+): ActivityHighlightPublic => ({
   activity_id: 'activity-1',
   type_id: 1,
   metric: 'distance',
@@ -126,7 +130,7 @@ describe('records service', () => {
         },
       })
     );
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     const result = await fetchRecordsOverview({ year: 2026, typeId: 2 });
 

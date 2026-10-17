@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { createPinia, setActivePinia, type StoreGeneric } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -259,7 +260,7 @@ for (const entry of cases) {
   describe(`${entry.name} account isolation`, () => {
     test.each(['logout', 'replacement'])('clears account-owned state on %s', (change) => {
       const store = entry.create();
-      store.$patch(entry.populated);
+      Object.assign(store.$state, structuredClone(entry.populated));
       if (change === 'logout') useUserStore().logout();
       else useUserStore().setToken('account-b');
       for (const [key, value] of Object.entries(entry.cleared))
@@ -268,10 +269,12 @@ for (const entry of cases) {
 
     test('discards a response from a previous account', async () => {
       let complete!: (response: Response) => void;
-      globalThis.fetch = (() =>
-        new Promise<Response>((resolve) => {
-          complete = resolve;
-        })) as typeof fetch;
+      globalThis.fetch = stubFetch(
+        () =>
+          new Promise<Response>((resolve) => {
+            complete = resolve;
+          })
+      );
       const store = entry.create();
       const request = entry.load();
       // Attach before resolving: actions may reject or swallow a cancelled session.
@@ -289,17 +292,21 @@ for (const entry of cases) {
 test('an old failed request cannot end the new account loading state', async () => {
   let completeOld!: (response: Response) => void;
   let completeNew!: (response: Response) => void;
-  globalThis.fetch = (() =>
-    new Promise<Response>((resolve) => {
-      completeOld = resolve;
-    })) as typeof fetch;
+  globalThis.fetch = stubFetch(
+    () =>
+      new Promise<Response>((resolve) => {
+        completeOld = resolve;
+      })
+  );
   const store = useActivityStore();
   const oldRequest = store.fetchActivities({});
   useUserStore().setToken('account-b');
-  globalThis.fetch = (() =>
-    new Promise<Response>((resolve) => {
-      completeNew = resolve;
-    })) as typeof fetch;
+  globalThis.fetch = stubFetch(
+    () =>
+      new Promise<Response>((resolve) => {
+        completeNew = resolve;
+      })
+  );
   const newRequest = store.fetchActivities({});
   completeOld(Response.json({}, { status: 503 }));
   await oldRequest;
@@ -313,14 +320,14 @@ test('an old failed request cannot end the new account loading state', async () 
 test('a manual activity creation cannot attach its track under a different account', async () => {
   let complete!: (response: Response) => void;
   const requests: string[] = [];
-  globalThis.fetch = ((input: RequestInfo | URL) => {
+  globalThis.fetch = stubFetch((input: RequestInfo | URL) => {
     requests.push(input.toString());
     if (requests.length > 1)
       return Promise.reject(new Error('Unexpected request after account change.'));
     return new Promise<Response>((resolve) => {
       complete = resolve;
     });
-  }) as typeof fetch;
+  });
   const request = useActivityStore().createManualActivity(
     {
       name: 'Manual',
@@ -365,7 +372,7 @@ test('a queued account change cannot slip between a body check and a store write
     notifyBodyStarted();
     return body;
   };
-  globalThis.fetch = (() => Promise.resolve(response)) as typeof fetch;
+  globalThis.fetch = stubFetch(() => Promise.resolve(response));
   const store = useTagsStore();
   const request = store.fetchAll();
   await bodyStarted;
@@ -380,7 +387,7 @@ for (const mutation of settingsMutations) {
   test(`an old ${mutation.name} save cannot affect the new account`, async () => {
     let complete!: (response: Response) => void;
     const requests: string[] = [];
-    globalThis.fetch = ((input: RequestInfo | URL) => {
+    globalThis.fetch = stubFetch((input: RequestInfo | URL) => {
       requests.push(input.toString());
       if (requests.length === 1)
         return new Promise<Response>((resolve) => {
@@ -408,7 +415,7 @@ for (const mutation of settingsMutations) {
               }
         )
       );
-    }) as typeof fetch;
+    });
     const store = useSettingsStore();
     const request = mutation.run();
     useUserStore().setToken('account-b');

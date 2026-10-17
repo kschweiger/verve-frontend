@@ -25,8 +25,8 @@ bun run dev
 Repository guidance is in [AGENTS.md](AGENTS.md), and business behavior is documented in the [product specs](docs/product-specs/index.md). The backend API contract is `backend_openapi.json`.
 
 ```bash
-bun run check # ESLint baseline, Vue type check, production build
+bun run check # ESLint, app/tooling/test type checks, production build
 bun test      # test suite
 ```
 
-The lint check retains a baseline of existing issues so new violations fail validation.
+The lint check requires zero warnings or errors. Type checking covers app code, tests, scripts, and configuration files.
