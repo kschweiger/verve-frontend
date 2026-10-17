@@ -194,15 +194,10 @@ export const useGoalStore = defineStore('goal', () => {
 
   async function modifyManualGoal(id: string, increase: boolean, amount = 1) {
     const isCurrent = captureSession();
+    error.value = null;
     try {
-      const params = new URLSearchParams();
-      params.append('id', id);
-      // NOTE: Assuming the backend handles logic via specific endpoint or params for manual update.
-      // Based on original code, it seemed to just re-fetch or call a specific GET.
-      // Adjusting to what looks like a fetch-refresh pattern or specific update command.
-      // For now, retaining original logic structure but adding types.
-
-      const url = `${import.meta.env.VITE_API_BASE_URL}/goal/?${params.toString()}`;
+      const params = new URLSearchParams({ increase: String(increase), amount: String(amount) });
+      const url = `${import.meta.env.VITE_API_BASE_URL}/goal/${id}/modify_amount?${params.toString()}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: getHeaders(),
@@ -214,14 +209,13 @@ export const useGoalStore = defineStore('goal', () => {
       const updatedGoal: Goal = await response.json();
       if (!isCurrent()) return false;
 
-      const index = goals.value.findIndex((g) => g.id === id);
-      if (index !== -1) {
-        goals.value[index] = updatedGoal;
+      for (const cache of [goals, yearlyGoals, monthlyGoals, weeklyGoals]) {
+        cache.value = cache.value.map((goal) => (goal.id === id ? updatedGoal : goal));
       }
       return true;
-    } catch (e) {
+    } catch (e: unknown) {
       if (!isCurrent()) return false;
-      console.error(e);
+      error.value = e instanceof Error ? e.message : 'Failed to update goal';
       return false;
     }
   }

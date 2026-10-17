@@ -10,6 +10,7 @@
 - The four summary cards show Active time, This month, Last active, and Week streak using backend `totals` and `summary`; do not recompute summary semantics from grid cells.
 - A null last-active date displays No activity. Relative dates and streak labels use readable singular/plural formatting.
 - Recent activities prioritize duration, with distance secondary. Their entries navigate to activity detail.
+- Manual goal controls apply the selected direction and amount through `GET /api/v1/goal/{id}/modify_amount?increase=…&amount=…`. Use the returned goal to update matching entries in the general, yearly, monthly, and weekly caches. A failed request preserves the previous progress and exposes an error.
 
 ## Calendar
 
