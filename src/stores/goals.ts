@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -45,6 +46,11 @@ export const useGoalStore = defineStore('goal', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
+  const isLoadingPeriods = ref(false);
+  const periodsError = ref<string | null>(null);
+  const isCreating = ref(false);
+  const creationError = ref<string | null>(null);
+
   const userStore = useUserStore();
   const getHeaders = () => ({
     Authorization: `Bearer ${userStore.token}`,
@@ -52,6 +58,10 @@ export const useGoalStore = defineStore('goal', () => {
   });
 
   const captureSession = useAccountSession(() => {
+    isLoadingPeriods.value = false;
+    periodsError.value = null;
+    isCreating.value = false;
+    creationError.value = null;
     goals.value = [];
     yearlyGoals.value = [];
     monthlyGoals.value = [];
@@ -59,6 +69,8 @@ export const useGoalStore = defineStore('goal', () => {
     isLoading.value = false;
     error.value = null;
   });
+  const beginGoalsRequest = useLatestRequest(captureSession);
+  const beginGoalPeriodsRequest = useLatestRequest(captureSession);
 
   async function _fetch(year: number, month?: number | null, week?: number | null) {
     const isCurrent = captureSession();
@@ -80,8 +92,9 @@ export const useGoalStore = defineStore('goal', () => {
   }
 
   async function fetchGoals(year: number, month?: number | null) {
-    const isCurrent = captureSession();
+    const isCurrent = beginGoalsRequest();
     isLoading.value = true;
+    error.value = null;
     try {
       const loadedGoals: typeof goals.value = await _fetch(year, month);
       if (!isCurrent()) return;
@@ -97,8 +110,9 @@ export const useGoalStore = defineStore('goal', () => {
   }
 
   async function fetchAllGoalsForView(year: number, month: number, week?: number) {
-    const isCurrent = captureSession();
-    isLoading.value = true;
+    const isCurrent = beginGoalPeriodsRequest();
+    isLoadingPeriods.value = true;
+    periodsError.value = null;
     try {
       const [yearly, monthly, weekly] = await Promise.all([
         _fetch(year),
@@ -112,17 +126,18 @@ export const useGoalStore = defineStore('goal', () => {
       weeklyGoals.value = weekly.filter((g) => g.temporal_type === 'weekly');
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      error.value = e instanceof Error ? e.message : String(e);
+      periodsError.value = e instanceof Error ? e.message : String(e);
     } finally {
       if (isCurrent()) {
-        isLoading.value = false;
+        isLoadingPeriods.value = false;
       }
     }
   }
 
   async function createGoal(payload: GoalCreatePayload) {
     const isCurrent = captureSession();
-    isLoading.value = true;
+    isCreating.value = true;
+    creationError.value = null;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/goal/`, {
         method: 'PUT',
@@ -137,11 +152,11 @@ export const useGoalStore = defineStore('goal', () => {
       return true;
     } catch (e: unknown) {
       if (!isCurrent()) return false;
-      error.value = e instanceof Error ? e.message : String(e);
+      creationError.value = e instanceof Error ? e.message : String(e);
       return false;
     } finally {
       if (isCurrent()) {
-        isLoading.value = false;
+        isCreating.value = false;
       }
     }
   }
@@ -221,6 +236,10 @@ export const useGoalStore = defineStore('goal', () => {
   }
 
   return {
+    isLoadingPeriods,
+    periodsError,
+    isCreating,
+    creationError,
     goals,
     yearlyGoals,
     monthlyGoals,

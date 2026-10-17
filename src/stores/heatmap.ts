@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -26,9 +27,10 @@ export const useHeatmapStore = defineStore('heatmap', () => {
     isLoading.value = false;
     error.value = null;
   });
+  const beginHeatmapRequest = useLatestRequest(captureSession);
 
   async function fetchHeatmapData(filters: ActivityFilters) {
-    const isCurrent = captureSession();
+    const isCurrent = beginHeatmapRequest();
     isLoading.value = true;
     error.value = null;
     const userStore = useUserStore();

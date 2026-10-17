@@ -135,7 +135,7 @@ async function handleSubmit() {
     emit('saved');
     emit('close');
   } else {
-    alert('Failed to create goal. ' + (goalStore.error || ''));
+    alert('Failed to create goal. ' + (goalStore.creationError || ''));
   }
 }
 </script>

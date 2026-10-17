@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 // src/stores/location.ts
 import { ref } from 'vue';
@@ -57,6 +58,9 @@ export const useLocationStore = defineStore('location', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
+  const isDetailLoading = ref(false);
+  const detailError = ref<string | null>(null);
+
   const userStore = useUserStore();
   const getHeaders = () => ({
     Authorization: `Bearer ${userStore.token}`,
@@ -65,6 +69,8 @@ export const useLocationStore = defineStore('location', () => {
 
   // --- Actions ---
   const captureSession = useAccountSession(() => {
+    isDetailLoading.value = false;
+    detailError.value = null;
     visibleLocations.value = [];
     availableLocations.value = [];
     selectedLocation.value = null;
@@ -73,9 +79,12 @@ export const useLocationStore = defineStore('location', () => {
     isLoading.value = false;
     error.value = null;
   });
+  const beginBoundsRequest = useLatestRequest(captureSession);
+  const beginLocationRequest = useLatestRequest(captureSession);
+  const beginActivityLocationsRequest = useLatestRequest(captureSession);
 
   async function fetchLocationsInBounds(bounds: MapBounds, filters?: LocationFilters) {
-    const isCurrent = captureSession();
+    const isCurrent = beginBoundsRequest();
     isLoading.value = true;
     error.value = null;
     try {
@@ -160,8 +169,9 @@ export const useLocationStore = defineStore('location', () => {
   }
 
   async function selectLocation(locationId: string) {
-    const isCurrent = captureSession();
-    isLoading.value = true;
+    const isCurrent = beginLocationRequest();
+    isDetailLoading.value = true;
+    detailError.value = null;
     selectedLocation.value = null;
     selectedLocationActivities.value = [];
 
@@ -192,10 +202,10 @@ export const useLocationStore = defineStore('location', () => {
       }
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      error.value = e instanceof Error ? e.message : String(e);
+      detailError.value = e instanceof Error ? e.message : String(e);
     } finally {
       if (isCurrent()) {
-        isLoading.value = false;
+        isDetailLoading.value = false;
       }
     }
   }
@@ -283,7 +293,7 @@ export const useLocationStore = defineStore('location', () => {
   }
 
   async function fetchLocationsForActivity(activityId: string) {
-    const isCurrent = captureSession();
+    const isCurrent = beginActivityLocationsRequest();
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/locations`,
@@ -386,6 +396,8 @@ export const useLocationStore = defineStore('location', () => {
   }
 
   return {
+    isDetailLoading,
+    detailError,
     visibleLocations,
     availableLocations,
     selectedLocation,

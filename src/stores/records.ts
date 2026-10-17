@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -51,15 +52,20 @@ export const useRecordsStore = defineStore('records', () => {
     isLoadingSummaries.value = false;
     error.value = null;
   });
+  const beginOverviewRequest = useLatestRequest(captureSession);
+  const beginSummariesRequest = useLatestRequest(captureSession);
 
   async function fetchSelectedActivitySummaries() {
-    const isCurrent = captureSession();
+    const isCurrent = beginSummariesRequest();
     const records = selectedGroup.value?.records ?? [];
     const missingActivityIds = records
       .map((record) => record.activity_id)
       .filter((activityId) => activitySummaries.value[activityId] === undefined);
 
-    if (missingActivityIds.length === 0) return;
+    if (missingActivityIds.length === 0) {
+      isLoadingSummaries.value = false;
+      return;
+    }
 
     isLoadingSummaries.value = true;
     try {
@@ -89,8 +95,11 @@ export const useRecordsStore = defineStore('records', () => {
   }
 
   async function fetchOverview() {
-    const isCurrent = captureSession();
+    const isCurrent = beginOverviewRequest();
+    beginSummariesRequest();
+    isLoadingSummaries.value = false;
     if (typeId.value === null) {
+      isLoading.value = false;
       groups.value = [];
       selectedMetric.value = null;
       error.value = 'Choose an activity type to view records.';

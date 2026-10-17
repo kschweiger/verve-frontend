@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -23,6 +24,8 @@ export const useHighlightStore = defineStore('highlight', () => {
   const dashboardHighlights = ref<Highlight[]>([]); // For the dashboard widget
   const isLoading = ref(false);
 
+  const isDashboardLoading = ref(false);
+
   const userStore = useUserStore();
   const getAuthHeaders = () => {
     if (!userStore.token) throw new Error('Not authenticated');
@@ -32,11 +35,14 @@ export const useHighlightStore = defineStore('highlight', () => {
   // --- ACTIONS ---
 
   const captureSession = useAccountSession(() => {
+    isDashboardLoading.value = false;
     availableMetrics.value = [];
     activityHighlights.value = [];
     dashboardHighlights.value = [];
     isLoading.value = false;
   });
+  const beginActivityHighlightsRequest = useLatestRequest(captureSession);
+  const beginDashboardHighlightsRequest = useLatestRequest(captureSession);
 
   async function fetchAvailableMetrics() {
     const isCurrent = captureSession();
@@ -58,7 +64,7 @@ export const useHighlightStore = defineStore('highlight', () => {
   }
 
   async function fetchHighlightsForActivity(activityId: string) {
-    const isCurrent = captureSession();
+    const isCurrent = beginActivityHighlightsRequest();
     isLoading.value = true;
     try {
       const response = await fetch(
@@ -87,8 +93,8 @@ export const useHighlightStore = defineStore('highlight', () => {
   }
 
   async function fetchDashboardHighlights(metric: string, year: number | null) {
-    const isCurrent = captureSession();
-    isLoading.value = true;
+    const isCurrent = beginDashboardHighlightsRequest();
+    isDashboardLoading.value = true;
     dashboardHighlights.value = [];
     try {
       const params = new URLSearchParams();
@@ -111,12 +117,13 @@ export const useHighlightStore = defineStore('highlight', () => {
       console.error(e);
     } finally {
       if (isCurrent()) {
-        isLoading.value = false;
+        isDashboardLoading.value = false;
       }
     }
   }
 
   return {
+    isDashboardLoading,
     availableMetrics,
     activityHighlights,
     dashboardHighlights,
