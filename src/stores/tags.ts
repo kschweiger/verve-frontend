@@ -1,9 +1,9 @@
+import { responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 // src/stores/tags.ts
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
-import { useUserStore } from './auth';
 
 export interface ActivityTagCategoryPublic {
   id: number;
@@ -33,12 +33,6 @@ export const useTagsStore = defineStore('tags', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  const userStore = useUserStore();
-  const getHeaders = () => ({
-    Authorization: `Bearer ${userStore.token}`,
-    'Content-Type': 'application/json',
-  });
-
   const captureSession = useAccountSession(() => {
     tags.value = [];
     categories.value = [];
@@ -55,7 +49,7 @@ export const useTagsStore = defineStore('tags', () => {
         headers: getHeaders(),
       });
       if (!isCurrent()) return;
-      if (!response.ok) throw new Error('Failed to fetch tags and categories.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch tags and categories.');
       const data: UserTagResponse = await response.json();
       if (!isCurrent()) return;
       tags.value = data.tags;
@@ -82,7 +76,7 @@ export const useTagsStore = defineStore('tags', () => {
         }
       );
       if (!isCurrent()) return [];
-      if (!response.ok) throw new Error('Tag search failed');
+      if (!response.ok) throw await responseError(response, 'Tag search failed');
 
       const data = await response.json();
       if (!isCurrent()) return [];
@@ -106,7 +100,7 @@ export const useTagsStore = defineStore('tags', () => {
         }
       );
       if (!isCurrent()) return [];
-      if (!response.ok) throw new Error('Category search failed');
+      if (!response.ok) throw await responseError(response, 'Category search failed');
 
       const data = await response.json();
       if (!isCurrent()) return [];
@@ -127,7 +121,7 @@ export const useTagsStore = defineStore('tags', () => {
         body: JSON.stringify({ name }),
       });
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to create category.');
+      if (!response.ok) throw await responseError(response, 'Failed to create category.');
       await fetchAll();
       if (!isCurrent()) return false;
       return true;
@@ -147,7 +141,7 @@ export const useTagsStore = defineStore('tags', () => {
         body: JSON.stringify({ name, category_id: categoryId }),
       });
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to create tag.');
+      if (!response.ok) throw await responseError(response, 'Failed to create tag.');
       await fetchAll();
       if (!isCurrent()) return false;
       return true;
@@ -169,7 +163,7 @@ export const useTagsStore = defineStore('tags', () => {
         }
       );
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to delete category.');
+      if (!response.ok) throw await responseError(response, 'Failed to delete category.');
       await fetchAll();
       if (!isCurrent()) return false;
       return true;
@@ -188,7 +182,7 @@ export const useTagsStore = defineStore('tags', () => {
         headers: getHeaders(),
       });
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to delete tag.');
+      if (!response.ok) throw await responseError(response, 'Failed to delete tag.');
       await fetchAll();
       if (!isCurrent()) return false;
       return true;
@@ -210,7 +204,7 @@ export const useTagsStore = defineStore('tags', () => {
         }
       );
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to add tag to activity.');
+      if (!response.ok) throw await responseError(response, 'Failed to add tag to activity.');
       return true;
     } catch (e) {
       if (!isCurrent()) return false;
@@ -230,7 +224,7 @@ export const useTagsStore = defineStore('tags', () => {
         }
       );
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to remove tag from activity.');
+      if (!response.ok) throw await responseError(response, 'Failed to remove tag from activity.');
       return true;
     } catch (e) {
       if (!isCurrent()) return false;

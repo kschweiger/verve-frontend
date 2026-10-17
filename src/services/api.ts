@@ -1,5 +1,5 @@
+import { responseError, getAuthHeaders, getJsonAuthHeaders } from './authHeaders';
 // src/services/api.ts
-import { useUserStore } from '../stores/auth';
 import type { Activity } from '../stores/activity';
 import type * as Backend from '../types/api';
 import { parseISODuration, formatDuration } from '../utils/datetime';
@@ -80,17 +80,6 @@ export interface SegmentSetUpdatePayload {
   name?: string | null;
   cuts?: number[] | null;
 }
-
-const getAuthHeaders = (): HeadersInit => {
-  const userStore = useUserStore();
-  if (!userStore.token) throw new Error('Not authenticated');
-  return { Authorization: `Bearer ${userStore.token}` };
-};
-
-const getJsonAuthHeaders = (): HeadersInit => ({
-  ...getAuthHeaders(),
-  'Content-Type': 'application/json',
-});
 
 export const mapApiActivity = (apiActivity: ApiActivity): Activity => {
   const durationSeconds = parseISODuration(apiActivity.duration);
@@ -182,7 +171,7 @@ export async function fetchActivitySummary(activityId: string): Promise<Activity
     headers: getAuthHeaders(),
   });
 
-  if (!response.ok) throw new Error('Activity not found.');
+  if (!response.ok) throw await responseError(response, 'Activity not found.');
 
   const apiActivity: ApiActivity = await response.json();
   return mapApiActivity(apiActivity);
@@ -210,7 +199,7 @@ export async function fetchActivityPage(params: ActivityPageParams): Promise<Act
     headers: getAuthHeaders(),
   });
 
-  if (!response.ok) throw new Error('Failed to fetch activities.');
+  if (!response.ok) throw await responseError(response, 'Failed to fetch activities.');
 
   const responseData: Backend.ListResponse<ApiActivity> = await response.json();
   return responseData.data.map(mapApiActivity);
@@ -222,7 +211,7 @@ export async function fetchActivityTrack(activityId: string): Promise<TrackPoint
     headers: getAuthHeaders(),
   });
 
-  if (!response.ok) throw new Error('Failed to fetch activity track data.');
+  if (!response.ok) throw await responseError(response, 'Failed to fetch activity track data.');
 
   const responseData: Backend.ListResponse<Backend.TrackPointResponse> = await response.json();
   return responseData.data.map(mapApiTrackPoint);
@@ -241,7 +230,8 @@ export async function removeTrackExtensionData(
     }
   );
 
-  if (response.status !== 204) throw new Error('Failed to remove track extension data.');
+  if (response.status !== 204)
+    throw await responseError(response, 'Failed to remove track extension data.');
 }
 
 export async function fetchActivitySegmentSetIds(activityId: string): Promise<string[]> {
@@ -253,7 +243,7 @@ export async function fetchActivitySegmentSetIds(activityId: string): Promise<st
     }
   );
 
-  if (!response.ok) throw new Error('Failed to fetch segment sets.');
+  if (!response.ok) throw await responseError(response, 'Failed to fetch segment sets.');
 
   const responseData: Backend.ListResponse<string> = await response.json();
   return responseData.data;
@@ -268,7 +258,7 @@ export async function fetchSegmentStatistics(segmentSetId: string): Promise<Segm
     }
   );
 
-  if (!response.ok) throw new Error('Failed to fetch segment statistics.');
+  if (!response.ok) throw await responseError(response, 'Failed to fetch segment statistics.');
 
   const responseData: Backend.SegmentStatisticsResponse = await response.json();
   return mapSegmentStatistics(responseData);
@@ -287,7 +277,7 @@ export async function createSegmentSet(
     }),
   });
 
-  if (!response.ok) throw new Error('Failed to create segment set.');
+  if (!response.ok) throw await responseError(response, 'Failed to create segment set.');
 
   const responseData: Backend.SegmentSetPublic = await response.json();
   return { id: responseData.id, name: responseData.name, activityId: responseData.activity_id };
@@ -309,7 +299,7 @@ export async function updateSegmentSet(
     }
   );
 
-  if (!response.ok) throw new Error('Failed to update segment set.');
+  if (!response.ok) throw await responseError(response, 'Failed to update segment set.');
 }
 
 export async function deleteSegmentSet(segmentSetId: string): Promise<void> {
@@ -321,5 +311,5 @@ export async function deleteSegmentSet(segmentSetId: string): Promise<void> {
     }
   );
 
-  if (!response.ok) throw new Error('Failed to delete segment set.');
+  if (!response.ok) throw await responseError(response, 'Failed to delete segment set.');
 }

@@ -1,3 +1,4 @@
+import { responseError } from '../services/authHeaders';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 
@@ -38,7 +39,7 @@ export const useTypeStore = defineStore('type', () => {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/resolve/activity_types`, {
         method: 'GET',
       });
-      if (!response.ok) throw new Error('Failed to fetch activity types.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch activity types.');
 
       const responseData: ApiResponse<ActivityType[]> = await response.json();
       activityTypes.value = responseData.data;
@@ -57,7 +58,7 @@ export const useTypeStore = defineStore('type', () => {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/resolve/location_types`, {
         method: 'GET',
       });
-      if (!response.ok) throw new Error('Failed to fetch location types.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch location types.');
 
       const responseData: ApiResponse<LocationType[]> = await response.json();
       locationTypes.value = responseData.data;

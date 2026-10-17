@@ -1,23 +1,29 @@
+import { responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
+import type { GoalPublic } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
-import { useUserStore } from './auth';
 
-export interface Goal {
-  id: string;
-  name: string;
+export type Goal = GoalPublic & {
   description: string | null;
-  target: number;
   current: number;
-  progress: number;
-  reached: boolean;
-  temporal_type: 'yearly' | 'monthly' | 'weekly';
+  temporal_type: NonNullable<GoalPublic['temporal_type']>;
   year: number;
   month: number | null;
-  type: 'activity' | 'manual' | 'location';
-  aggregation: 'count' | 'total_distance' | 'avg_distance' | 'max_distance' | 'duration';
   constraints: Record<string, unknown>;
+};
+
+function mapGoal(value: GoalPublic): Goal {
+  return {
+    ...value,
+    description: value.description ?? null,
+    current: value.current ?? 0,
+    temporal_type: value.temporal_type ?? 'yearly',
+    year: value.year ?? 2026, // Default published in backend_openapi.json.
+    month: value.month ?? null,
+    constraints: value.constraints ?? {},
+  };
 }
 
 export interface GoalCreatePayload {
@@ -50,18 +56,14 @@ export const useGoalStore = defineStore('goal', () => {
   const periodsError = ref<string | null>(null);
   const isCreating = ref(false);
   const creationError = ref<string | null>(null);
-
-  const userStore = useUserStore();
-  const getHeaders = () => ({
-    Authorization: `Bearer ${userStore.token}`,
-    'Content-Type': 'application/json',
-  });
+  const updateError = ref<string | null>(null);
 
   const captureSession = useAccountSession(() => {
     isLoadingPeriods.value = false;
     periodsError.value = null;
     isCreating.value = false;
     creationError.value = null;
+    updateError.value = null;
     goals.value = [];
     yearlyGoals.value = [];
     monthlyGoals.value = [];
@@ -85,10 +87,10 @@ export const useGoalStore = defineStore('goal', () => {
 
     const response = await fetch(url, { headers: getHeaders() });
     if (!isCurrent()) return [];
-    if (!response.ok) throw new Error('Failed to fetch goals');
-    const data: ApiResponse<Goal[]> = await response.json();
+    if (!response.ok) throw await responseError(response, 'Failed to fetch goals');
+    const data: ApiResponse<GoalPublic[]> = await response.json();
     if (!isCurrent()) return [];
-    return data.data;
+    return data.data.map(mapGoal);
   }
 
   async function fetchGoals(year: number, month?: number | null) {
@@ -145,7 +147,7 @@ export const useGoalStore = defineStore('goal', () => {
         body: JSON.stringify(payload),
       });
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to create goal');
+      if (!response.ok) throw await responseError(response, 'Failed to create goal');
 
       await fetchGoals(payload.year, payload.month);
       if (!isCurrent()) return false;
@@ -167,6 +169,7 @@ export const useGoalStore = defineStore('goal', () => {
     value: string | number
   ) {
     const isCurrent = captureSession();
+    updateError.value = null;
     try {
       const params = new URLSearchParams();
       params.append('attribute', attribute);
@@ -179,11 +182,17 @@ export const useGoalStore = defineStore('goal', () => {
         headers: getHeaders(),
       });
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to update goal');
+      if (!response.ok) throw await responseError(response, 'Failed to update goal');
+      const data: GoalPublic = await response.json();
+      const updated = mapGoal(data);
+      if (!isCurrent()) return false;
+      for (const cache of [goals, yearlyGoals, monthlyGoals, weeklyGoals]) {
+        cache.value = cache.value.map((goal) => (goal.id === id ? updated : goal));
+      }
       return true;
     } catch (e) {
       if (!isCurrent()) return false;
-      console.error(e);
+      updateError.value = e instanceof Error ? e.message : 'Failed to update goal.';
       return false;
     }
   }
@@ -196,7 +205,7 @@ export const useGoalStore = defineStore('goal', () => {
         headers: getHeaders(),
       });
       if (!isCurrent()) return false;
-      if (!response.ok) throw new Error('Failed to delete goal');
+      if (!response.ok) throw await responseError(response, 'Failed to delete goal');
 
       goals.value = goals.value.filter((g) => g.id !== id);
       return true;
@@ -219,9 +228,10 @@ export const useGoalStore = defineStore('goal', () => {
       });
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Failed to update goal');
+      if (!response.ok) throw await responseError(response, 'Failed to update goal');
 
-      const updatedGoal: Goal = await response.json();
+      const data: GoalPublic = await response.json();
+      const updatedGoal = mapGoal(data);
       if (!isCurrent()) return false;
 
       for (const cache of [goals, yearlyGoals, monthlyGoals, weeklyGoals]) {
@@ -240,6 +250,7 @@ export const useGoalStore = defineStore('goal', () => {
     periodsError,
     isCreating,
     creationError,
+    updateError,
     goals,
     yearlyGoals,
     monthlyGoals,

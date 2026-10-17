@@ -1,3 +1,4 @@
+import { responseError, getAuthHeaders, getJsonAuthHeaders } from '../services/authHeaders';
 import type { UserPublic } from '../types/api';
 import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
@@ -131,12 +132,13 @@ export const useSettingsStore = defineStore('settings', () => {
       const [profileResponse] = await Promise.all([
         fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me`, {
           method: 'GET',
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
         }),
         ensureSettings(true),
       ]);
 
-      if (!profileResponse.ok) throw new Error('Failed to load user profile.');
+      if (!profileResponse.ok)
+        throw await responseError(profileResponse, 'Failed to load user profile.');
       const profileData: UserPublic = await profileResponse.json();
       const profile = mapUserProfile(profileData);
       if (currentSession === session) userProfile.value = profile;
@@ -157,14 +159,11 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me`, {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${userStore.token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getJsonAuthHeaders(),
         body: JSON.stringify(payload),
       });
       if (currentSession !== session) return false;
-      if (!response.ok) throw new Error('Failed to update profile.');
+      if (!response.ok) throw await responseError(response, 'Failed to update profile.');
 
       await fetchAllSettings();
       if (currentSession !== session) return false;
@@ -197,10 +196,7 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/password`, {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${userStore.token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getJsonAuthHeaders(),
         body: JSON.stringify(payload),
       });
       if (currentSession !== session)
@@ -250,11 +246,11 @@ export const useSettingsStore = defineStore('settings', () => {
         `${import.meta.env.VITE_API_BASE_URL}/users/me/set_default_activity_type?${params.toString()}`,
         {
           method: 'PUT',
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
         }
       );
       if (currentSession !== session) return false;
-      if (!response.ok) throw new Error('Failed to update default types.');
+      if (!response.ok) throw await responseError(response, 'Failed to update default types.');
 
       await fetchAllSettings();
       if (currentSession !== session) return false;
@@ -278,16 +274,13 @@ export const useSettingsStore = defineStore('settings', () => {
         `${import.meta.env.VITE_API_BASE_URL}/users/me/heatmap_settings`,
         {
           method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${userStore.token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: getJsonAuthHeaders(),
           body: JSON.stringify({ excluded_activity_types: excludedTypes }),
         }
       );
       if (currentSession !== session) return false;
 
-      if (!response.ok) throw new Error('Failed to update heatmap settings.');
+      if (!response.ok) throw await responseError(response, 'Failed to update heatmap settings.');
 
       await fetchAllSettings();
       if (currentSession !== session) return false;
@@ -309,16 +302,13 @@ export const useSettingsStore = defineStore('settings', () => {
         `${import.meta.env.VITE_API_BASE_URL}/users/me/records_settings`,
         {
           method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${userStore.token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: getJsonAuthHeaders(),
           body: JSON.stringify({ default_activity_type: defaultActivityType }),
         }
       );
       if (currentSession !== session) return false;
 
-      if (!response.ok) throw new Error('Failed to update records settings.');
+      if (!response.ok) throw await responseError(response, 'Failed to update records settings.');
 
       await fetchAllSettings();
       if (currentSession !== session) return false;

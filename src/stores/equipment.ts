@@ -1,9 +1,9 @@
+import { responseError, getJsonAuthHeaders as getAuthHeaders } from '../services/authHeaders';
 import type * as Backend from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
-import { useUserStore } from './auth';
 
 export const equipmentTypeValues = ['bike', 'shoes', 'skis', 'snowboard', 'hometrainer'] as const;
 export type EquipmentType = Backend.EquipmentType;
@@ -41,12 +41,6 @@ export const useEquipmentStore = defineStore('equipment', () => {
 
   const isLoading = ref(false);
   const areTypesLoading = ref(false);
-
-  const userStore = useUserStore();
-  const getAuthHeaders = (contentType = 'application/json') => ({
-    Authorization: `Bearer ${userStore.token}`,
-    'Content-Type': contentType,
-  });
 
   const captureSession = useAccountSession(() => {
     equipmentActivityId = null;
@@ -114,7 +108,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       body: JSON.stringify(payload),
     });
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to create equipment.');
+    if (!response.ok) throw await responseError(response, 'Failed to create equipment.');
     await fetchAllEquipment();
   }
 
@@ -126,7 +120,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       body: JSON.stringify(payload),
     });
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to update equipment.');
+    if (!response.ok) throw await responseError(response, 'Failed to update equipment.');
     const data: Backend.EquipmentPublic = await response.json();
     if (!isCurrent()) return;
     const updated = mapEquipment(data);
@@ -143,7 +137,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       headers: getAuthHeaders(),
     });
     if (!isCurrent()) return;
-    if (response.status !== 204) throw new Error('Failed to delete equipment.');
+    if (response.status !== 204) throw await responseError(response, 'Failed to delete equipment.');
     allEquipment.value = allEquipment.value.filter((item) => item.id !== id);
     activityEquipment.value = activityEquipment.value.filter((item) => item.id !== id);
     const ownsSets = beginSetsRequest();
@@ -188,7 +182,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       body: JSON.stringify({ name, equipment_ids: [] }),
     });
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to create set.');
+    if (!response.ok) throw await responseError(response, 'Failed to create set.');
     await fetchAllSets();
   }
 
@@ -199,7 +193,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       headers: getAuthHeaders(),
     });
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to delete set.');
+    if (!response.ok) throw await responseError(response, 'Failed to delete set.');
     await fetchAllSets();
   }
 
@@ -213,7 +207,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       }
     );
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to add item to set.');
+    if (!response.ok) throw await responseError(response, 'Failed to add item to set.');
     await fetchAllSets();
   }
 
@@ -227,7 +221,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       }
     );
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to remove item from set.');
+    if (!response.ok) throw await responseError(response, 'Failed to remove item from set.');
     await fetchAllSets();
   }
 
@@ -244,7 +238,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       }
     );
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to set default.');
+    if (!response.ok) throw await responseError(response, 'Failed to set default.');
   }
 
   async function fetchEquipmentForActivity(activityId: string) {
@@ -277,7 +271,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       }
     );
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to add equipment.');
+    if (!response.ok) throw await responseError(response, 'Failed to add equipment.');
     if (equipmentActivityId === null || equipmentActivityId === activityId) {
       await fetchEquipmentForActivity(activityId);
     }
@@ -293,7 +287,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       }
     );
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to remove equipment.');
+    if (!response.ok) throw await responseError(response, 'Failed to remove equipment.');
     if (equipmentActivityId === null || equipmentActivityId === activityId) {
       await fetchEquipmentForActivity(activityId);
     }
@@ -309,7 +303,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       }
     );
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to add set to activity.');
+    if (!response.ok) throw await responseError(response, 'Failed to add set to activity.');
     if (equipmentActivityId === null || equipmentActivityId === activityId) {
       await fetchEquipmentForActivity(activityId);
     }
@@ -325,7 +319,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       }
     );
     if (!isCurrent()) return;
-    if (!response.ok) throw new Error('Failed to remove set from activity.');
+    if (!response.ok) throw await responseError(response, 'Failed to remove set from activity.');
     if (equipmentActivityId === null || equipmentActivityId === activityId) {
       await fetchEquipmentForActivity(activityId);
     }

@@ -1,5 +1,5 @@
+import { responseError, getAuthHeaders } from './authHeaders';
 import type { UserPublic, UserSettingsCollection } from '../types/api';
-import { useUserStore } from '../stores/auth';
 import type { UserProfile, UserSettings } from '../stores/settings';
 import { defaultTimezone, isSupportedTimezone } from './timezones';
 
@@ -25,18 +25,12 @@ export function mapUserProfile(value: UserPublic): UserProfile {
   return { id: value.id, name: value.name, email: value.email, full_name: value.full_name ?? null };
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = useUserStore().token;
-  if (!token) throw new Error('Not authenticated.');
-  return { Authorization: `Bearer ${token}` };
-}
-
 export async function fetchUserSettings(): Promise<UserSettings> {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/settings`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
-  if (!response.ok) throw new Error('Failed to load user settings.');
+  if (!response.ok) throw await responseError(response, 'Failed to load user settings.');
   const data: UserSettingsCollection = await response.json();
   return mapUserSettings(data);
 }
@@ -48,5 +42,6 @@ export async function saveUserTimezone(timezone: string): Promise<void> {
     method: 'PATCH',
     headers: getAuthHeaders(),
   });
-  if (!response.ok) throw new Error('Failed to save timezone. Please try again.');
+  if (!response.ok)
+    throw await responseError(response, 'Failed to save timezone. Please try again.');
 }

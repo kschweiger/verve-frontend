@@ -1,5 +1,5 @@
+import { responseError, getAuthHeaders, getJsonAuthHeaders } from './authHeaders';
 import type * as Backend from '../types/api';
-import { useUserStore } from '../stores/auth';
 import type { Activity } from '../stores/activity';
 import { mapApiActivity, mapApiTrackPoint, type TrackPoint } from './api';
 import { formatDuration, parseISODuration } from '../utils/datetime';
@@ -184,17 +184,6 @@ export function mapCollectionTrackResponse(
   }));
 }
 
-const getAuthHeaders = (): HeadersInit => {
-  const userStore = useUserStore();
-  if (!userStore.token) throw new Error('Not authenticated');
-  return { Authorization: `Bearer ${userStore.token}` };
-};
-
-const getJsonAuthHeaders = (): HeadersInit => ({
-  ...getAuthHeaders(),
-  'Content-Type': 'application/json',
-});
-
 const appendNullableNumberParam = (
   params: URLSearchParams,
   key: string,
@@ -231,7 +220,7 @@ export async function fetchCollections(
     headers: getAuthHeaders(),
   });
 
-  if (!response.ok) throw new Error('Failed to fetch collections.');
+  if (!response.ok) throw await responseError(response, 'Failed to fetch collections.');
   const data: Backend.ListResponse<Backend.CollectionOverview> = await response.json();
   return mapCollectionListResponse(data);
 }
@@ -249,7 +238,7 @@ export async function createCollection(
     }),
   });
 
-  if (!response.ok) throw new Error('Failed to create collection.');
+  if (!response.ok) throw await responseError(response, 'Failed to create collection.');
   const data: Backend.ActivityCollectionPublic = await response.json();
   return mapMutationResult(data);
 }
@@ -260,7 +249,7 @@ export async function fetchCollection(collectionId: string): Promise<CollectionD
     headers: getAuthHeaders(),
   });
 
-  if (!response.ok) throw new Error('Failed to fetch collection.');
+  if (!response.ok) throw await responseError(response, 'Failed to fetch collection.');
   const data: Backend.CollectionDetailResponse = await response.json();
   return mapCollectionDetailResponse(data);
 }
@@ -281,7 +270,7 @@ export async function updateCollection(
     body: JSON.stringify(body),
   });
 
-  if (!response.ok) throw new Error('Failed to update collection.');
+  if (!response.ok) throw await responseError(response, 'Failed to update collection.');
   const data: Backend.ActivityCollectionPublic = await response.json();
   return mapMutationResult(data);
 }
@@ -292,7 +281,7 @@ export async function deleteCollection(collectionId: string): Promise<void> {
     headers: getAuthHeaders(),
   });
 
-  if (!response.ok) throw new Error('Failed to delete collection.');
+  if (!response.ok) throw await responseError(response, 'Failed to delete collection.');
 }
 
 export async function fetchCollectionTrack(collectionId: string): Promise<CollectionTrackPoint[]> {
@@ -304,7 +293,7 @@ export async function fetchCollectionTrack(collectionId: string): Promise<Collec
     }
   );
 
-  if (!response.ok) throw new Error('Failed to fetch collection track.');
+  if (!response.ok) throw await responseError(response, 'Failed to fetch collection track.');
   const data: Backend.ListResponse<Backend.CollectionTrackPointResponse> = await response.json();
   return mapCollectionTrackResponse(data);
 }

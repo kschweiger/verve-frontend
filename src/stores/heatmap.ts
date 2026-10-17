@@ -1,3 +1,4 @@
+import { responseError, getAuthHeaders } from '../services/authHeaders';
 import type { HeatMapResponse } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
@@ -49,12 +50,12 @@ export const useHeatmapStore = defineStore('heatmap', () => {
         `${import.meta.env.VITE_API_BASE_URL}/heatmap/activities?${params.toString()}`,
         {
           method: 'GET',
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
         }
       );
       if (!isCurrent()) return;
 
-      if (!response.ok) throw new Error('Failed to fetch heatmap data.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch heatmap data.');
 
       const data: HeatMapResponse = await response.json();
       if (!isCurrent()) return;

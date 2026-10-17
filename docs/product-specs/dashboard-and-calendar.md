@@ -12,6 +12,8 @@
 - Recent activities prioritize duration, with distance secondary. Their entries navigate to activity detail.
 - Manual goal controls apply the selected direction and amount through `GET /api/v1/goal/{id}/modify_amount?increase=…&amount=…`. Use the returned goal to update matching entries in the general, yearly, monthly, and weekly caches. A failed request preserves the previous progress and exposes an error.
 
+- Goal editing keeps the modal open with edits and an inline error when a field fails to save. Disable duplicate saves while pending. Save changed fields sequentially through the documented per-attribute endpoint and synchronize all matching goal caches from each response. On retry, submit only fields that have not already been saved; close after every changed field succeeds.
+
 ## Calendar
 
 - Below 1024px, show an ordered agenda for the selected month, including rest days and excluding adjacent-month dates.

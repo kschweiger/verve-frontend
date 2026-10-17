@@ -1,3 +1,4 @@
+import { responseError, getAuthHeaders } from '../services/authHeaders';
 import type { ActivityCalendarItem } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
@@ -165,7 +166,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
 
       const response = await fetch(url, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${userStore.token}` },
+        headers: getAuthHeaders(),
       });
       if (!isCurrent()) return;
 
@@ -203,12 +204,12 @@ export const useStatisticsStore = defineStore('statistics', () => {
         `${import.meta.env.VITE_API_BASE_URL}/statistics/calender?year=${year}&month=${month}`,
         {
           method: 'GET',
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
         }
       );
       if (!isCurrent()) return;
 
-      if (!response.ok) throw new Error('Failed to load calendar data.');
+      if (!response.ok) throw await responseError(response, 'Failed to load calendar data.');
 
       const data: typeof calendarData.value = await response.json();
       if (!isCurrent()) return;
@@ -247,12 +248,12 @@ export const useStatisticsStore = defineStore('statistics', () => {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/statistics/week?${params.toString()}`,
         {
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
         }
       );
       if (!isCurrent()) return;
 
-      if (!response.ok) throw new Error('Failed to fetch weekly stats.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch weekly stats.');
 
       const data: typeof weeklyStats.value = await response.json();
       if (!isCurrent()) return;
@@ -287,12 +288,12 @@ export const useStatisticsStore = defineStore('statistics', () => {
         `${import.meta.env.VITE_API_BASE_URL}/statistics/activity_grid?${params.toString()}`,
         {
           method: 'GET',
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
         }
       );
       if (!isCurrent()) return;
 
-      if (!response.ok) throw new Error('Failed to load activity grid.');
+      if (!response.ok) throw await responseError(response, 'Failed to load activity grid.');
 
       const data: typeof activityGrid.value = await response.json();
       if (!isCurrent()) return;
