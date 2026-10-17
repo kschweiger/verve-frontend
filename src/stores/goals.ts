@@ -137,6 +137,7 @@ export const useGoalStore = defineStore('goal', () => {
   }
 
   async function createGoal(payload: GoalCreatePayload) {
+    if (isCreating.value) return false;
     const isCurrent = captureSession();
     isCreating.value = true;
     creationError.value = null;
