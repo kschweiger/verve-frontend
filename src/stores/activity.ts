@@ -1,3 +1,4 @@
+import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
@@ -11,7 +12,12 @@ function activityErrorMessage(value: unknown, fallback: string): string {
   if (typeof value.detail === 'string') return value.detail;
   if (Array.isArray(value.detail)) {
     const first: unknown = value.detail[0];
-    if (typeof first === 'object' && first !== null && 'msg' in first && typeof first.msg === 'string') {
+    if (
+      typeof first === 'object' &&
+      first !== null &&
+      'msg' in first &&
+      typeof first.msg === 'string'
+    ) {
       return first.msg;
     }
   }
@@ -103,7 +109,23 @@ export const useActivityStore = defineStore('activity', () => {
     lastUpdate.value = Date.now();
   }
 
+  const captureSession = useAccountSession(() => {
+    recentActivities.value = [];
+    isRecentLoading.value = false;
+    recentError.value = null;
+    paginatedActivities.value = [];
+    isListLoading.value = false;
+    listError.value = null;
+    currentPage.value = 1;
+    canLoadMore.value = true;
+    currentFilters.value = {};
+    activityImages.value = [];
+    isImagesLoading.value = false;
+    lastUpdate.value = Date.now();
+  });
+
   async function fetchRecentActivities() {
+    const isCurrent = captureSession();
     if (isRecentLoading.value) return;
     isRecentLoading.value = true;
     recentError.value = null;
@@ -119,19 +141,25 @@ export const useActivityStore = defineStore('activity', () => {
         method: 'GET',
         headers: { Authorization: `Bearer ${userStore.token}` },
       });
+      if (!isCurrent()) return;
 
       if (!response.ok) throw new Error('Failed to fetch activities.');
 
       const data: unknown = await response.json();
+      if (!isCurrent()) return;
       recentActivities.value = parseActivityPageData(data).map(mapApiActivity);
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       recentError.value = e instanceof Error ? e.message : 'An unknown error occurred.';
     } finally {
-      isRecentLoading.value = false;
+      if (isCurrent()) {
+        isRecentLoading.value = false;
+      }
     }
   }
 
   async function fetchActivities(filters: ActivityFilters, loadMore = false) {
+    const isCurrent = captureSession();
     isListLoading.value = true;
     listError.value = null;
 
@@ -155,11 +183,15 @@ export const useActivityStore = defineStore('activity', () => {
 
       if (currentFilters.value.year) params.append('year', currentFilters.value.year.toString());
       if (currentFilters.value.month) params.append('month', currentFilters.value.month.toString());
-      if (currentFilters.value.type_id) params.append('type_id', currentFilters.value.type_id.toString());
-      if (currentFilters.value.sub_type_id) params.append('sub_type_id', currentFilters.value.sub_type_id.toString());
+      if (currentFilters.value.type_id)
+        params.append('type_id', currentFilters.value.type_id.toString());
+      if (currentFilters.value.sub_type_id)
+        params.append('sub_type_id', currentFilters.value.sub_type_id.toString());
 
-      if (currentFilters.value.category_id) params.append('category_id', currentFilters.value.category_id.toString());
-      if (currentFilters.value.tag_id) params.append('tag_id', currentFilters.value.tag_id.toString());
+      if (currentFilters.value.category_id)
+        params.append('category_id', currentFilters.value.category_id.toString());
+      if (currentFilters.value.tag_id)
+        params.append('tag_id', currentFilters.value.tag_id.toString());
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/activity/?${params.toString()}`,
@@ -168,10 +200,12 @@ export const useActivityStore = defineStore('activity', () => {
           headers: { Authorization: `Bearer ${userStore.token}` },
         }
       );
+      if (!isCurrent()) return;
 
       if (!response.ok) throw new Error('Failed to fetch paginated activities.');
 
       const data: unknown = await response.json();
+      if (!isCurrent()) return;
       const newActivities = parseActivityPageData(data).map(mapApiActivity);
 
       if (loadMore) {
@@ -183,12 +217,14 @@ export const useActivityStore = defineStore('activity', () => {
       if (newActivities.length < ACTIVITIES_PER_PAGE) canLoadMore.value = false;
       currentPage.value++;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       listError.value = e instanceof Error ? e.message : String(e);
     } finally {
-      isListLoading.value = false;
+      if (isCurrent()) {
+        isListLoading.value = false;
+      }
     }
   }
-
 
   async function uploadActivity(
     file: File,
@@ -196,6 +232,7 @@ export const useActivityStore = defineStore('activity', () => {
     subTypeId: number | null,
     timezoneName?: string
   ): Promise<{ success: boolean; message: string }> {
+    const isCurrent = captureSession();
     if (!userStore.token) {
       return { success: false, message: 'Not authenticated.' };
     }
@@ -221,9 +258,13 @@ export const useActivityStore = defineStore('activity', () => {
         headers: { Authorization: `Bearer ${userStore.token}` },
         body: formData,
       });
+      if (!isCurrent())
+        return { success: false, message: 'Account changed while processing the request.' };
 
       if (!response.ok) {
         const errorData: unknown = await response.json();
+        if (!isCurrent())
+          return { success: false, message: 'Account changed while processing the request.' };
         throw new Error(activityErrorMessage(errorData, 'Upload failed.'));
       }
 
@@ -231,6 +272,8 @@ export const useActivityStore = defineStore('activity', () => {
       notifyUpdate();
       return { success: true, message: 'Activity uploaded successfully!' };
     } catch (e: unknown) {
+      if (!isCurrent())
+        return { success: false, message: 'Account changed while processing the request.' };
       return { success: false, message: e instanceof Error ? e.message : String(e) };
     }
   }
@@ -239,6 +282,7 @@ export const useActivityStore = defineStore('activity', () => {
     activityId: string,
     payload: ActivityUpdatePayload
   ): Promise<boolean> {
+    const isCurrent = captureSession();
     if (!userStore.token) return false;
 
     try {
@@ -253,18 +297,24 @@ export const useActivityStore = defineStore('activity', () => {
         },
         body: JSON.stringify(payload),
       });
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to update activity.');
       const data: unknown = await response.json();
+      if (!isCurrent()) return false;
       const updatedActivity = mapApiActivity(data);
-      if (updatedActivity.id !== activityId) throw new Error('Unexpected activity update response.');
-      recentActivities.value = recentActivities.value.map(activity =>
-        activity.id === activityId ? updatedActivity : activity);
-      paginatedActivities.value = paginatedActivities.value.map(activity =>
-        activity.id === activityId ? updatedActivity : activity);
+      if (updatedActivity.id !== activityId)
+        throw new Error('Unexpected activity update response.');
+      recentActivities.value = recentActivities.value.map((activity) =>
+        activity.id === activityId ? updatedActivity : activity
+      );
+      paginatedActivities.value = paginatedActivities.value.map((activity) =>
+        activity.id === activityId ? updatedActivity : activity
+      );
       notifyUpdate();
       return true;
     } catch {
+      if (!isCurrent()) return false;
       return false;
     }
   }
@@ -274,6 +324,7 @@ export const useActivityStore = defineStore('activity', () => {
     file: File | null,
     timezoneName?: string
   ): Promise<{ success: boolean; message: string }> {
+    const isCurrent = captureSession();
     if (!userStore.token) return { success: false, message: 'Not authenticated.' };
 
     try {
@@ -295,13 +346,20 @@ export const useActivityStore = defineStore('activity', () => {
           body: JSON.stringify(payload),
         }
       );
+      if (!isCurrent())
+        return { success: false, message: 'Account changed while processing the request.' };
 
       if (!response.ok) {
         const err: unknown = await response.json();
+        if (!isCurrent())
+          return { success: false, message: 'Account changed while processing the request.' };
         throw new Error(activityErrorMessage(err, 'Failed to create activity.'));
       }
 
-      const newActivity = mapApiActivity(await response.json());
+      const activityData: unknown = await response.json();
+      if (!isCurrent())
+        return { success: false, message: 'Account changed while processing the request.' };
+      const newActivity = mapApiActivity(activityData);
 
       if (file) {
         const formData = new FormData();
@@ -316,6 +374,8 @@ export const useActivityStore = defineStore('activity', () => {
             body: formData,
           }
         );
+        if (!isCurrent())
+          return { success: false, message: 'Account changed while processing the request.' };
 
         if (!trackResponse.ok) {
           return {
@@ -329,11 +389,14 @@ export const useActivityStore = defineStore('activity', () => {
       notifyUpdate();
       return { success: true, message: 'Activity created successfully!' };
     } catch (e: unknown) {
+      if (!isCurrent())
+        return { success: false, message: 'Account changed while processing the request.' };
       return { success: false, message: e instanceof Error ? e.message : String(e) };
     }
   }
 
   async function fetchActivityImages(activityId: string) {
+    const isCurrent = captureSession();
     isImagesLoading.value = true;
     activityImages.value = [];
 
@@ -349,19 +412,25 @@ export const useActivityStore = defineStore('activity', () => {
           headers: { Authorization: `Bearer ${userStore.token}` },
         }
       );
+      if (!isCurrent()) return;
 
       if (response.ok) {
         const responseData = await response.json();
+        if (!isCurrent()) return;
         activityImages.value = responseData.data;
       }
     } catch (e) {
+      if (!isCurrent()) return;
       console.error('Failed to load images', e);
     } finally {
-      isImagesLoading.value = false;
+      if (isCurrent()) {
+        isImagesLoading.value = false;
+      }
     }
   }
 
   async function uploadActivityImage(activityId: string, file: File) {
+    const isCurrent = captureSession();
     if (!userStore.token) return false;
 
     try {
@@ -376,17 +445,21 @@ export const useActivityStore = defineStore('activity', () => {
           body: formData,
         }
       );
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Upload failed');
       await fetchActivityImages(activityId);
+      if (!isCurrent()) return false;
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function deleteActivityImage(imageId: string) {
+    const isCurrent = captureSession();
     if (!userStore.token) return false;
 
     try {
@@ -394,17 +467,20 @@ export const useActivityStore = defineStore('activity', () => {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${userStore.token}` },
       });
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Delete failed');
       activityImages.value = activityImages.value.filter((img) => img.id !== imageId);
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function deleteActivity(id: string): Promise<boolean> {
+    const isCurrent = captureSession();
     if (!userStore.token) return false;
 
     try {
@@ -412,6 +488,7 @@ export const useActivityStore = defineStore('activity', () => {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${userStore.token}` },
       });
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to delete activity');
 
@@ -419,6 +496,7 @@ export const useActivityStore = defineStore('activity', () => {
       notifyUpdate();
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }

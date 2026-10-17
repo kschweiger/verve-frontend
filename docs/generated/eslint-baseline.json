@@ -85,7 +85,7 @@
     },
     {
       "filePath": "src/stores/goals.ts",
-      "line": 159,
+      "line": 195,
       "column": 66,
       "severity": 2,
       "ruleId": "@typescript-eslint/no-unused-vars",

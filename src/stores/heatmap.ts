@@ -1,3 +1,4 @@
+import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
@@ -19,13 +20,21 @@ export const useHeatmapStore = defineStore('heatmap', () => {
   const error = ref<string | null>(null);
 
   // --- ACTION ---
+  const captureSession = useAccountSession(() => {
+    heatmapPoints.value = [];
+    heatmapCenter.value = [0, 0];
+    isLoading.value = false;
+    error.value = null;
+  });
+
   async function fetchHeatmapData(filters: ActivityFilters) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     error.value = null;
     const userStore = useUserStore();
 
     if (!userStore.token) {
-      error.value = "Not authenticated";
+      error.value = 'Not authenticated';
       isLoading.value = false;
       return;
     }
@@ -35,7 +44,8 @@ export const useHeatmapStore = defineStore('heatmap', () => {
       if (filters.year) params.append('year', filters.year.toString());
       if (filters.month) params.append('month', filters.month.toString());
       if (filters.type_id) params.append('activity_type_id', filters.type_id.toString());
-      if (filters.sub_type_id) params.append('activity_sub_type_id', filters.sub_type_id.toString());
+      if (filters.sub_type_id)
+        params.append('activity_sub_type_id', filters.sub_type_id.toString());
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/heatmap/activities?${params.toString()}`,
@@ -44,17 +54,22 @@ export const useHeatmapStore = defineStore('heatmap', () => {
           headers: { Authorization: `Bearer ${userStore.token}` },
         }
       );
+      if (!isCurrent()) return;
 
       if (!response.ok) throw new Error('Failed to fetch heatmap data.');
 
       const data: HeatmapResponse = await response.json();
+      if (!isCurrent()) return;
 
       heatmapPoints.value = data.points;
       heatmapCenter.value = data.center;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 

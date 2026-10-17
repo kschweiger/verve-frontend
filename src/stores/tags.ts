@@ -1,3 +1,4 @@
+import { useAccountSession } from '../composables/useAccountSession';
 // src/stores/tags.ts
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -37,147 +38,204 @@ export const useTagsStore = defineStore('tags', () => {
     'Content-Type': 'application/json',
   });
 
+  const captureSession = useAccountSession(() => {
+    tags.value = [];
+    categories.value = [];
+    isLoading.value = false;
+    error.value = null;
+  });
+
   async function fetchAll() {
+    const isCurrent = captureSession();
     isLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/all`, {
         headers: getHeaders(),
       });
+      if (!isCurrent()) return;
       if (!response.ok) throw new Error('Failed to fetch tags and categories.');
       const data: UserTagResponse = await response.json();
+      if (!isCurrent()) return;
       tags.value = data.tags;
       categories.value = data.categories;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function searchTags(query: string, limit = 20): Promise<TagSearchResult[]> {
+    const isCurrent = captureSession();
     if (!query) return [];
     try {
       const params = new URLSearchParams({ query, limit: limit.toString() });
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/search?${params.toString()}`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/tag/search?${params.toString()}`,
+        {
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return [];
       if (!response.ok) throw new Error('Tag search failed');
 
       const data = await response.json();
+      if (!isCurrent()) return [];
       return data.data;
     } catch (e) {
+      if (!isCurrent()) return [];
       console.error(e);
       return [];
     }
   }
 
   async function searchCategories(query: string, limit = 20): Promise<TagSearchResult[]> {
+    const isCurrent = captureSession();
     if (!query) return [];
     try {
       const params = new URLSearchParams({ query, limit: limit.toString() });
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/category/find?${params.toString()}`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/tag/category/find?${params.toString()}`,
+        {
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return [];
       if (!response.ok) throw new Error('Category search failed');
 
       const data = await response.json();
+      if (!isCurrent()) return [];
       return data.data;
     } catch (e) {
+      if (!isCurrent()) return [];
       console.error(e);
       return [];
     }
   }
 
   async function createCategory(name: string): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/category/add`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify({ name }),
       });
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to create category.');
       await fetchAll();
+      if (!isCurrent()) return false;
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function createTag(name: string, categoryId: number | null): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/add`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify({ name, category_id: categoryId }),
       });
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to create tag.');
       await fetchAll();
+      if (!isCurrent()) return false;
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function deleteCategory(id: number, cascade = false): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/category/${id}?cascade=${cascade}`, {
-        method: 'DELETE',
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/tag/category/${id}?cascade=${cascade}`,
+        {
+          method: 'DELETE',
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to delete category.');
       await fetchAll();
+      if (!isCurrent()) return false;
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function deleteTag(id: number): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/${id}`, {
         method: 'DELETE',
         headers: getHeaders(),
       });
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to delete tag.');
       await fetchAll();
+      if (!isCurrent()) return false;
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function addTagToActivity(activityId: string, tagId: number): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/add_tag?tag_id=${tagId}`, {
-        method: 'PATCH',
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/add_tag?tag_id=${tagId}`,
+        {
+          method: 'PATCH',
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to add tag to activity.');
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function removeTagFromActivity(activityId: string, tagId: number): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/tag/${tagId}`, {
-        method: 'DELETE',
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/tag/${tagId}`,
+        {
+          method: 'DELETE',
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to remove tag from activity.');
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
-
 
   return {
     tags,
