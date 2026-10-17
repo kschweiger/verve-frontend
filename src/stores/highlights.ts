@@ -65,6 +65,7 @@ export const useHighlightStore = defineStore('highlight', () => {
 
   async function fetchHighlightsForActivity(activityId: string) {
     const isCurrent = beginActivityHighlightsRequest();
+    activityHighlights.value = [];
     isLoading.value = true;
     try {
       const response = await fetch(
