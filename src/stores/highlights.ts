@@ -1,3 +1,4 @@
+import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
@@ -30,43 +31,63 @@ export const useHighlightStore = defineStore('highlight', () => {
 
   // --- ACTIONS ---
 
+  const captureSession = useAccountSession(() => {
+    availableMetrics.value = [];
+    activityHighlights.value = [];
+    dashboardHighlights.value = [];
+    isLoading.value = false;
+  });
+
   async function fetchAvailableMetrics() {
+    const isCurrent = captureSession();
     if (availableMetrics.value.length > 0) return;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/highlights/metrics`, {
         headers: getAuthHeaders(),
       });
+      if (!isCurrent()) return;
       if (!response.ok) throw new Error('Failed to fetch highlight metrics.');
 
       const data: ApiResponse<string[]> = await response.json();
+      if (!isCurrent()) return;
       availableMetrics.value = data.data;
     } catch (e) {
+      if (!isCurrent()) return;
       console.error(e);
     }
   }
 
   async function fetchHighlightsForActivity(activityId: string) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/highlights/activity/${activityId}`,
-        { headers: getAuthHeaders() }
+        {
+          headers: getAuthHeaders(),
+        }
       );
+      if (!isCurrent()) return;
       if (!response.ok) {
         activityHighlights.value = [];
         return;
       }
       const data: ApiResponse<Highlight[]> = await response.json();
+      if (!isCurrent()) return;
       activityHighlights.value = data.data;
     } catch (e) {
+      if (!isCurrent()) return;
       console.error(e);
       activityHighlights.value = [];
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function fetchDashboardHighlights(metric: string, year: number | null) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     dashboardHighlights.value = [];
     try {
@@ -79,14 +100,19 @@ export const useHighlightStore = defineStore('highlight', () => {
       const url = `${import.meta.env.VITE_API_BASE_URL}/highlights/metric/${metric}${queryString ? '?' + queryString : ''}`;
 
       const response = await fetch(url, { headers: getAuthHeaders() });
+      if (!isCurrent()) return;
       if (!response.ok) return;
 
       const data: ApiResponse<Highlight[]> = await response.json();
+      if (!isCurrent()) return;
       dashboardHighlights.value = data.data;
     } catch (e) {
+      if (!isCurrent()) return;
       console.error(e);
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 

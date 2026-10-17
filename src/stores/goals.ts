@@ -1,3 +1,4 @@
+import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
@@ -50,7 +51,17 @@ export const useGoalStore = defineStore('goal', () => {
     'Content-Type': 'application/json',
   });
 
+  const captureSession = useAccountSession(() => {
+    goals.value = [];
+    yearlyGoals.value = [];
+    monthlyGoals.value = [];
+    weeklyGoals.value = [];
+    isLoading.value = false;
+    error.value = null;
+  });
+
   async function _fetch(year: number, month?: number | null, week?: number | null) {
+    const isCurrent = captureSession();
     const params = new URLSearchParams();
     params.append('year', year.toString());
 
@@ -61,23 +72,32 @@ export const useGoalStore = defineStore('goal', () => {
     const url = `${import.meta.env.VITE_API_BASE_URL}/goal/${queryString ? '?' + queryString : ''}`;
 
     const response = await fetch(url, { headers: getHeaders() });
+    if (!isCurrent()) return [];
     if (!response.ok) throw new Error('Failed to fetch goals');
     const data: ApiResponse<Goal[]> = await response.json();
+    if (!isCurrent()) return [];
     return data.data;
   }
 
   async function fetchGoals(year: number, month?: number | null) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     try {
-      goals.value = await _fetch(year, month);
+      const loadedGoals: typeof goals.value = await _fetch(year, month);
+      if (!isCurrent()) return;
+      goals.value = loadedGoals;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function fetchAllGoalsForView(year: number, month: number, week?: number) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     try {
       const [yearly, monthly, weekly] = await Promise.all([
@@ -85,18 +105,23 @@ export const useGoalStore = defineStore('goal', () => {
         _fetch(year, month),
         week ? _fetch(year, null, week) : Promise.resolve([]),
       ]);
+      if (!isCurrent()) return;
 
       yearlyGoals.value = yearly.filter((g) => g.temporal_type === 'yearly');
       monthlyGoals.value = monthly.filter((g) => g.temporal_type === 'monthly');
       weeklyGoals.value = weekly.filter((g) => g.temporal_type === 'weekly');
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function createGoal(payload: GoalCreatePayload) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/goal/`, {
@@ -104,15 +129,20 @@ export const useGoalStore = defineStore('goal', () => {
         headers: getHeaders(),
         body: JSON.stringify(payload),
       });
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to create goal');
 
       await fetchGoals(payload.year, payload.month);
+      if (!isCurrent()) return false;
       return true;
     } catch (e: unknown) {
+      if (!isCurrent()) return false;
       error.value = e instanceof Error ? e.message : String(e);
       return false;
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
@@ -121,6 +151,7 @@ export const useGoalStore = defineStore('goal', () => {
     attribute: 'name' | 'description' | 'target',
     value: string | number
   ) {
+    const isCurrent = captureSession();
     try {
       const params = new URLSearchParams();
       params.append('attribute', attribute);
@@ -132,31 +163,37 @@ export const useGoalStore = defineStore('goal', () => {
         method: 'POST',
         headers: getHeaders(),
       });
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to update goal');
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function deleteGoal(id: string) {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/goal/?id=${id}`, {
         method: 'DELETE',
         headers: getHeaders(),
       });
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error('Failed to delete goal');
 
       goals.value = goals.value.filter((g) => g.id !== id);
       return true;
     } catch (e: unknown) {
+      if (!isCurrent()) return false;
       error.value = e instanceof Error ? e.message : String(e);
       return false;
     }
   }
 
   async function modifyManualGoal(id: string, increase: boolean, amount = 1) {
+    const isCurrent = captureSession();
     try {
       const params = new URLSearchParams();
       params.append('id', id);
@@ -170,10 +207,12 @@ export const useGoalStore = defineStore('goal', () => {
         method: 'GET',
         headers: getHeaders(),
       });
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to update goal');
 
       const updatedGoal: Goal = await response.json();
+      if (!isCurrent()) return false;
 
       const index = goals.value.findIndex((g) => g.id === id);
       if (index !== -1) {
@@ -181,6 +220,7 @@ export const useGoalStore = defineStore('goal', () => {
       }
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }

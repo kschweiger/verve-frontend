@@ -52,29 +52,35 @@ export const useSettingsStore = defineStore('settings', () => {
   let session = 0;
   let settingsRequest: Promise<UserSettings> | null = null;
 
-  watch(() => userStore.token, () => {
-    session++;
-    userProfile.value = null;
-    userSettings.value = null;
-    settingsRequest = null;
-    isLoading.value = false;
-    isSavingTimezone.value = false;
-    error.value = null;
-    timezoneError.value = null;
-  }, { flush: 'sync' });
+  watch(
+    () => userStore.token,
+    () => {
+      session++;
+      userProfile.value = null;
+      userSettings.value = null;
+      settingsRequest = null;
+      isLoading.value = false;
+      isSavingTimezone.value = false;
+      error.value = null;
+      timezoneError.value = null;
+    },
+    { flush: 'sync' }
+  );
 
   function ensureSettings(refresh = false): Promise<UserSettings> {
     if (!userStore.token) return Promise.reject(new Error('Not authenticated.'));
     if (settingsRequest) return settingsRequest;
     if (!refresh && userSettings.value) return Promise.resolve(userSettings.value);
     const currentSession = session;
-    const request = fetchUserSettings().then(settings => {
-      if (currentSession !== session) throw new Error('Account changed while loading settings.');
-      userSettings.value = settings;
-      return settings;
-    }).finally(() => {
-      if (settingsRequest === request) settingsRequest = null;
-    });
+    const request = fetchUserSettings()
+      .then((settings) => {
+        if (currentSession !== session) throw new Error('Account changed while loading settings.');
+        userSettings.value = settings;
+        return settings;
+      })
+      .finally(() => {
+        if (settingsRequest === request) settingsRequest = null;
+      });
     settingsRequest = request;
     return request;
   }
@@ -143,6 +149,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function updateUserProfile(payload: UserProfilePayload): Promise<boolean> {
+    const currentSession = session;
     const userStore = useUserStore();
     if (!userStore.token) return false;
 
@@ -155,9 +162,11 @@ export const useSettingsStore = defineStore('settings', () => {
         },
         body: JSON.stringify(payload),
       });
+      if (currentSession !== session) return false;
       if (!response.ok) throw new Error('Failed to update profile.');
 
       await fetchAllSettings();
+      if (currentSession !== session) return false;
 
       const userInfoUpdate: { name?: string; fullName?: string } = {};
       if (payload.name) userInfoUpdate.name = payload.name;
@@ -169,6 +178,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
       return true;
     } catch (e) {
+      if (currentSession !== session) return false;
       console.error(e);
       return false;
     }
@@ -177,6 +187,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function updatePassword(
     payload: PasswordUpdatePayload
   ): Promise<{ success: boolean; message: string }> {
+    const currentSession = session;
     const userStore = useUserStore();
     if (!userStore.token) {
       return { success: false, message: 'Not authenticated.' };
@@ -191,14 +202,20 @@ export const useSettingsStore = defineStore('settings', () => {
         },
         body: JSON.stringify(payload),
       });
+      if (currentSession !== session)
+        return { success: false, message: 'Account changed while processing the request.' };
 
       if (!response.ok) {
         const data = await response.json();
+        if (currentSession !== session)
+          return { success: false, message: 'Account changed while processing the request.' };
         throw new Error(data.detail || 'Failed to update password.');
       }
 
-      userStore.logout();
       const { default: router } = await import('../router');
+      if (currentSession !== session)
+        return { success: false, message: 'Account changed while processing the request.' };
+      userStore.logout();
       router.push({
         name: 'login',
         query: { status: 'password-updated' },
@@ -209,6 +226,8 @@ export const useSettingsStore = defineStore('settings', () => {
         message: 'Password updated successfully. Please log in again.',
       };
     } catch (e: unknown) {
+      if (currentSession !== session)
+        return { success: false, message: 'Account changed while processing the request.' };
       return { success: false, message: e instanceof Error ? e.message : String(e) };
     }
   }
@@ -217,6 +236,7 @@ export const useSettingsStore = defineStore('settings', () => {
     typeId: number | null,
     subTypeId: number | null
   ): Promise<boolean> {
+    const currentSession = session;
     const userStore = useUserStore();
     if (!userStore.token) return false;
 
@@ -232,11 +252,14 @@ export const useSettingsStore = defineStore('settings', () => {
           headers: { Authorization: `Bearer ${userStore.token}` },
         }
       );
+      if (currentSession !== session) return false;
       if (!response.ok) throw new Error('Failed to update default types.');
 
       await fetchAllSettings();
+      if (currentSession !== session) return false;
       return true;
     } catch (e) {
+      if (currentSession !== session) return false;
       console.error(e);
       return false;
     }
@@ -245,48 +268,62 @@ export const useSettingsStore = defineStore('settings', () => {
   async function updateHeatmapSettings(
     excludedTypes: Array<[number, number | null]>
   ): Promise<boolean> {
+    const currentSession = session;
     const userStore = useUserStore();
     if (!userStore.token) return false;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/heatmap_settings`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${userStore.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ excluded_activity_types: excludedTypes }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/users/me/heatmap_settings`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${userStore.token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ excluded_activity_types: excludedTypes }),
+        }
+      );
+      if (currentSession !== session) return false;
 
       if (!response.ok) throw new Error('Failed to update heatmap settings.');
 
       await fetchAllSettings();
+      if (currentSession !== session) return false;
       return true;
     } catch (e) {
+      if (currentSession !== session) return false;
       console.error(e);
       return false;
     }
   }
 
   async function updateRecordsSettings(defaultActivityType: number): Promise<boolean> {
+    const currentSession = session;
     const userStore = useUserStore();
     if (!userStore.token) return false;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/records_settings`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${userStore.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ default_activity_type: defaultActivityType }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/users/me/records_settings`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${userStore.token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ default_activity_type: defaultActivityType }),
+        }
+      );
+      if (currentSession !== session) return false;
 
       if (!response.ok) throw new Error('Failed to update records settings.');
 
       await fetchAllSettings();
+      if (currentSession !== session) return false;
       return true;
     } catch (e) {
+      if (currentSession !== session) return false;
       console.error(e);
       return false;
     }

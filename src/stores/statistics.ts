@@ -1,3 +1,4 @@
+import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
@@ -126,7 +127,21 @@ export const useStatisticsStore = defineStore('statistics', () => {
 
   const userStore = useUserStore();
 
+  const captureSession = useAccountSession(() => {
+    yearlyStats.value = null;
+    weeklyStats.value = null;
+    calendarData.value = null;
+    activityGrid.value = null;
+    isActivityGridLoading.value = false;
+    activityGridError.value = null;
+    isWeeklyLoading.value = false;
+    weeklyError.value = null;
+    isLoading.value = false;
+    error.value = null;
+  });
+
   async function fetchYearlyStats(year: number | null) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     error.value = null;
 
@@ -149,21 +164,28 @@ export const useStatisticsStore = defineStore('statistics', () => {
         method: 'GET',
         headers: { Authorization: `Bearer ${userStore.token}` },
       });
+      if (!isCurrent()) return;
 
       if (!response.ok) {
         throw new Error('Failed to fetch statistics.');
       }
 
-      yearlyStats.value = await response.json();
+      const data: typeof yearlyStats.value = await response.json();
+      if (!isCurrent()) return;
+      yearlyStats.value = data;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : String(e);
       yearlyStats.value = null;
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function fetchCalendar(year: number, month: number) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     error.value = null;
 
@@ -181,14 +203,20 @@ export const useStatisticsStore = defineStore('statistics', () => {
           headers: { Authorization: `Bearer ${userStore.token}` },
         }
       );
+      if (!isCurrent()) return;
 
       if (!response.ok) throw new Error('Failed to load calendar data.');
 
-      calendarData.value = await response.json();
+      const data: typeof calendarData.value = await response.json();
+      if (!isCurrent()) return;
+      calendarData.value = data;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
@@ -197,6 +225,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     week: number | null,
     activityTypeId: number
   ) {
+    const isCurrent = captureSession();
     isWeeklyLoading.value = true;
     weeklyError.value = null;
 
@@ -218,19 +247,26 @@ export const useStatisticsStore = defineStore('statistics', () => {
           headers: { Authorization: `Bearer ${userStore.token}` },
         }
       );
+      if (!isCurrent()) return;
 
       if (!response.ok) throw new Error('Failed to fetch weekly stats.');
 
-      weeklyStats.value = await response.json();
+      const data: typeof weeklyStats.value = await response.json();
+      if (!isCurrent()) return;
+      weeklyStats.value = data;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       weeklyError.value = e instanceof Error ? e.message : String(e);
       weeklyStats.value = null;
     } finally {
-      isWeeklyLoading.value = false;
+      if (isCurrent()) {
+        isWeeklyLoading.value = false;
+      }
     }
   }
 
   async function fetchActivityGrid(weeks = 52) {
+    const isCurrent = captureSession();
     isActivityGridLoading.value = true;
     activityGridError.value = null;
 
@@ -251,15 +287,21 @@ export const useStatisticsStore = defineStore('statistics', () => {
           headers: { Authorization: `Bearer ${userStore.token}` },
         }
       );
+      if (!isCurrent()) return;
 
       if (!response.ok) throw new Error('Failed to load activity grid.');
 
-      activityGrid.value = await response.json();
+      const data: typeof activityGrid.value = await response.json();
+      if (!isCurrent()) return;
+      activityGrid.value = data;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       activityGridError.value = e instanceof Error ? e.message : String(e);
       activityGrid.value = null;
     } finally {
-      isActivityGridLoading.value = false;
+      if (isCurrent()) {
+        isActivityGridLoading.value = false;
+      }
     }
   }
 

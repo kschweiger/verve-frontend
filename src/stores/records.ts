@@ -1,3 +1,4 @@
+import { useAccountSession } from '../composables/useAccountSession';
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { fetchActivitySummary } from '../services/api';
@@ -33,11 +34,26 @@ export const useRecordsStore = defineStore('records', () => {
       groups.value.flatMap((group) => group.records.map((record) => record.activity_id))
     );
     activitySummaries.value = Object.fromEntries(
-      Object.entries(activitySummaries.value).filter(([activityId]) => visibleActivityIds.has(activityId))
+      Object.entries(activitySummaries.value).filter(([activityId]) =>
+        visibleActivityIds.has(activityId)
+      )
     );
   }
 
+  const captureSession = useAccountSession(() => {
+    scope.value = 'yearly';
+    year.value = currentYear;
+    typeId.value = null;
+    groups.value = [];
+    selectedMetric.value = null;
+    activitySummaries.value = {};
+    isLoading.value = false;
+    isLoadingSummaries.value = false;
+    error.value = null;
+  });
+
   async function fetchSelectedActivitySummaries() {
+    const isCurrent = captureSession();
     const records = selectedGroup.value?.records ?? [];
     const missingActivityIds = records
       .map((record) => record.activity_id)
@@ -53,6 +69,7 @@ export const useRecordsStore = defineStore('records', () => {
           activity: await fetchActivitySummary(activityId),
         }))
       );
+      if (!isCurrent()) return;
 
       const nextSummaries = { ...activitySummaries.value };
       for (const result of results) {
@@ -61,12 +78,18 @@ export const useRecordsStore = defineStore('records', () => {
         }
       }
       activitySummaries.value = nextSummaries;
+    } catch (error: unknown) {
+      if (!isCurrent()) return;
+      throw error;
     } finally {
-      isLoadingSummaries.value = false;
+      if (isCurrent()) {
+        isLoadingSummaries.value = false;
+      }
     }
   }
 
   async function fetchOverview() {
+    const isCurrent = captureSession();
     if (typeId.value === null) {
       groups.value = [];
       selectedMetric.value = null;
@@ -78,20 +101,29 @@ export const useRecordsStore = defineStore('records', () => {
     error.value = null;
 
     try {
-      const nextGroups = sortRecordGroups(
-        await fetchRecordsOverview({ year: requestYear.value, typeId: typeId.value })
-      );
+      const overview = await fetchRecordsOverview({
+        year: requestYear.value,
+        typeId: typeId.value,
+      });
+      if (!isCurrent()) return;
+      const nextGroups = sortRecordGroups(overview);
       groups.value = nextGroups;
       selectedMetric.value =
-        nextGroups.find((group) => group.metric === selectedMetric.value)?.metric ?? nextGroups[0]?.metric ?? null;
+        nextGroups.find((group) => group.metric === selectedMetric.value)?.metric ??
+        nextGroups[0]?.metric ??
+        null;
       pruneActivitySummaryCache();
       await fetchSelectedActivitySummaries();
+      if (!isCurrent()) return;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : 'Failed to load records.';
       groups.value = [];
       selectedMetric.value = null;
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 

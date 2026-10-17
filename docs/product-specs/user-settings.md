@@ -12,5 +12,5 @@
 - While saving, disable the editor controls. On failure, keep the editor open and display an inline error. Close it only after the refreshed settings are available.
 - The shared Pinia store exposes `timezone` as a reactive string or null before loading. Views call `await settingsStore.ensureSettings()` to obtain validated settings without fetching the profile. Concurrent loads share a request and subsequent calls use cached settings. `ensureSettings(true)` explicitly refreshes them.
 - The loader rejects on authentication, transport, validation, or account-change errors. Consumers must handle those errors before processing dates; they must not substitute the browser timezone for the user's preference.
-- Changing the authentication token clears cached profile and settings and ignores responses from the previous session.
+- Changing the authentication token clears all account-owned caches, selections, loading flags, and errors. Pending work from the previous session cannot populate the new account, finish its loading state, or issue follow-up requests under its credentials. Public activity/location type lookups may remain cached.
 - This stage provides the saved preference and editor. Individual activity views adopt it in subsequent timezone updates.

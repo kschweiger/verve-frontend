@@ -1,3 +1,4 @@
+import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
@@ -107,13 +108,25 @@ export const useEquipmentStore = defineStore('equipment', () => {
     'Content-Type': contentType,
   });
 
+  const captureSession = useAccountSession(() => {
+    allEquipment.value = [];
+    equipmentSets.value = [];
+    activityEquipment.value = [];
+    equipmentTypes.value = [];
+    isLoading.value = false;
+    areTypesLoading.value = false;
+  });
+
   async function fetchEquipmentTypes() {
+    const isCurrent = captureSession();
     if (equipmentTypes.value.length > 0) return;
     areTypesLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/types`);
+      if (!isCurrent()) return;
       if (response.ok) {
         const data: unknown = await response.json();
+        if (!isCurrent()) return;
         if (isRecord(data) && Array.isArray(data.data)) {
           equipmentTypes.value = data.data.filter(
             (type): type is EquipmentType =>
@@ -121,46 +134,65 @@ export const useEquipmentStore = defineStore('equipment', () => {
           );
         }
       }
+    } catch (error: unknown) {
+      if (!isCurrent()) return;
+      throw error;
     } finally {
-      areTypesLoading.value = false;
+      if (isCurrent()) {
+        areTypesLoading.value = false;
+      }
     }
   }
 
   async function fetchAllEquipment() {
+    const isCurrent = captureSession();
     isLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/`, {
         headers: getAuthHeaders(),
       });
+      if (!isCurrent()) return;
       if (response.ok) {
         const data: unknown = await response.json();
+        if (!isCurrent()) return;
         allEquipment.value = parseEquipmentListResponse(data);
       }
+    } catch (error: unknown) {
+      if (!isCurrent()) return;
+      throw error;
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function createEquipment(payload: EquipmentCreatePayload) {
+    const isCurrent = captureSession();
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to create equipment.');
     const created: unknown = await response.json();
+    if (!isCurrent()) return;
     parseEquipment(created);
     await fetchAllEquipment();
   }
 
   async function updateEquipment(id: string, payload: EquipmentUpdatePayload) {
+    const isCurrent = captureSession();
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/${id}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     });
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to update equipment.');
     const data: unknown = await response.json();
+    if (!isCurrent()) return;
     const updated = parseEquipment(data);
     allEquipment.value = allEquipment.value.map((item) => (item.id === id ? updated : item));
     activityEquipment.value = activityEquipment.value.map((item) =>
@@ -169,10 +201,12 @@ export const useEquipmentStore = defineStore('equipment', () => {
   }
 
   async function deleteEquipment(id: string) {
+    const isCurrent = captureSession();
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
+    if (!isCurrent()) return;
     if (response.status !== 204) throw new Error('Failed to delete equipment.');
     allEquipment.value = allEquipment.value.filter((item) => item.id !== id);
     activityEquipment.value = activityEquipment.value.filter((item) => item.id !== id);
@@ -180,48 +214,60 @@ export const useEquipmentStore = defineStore('equipment', () => {
       const setsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/set/`, {
         headers: getAuthHeaders(),
       });
+      if (!isCurrent()) return;
       if (!setsResponse.ok) throw new Error();
       const setsData: unknown = await setsResponse.json();
+      if (!isCurrent()) return;
       equipmentSets.value = parseEquipmentSetsResponse(setsData);
     } catch {
+      if (!isCurrent()) return;
       throw new Error('Equipment was deleted, but equipment sets could not be refreshed.');
     }
   }
 
   async function fetchAllSets() {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/set/`, {
         headers: getAuthHeaders(),
       });
+      if (!isCurrent()) return;
       if (response.ok) {
         const data: unknown = await response.json();
+        if (!isCurrent()) return;
         equipmentSets.value = parseEquipmentSetsResponse(data);
       }
     } catch (e) {
+      if (!isCurrent()) return;
       console.error('Fetch sets failed', e);
     }
   }
 
   async function createSet(name: string) {
+    const isCurrent = captureSession();
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/set/`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ name, equipment_ids: [] }),
     });
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to create set.');
     await fetchAllSets();
   }
 
   async function deleteSet(setId: string) {
+    const isCurrent = captureSession();
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/set/${setId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to delete set.');
     await fetchAllSets();
   }
 
   async function addEquipmentToSet(setId: string, equipmentId: string) {
+    const isCurrent = captureSession();
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/set/${setId}/equipment/${equipmentId}`,
       {
@@ -229,11 +275,13 @@ export const useEquipmentStore = defineStore('equipment', () => {
         headers: getAuthHeaders(),
       }
     );
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to add item to set.');
     await fetchAllSets();
   }
 
   async function removeEquipmentFromSet(setId: string, equipmentId: string) {
+    const isCurrent = captureSession();
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/set/${setId}/equipment/${equipmentId}`,
       {
@@ -241,11 +289,13 @@ export const useEquipmentStore = defineStore('equipment', () => {
         headers: getAuthHeaders(),
       }
     );
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to remove item from set.');
     await fetchAllSets();
   }
 
   async function setDefaultSet(setId: string, typeId: number, subTypeId: number | null) {
+    const isCurrent = captureSession();
     const query = new URLSearchParams({ activity_type_id: typeId.toString() });
     if (subTypeId) query.append('activity_sub_type_id', subTypeId.toString());
 
@@ -256,16 +306,22 @@ export const useEquipmentStore = defineStore('equipment', () => {
         headers: getAuthHeaders(),
       }
     );
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to set default.');
   }
 
   async function fetchEquipmentForActivity(activityId: string) {
+    const isCurrent = captureSession();
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/activity/${activityId}`,
-      { headers: getAuthHeaders() }
+      {
+        headers: getAuthHeaders(),
+      }
     );
+    if (!isCurrent()) return;
     if (response.ok) {
       const data: unknown = await response.json();
+      if (!isCurrent()) return;
       activityEquipment.value = parseEquipmentListResponse(data);
     } else {
       activityEquipment.value = [];
@@ -273,6 +329,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
   }
 
   async function addEquipmentToActivity(equipmentId: string, activityId: string) {
+    const isCurrent = captureSession();
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/${equipmentId}/activity/${activityId}`,
       {
@@ -280,11 +337,13 @@ export const useEquipmentStore = defineStore('equipment', () => {
         headers: getAuthHeaders(),
       }
     );
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to add equipment.');
     await fetchEquipmentForActivity(activityId);
   }
 
   async function removeEquipmentFromActivity(equipmentId: string, activityId: string) {
+    const isCurrent = captureSession();
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/${equipmentId}/activity/${activityId}`,
       {
@@ -292,11 +351,13 @@ export const useEquipmentStore = defineStore('equipment', () => {
         headers: getAuthHeaders(),
       }
     );
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to remove equipment.');
     await fetchEquipmentForActivity(activityId);
   }
 
   async function addSetToActivity(setId: string, activityId: string) {
+    const isCurrent = captureSession();
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/set/${setId}/activity/${activityId}`,
       {
@@ -304,11 +365,13 @@ export const useEquipmentStore = defineStore('equipment', () => {
         headers: getAuthHeaders(),
       }
     );
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to add set to activity.');
     await fetchEquipmentForActivity(activityId);
   }
 
   async function removeSetFromActivity(setId: string, activityId: string) {
+    const isCurrent = captureSession();
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/set/${setId}/activity/${activityId}`,
       {
@@ -316,6 +379,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
         headers: getAuthHeaders(),
       }
     );
+    if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to remove set from activity.');
     await fetchEquipmentForActivity(activityId);
   }

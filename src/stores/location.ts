@@ -1,10 +1,11 @@
+import { useAccountSession } from '../composables/useAccountSession';
 // src/stores/location.ts
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 import type { Activity } from './activity';
-import { mapApiActivity } from '@/services/api';
-import { parseActivityPageData } from '@/services/activityResponses';
+import { mapApiActivity } from '../services/api';
+import { parseActivityPageData } from '../services/activityResponses';
 
 // --- Interfaces ---
 export interface Location {
@@ -63,7 +64,18 @@ export const useLocationStore = defineStore('location', () => {
   });
 
   // --- Actions ---
+  const captureSession = useAccountSession(() => {
+    visibleLocations.value = [];
+    availableLocations.value = [];
+    selectedLocation.value = null;
+    selectedLocationActivities.value = [];
+    currentActivityLocations.value = [];
+    isLoading.value = false;
+    error.value = null;
+  });
+
   async function fetchLocationsInBounds(bounds: MapBounds, filters?: LocationFilters) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     error.value = null;
     try {
@@ -82,79 +94,114 @@ export const useLocationStore = defineStore('location', () => {
         params.append('sub_type_id', filters.subTypeId.toString());
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?${params.toString()}`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/location/?${params.toString()}`,
+        {
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return;
 
       if (!response.ok) throw new Error('Failed to fetch locations.');
 
       const data = await response.json();
+      if (!isCurrent()) return;
       visibleLocations.value = data.data;
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function fetchAllLocations() {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?limit=100`, {
         headers: getHeaders(),
       });
+      if (!isCurrent()) return;
       if (response.ok) {
         const data = await response.json();
+        if (!isCurrent()) return;
         availableLocations.value = data.data;
       }
     } catch (e) {
+      if (!isCurrent()) return;
       console.error(e);
     }
   }
 
   async function searchLocations(query: string, limit = 20): Promise<LocationSearchResult[]> {
+    const isCurrent = captureSession();
     if (!query) return [];
     try {
       const params = new URLSearchParams({ query, limit: limit.toString() });
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/find?${params.toString()}`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/location/find?${params.toString()}`,
+        {
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return [];
       if (!response.ok) throw new Error('Search failed');
 
       const data = await response.json();
+      if (!isCurrent()) return [];
       return data.data;
     } catch (e) {
+      if (!isCurrent()) return [];
       console.error(e);
       return [];
     }
   }
 
   async function selectLocation(locationId: string) {
+    const isCurrent = captureSession();
     isLoading.value = true;
     selectedLocation.value = null;
     selectedLocationActivities.value = [];
 
     try {
-      const locResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/${locationId}`, {
-        headers: getHeaders(),
-      });
+      const locResponse = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/location/${locationId}`,
+        {
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return;
       if (!locResponse.ok) throw new Error('Failed to load location details.');
-      selectedLocation.value = await locResponse.json();
+      const locationData: typeof selectedLocation.value = await locResponse.json();
+      if (!isCurrent()) return;
+      selectedLocation.value = locationData;
 
-      const actResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/${locationId}/activities`, {
-        headers: getHeaders(),
-      });
+      const actResponse = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/location/${locationId}/activities`,
+        {
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return;
       if (actResponse.ok) {
         const actData: unknown = await actResponse.json();
+        if (!isCurrent()) return;
         selectedLocationActivities.value = parseActivityPageData(actData).map(mapApiActivity);
       }
     } catch (e: unknown) {
+      if (!isCurrent()) return;
       error.value = e instanceof Error ? e.message : String(e);
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function createLocation(payload: LocationCreatePayload): Promise<boolean> {
+    const isCurrent = captureSession();
     isLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/`, {
@@ -162,23 +209,29 @@ export const useLocationStore = defineStore('location', () => {
         headers: getHeaders(),
         body: JSON.stringify(payload),
       });
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to create location.');
       return true;
     } catch (e: unknown) {
+      if (!isCurrent()) return false;
       error.value = e instanceof Error ? e.message : String(e);
       return false;
     } finally {
-      isLoading.value = false;
+      if (isCurrent()) {
+        isLoading.value = false;
+      }
     }
   }
 
   async function deleteLocation(locationId: string): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/${locationId}`, {
         method: 'DELETE',
         headers: getHeaders(),
       });
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to delete location.');
 
@@ -189,12 +242,18 @@ export const useLocationStore = defineStore('location', () => {
       }
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
-  async function updateLocationType(id: string, typeId: number, subTypeId: number | null): Promise<boolean> {
+  async function updateLocationType(
+    id: string,
+    typeId: number,
+    subTypeId: number | null
+  ): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
       const params = new URLSearchParams();
       params.append('type_id', typeId.toString());
@@ -207,6 +266,7 @@ export const useLocationStore = defineStore('location', () => {
           headers: getHeaders(),
         }
       );
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to update location type');
 
@@ -216,27 +276,36 @@ export const useLocationStore = defineStore('location', () => {
       }
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function fetchLocationsForActivity(activityId: string) {
+    const isCurrent = captureSession();
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/locations`, {
-        headers: getHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/locations`,
+        {
+          headers: getHeaders(),
+        }
+      );
+      if (!isCurrent()) return;
       if (!response.ok) throw new Error('Failed to fetch activity locations.');
 
       const data = await response.json();
+      if (!isCurrent()) return;
       currentActivityLocations.value = data.data;
     } catch (e) {
+      if (!isCurrent()) return;
       console.error(e);
       currentActivityLocations.value = [];
     }
   }
 
   async function addLocationToActivity(activityId: string, locationId: string): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
       const params = new URLSearchParams();
       params.append('location_id', locationId);
@@ -247,18 +316,25 @@ export const useLocationStore = defineStore('location', () => {
           headers: getHeaders(),
         }
       );
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to add location.');
 
       await fetchLocationsForActivity(activityId);
+      if (!isCurrent()) return false;
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
-  async function removeLocationFromActivity(activityId: string, locationId: string): Promise<boolean> {
+  async function removeLocationFromActivity(
+    activityId: string,
+    locationId: string
+  ): Promise<boolean> {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/locations/${locationId}`,
@@ -267,35 +343,44 @@ export const useLocationStore = defineStore('location', () => {
           headers: getHeaders(),
         }
       );
+      if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Failed to remove location.');
 
       await fetchLocationsForActivity(activityId);
+      if (!isCurrent()) return false;
       return true;
     } catch (e) {
+      if (!isCurrent()) return false;
       console.error(e);
       return false;
     }
   }
 
   async function _getMostRecentCoordinates(): Promise<[number, number] | null> {
+    const isCurrent = captureSession();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/?limit=1`, {
         headers: getHeaders(),
       });
+      if (!isCurrent()) return null;
       if (!response.ok) return null;
       const data = await response.json();
+      if (!isCurrent()) return null;
       if (data.data && data.data.length > 0) {
         return [data.data[0].latitude, data.data[0].longitude];
       }
       return null;
     } catch {
+      if (!isCurrent()) return null;
       return null;
     }
   }
 
   async function findLocationMapCenter(): Promise<[number, number]> {
+    const isCurrent = captureSession();
     const recent = await _getMostRecentCoordinates();
+    if (!isCurrent()) return [48.13, 11.58];
     if (recent) return recent;
     return [48.13, 11.58];
   }
