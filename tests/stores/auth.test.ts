@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -5,16 +6,22 @@ import { useUserStore } from '../../src/stores/auth';
 const originalFetch = globalThis.fetch;
 const originalStorage = globalThis.localStorage;
 const user = {
-  id: '00000000-0000-4000-8000-000000000001', name: 'runner',
-  email: 'runner@example.com', full_name: null, is_admin: true,
+  id: '00000000-0000-4000-8000-000000000001',
+  name: 'runner',
+  email: 'runner@example.com',
+  full_name: null,
+  is_admin: true,
 };
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
 
 beforeEach(() => {
   globalThis.localStorage = {
-    getItem: (key: string) => key === 'auth_token' ? 'saved-token' : null,
-    setItem: () => undefined, removeItem: () => undefined,
-    clear: () => undefined, key: () => null, length: 1,
+    getItem: (key: string) => (key === 'auth_token' ? 'saved-token' : null),
+    setItem: () => undefined,
+    removeItem: () => undefined,
+    clear: () => undefined,
+    key: () => null,
+    length: 1,
   };
   setActivePinia(createPinia());
 });
@@ -26,10 +33,12 @@ afterEach(() => {
 describe('account state', () => {
   test('restores admin status from the backend, sharing and caching requests', async () => {
     const requests: Array<{ url: string; init?: RequestInit }> = [];
-    globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-      requests.push({ url: input.toString(), init });
-      return json(user);
-    }) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+        requests.push({ url: input.toString(), init });
+        return json(user);
+      })
+    );
     const store = useUserStore();
     expect(store.isAdmin).toBe(false);
     await Promise.all([store.ensureCurrentUser(), store.ensureCurrentUser()]);
@@ -43,7 +52,7 @@ describe('account state', () => {
   });
 
   test('allows non-admin accounts without showing admin access', async () => {
-    globalThis.fetch = mock(async () => json({ ...user, is_admin: false })) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => json({ ...user, is_admin: false })));
     const store = useUserStore();
     await store.ensureCurrentUser();
     expect(store.isAdmin).toBe(false);
@@ -52,7 +61,14 @@ describe('account state', () => {
 
   test('clears account data on logout and rejects a late profile response', async () => {
     let resolve!: (response: Response) => void;
-    globalThis.fetch = mock(() => new Promise<Response>(r => { resolve = r; })) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(
+        () =>
+          new Promise<Response>((r) => {
+            resolve = r;
+          })
+      )
+    );
     const store = useUserStore();
     const request = store.ensureCurrentUser();
     store.logout();
@@ -66,11 +82,18 @@ describe('account state', () => {
 
   test('does not let a failed old account request clear the new account', async () => {
     let resolve!: (response: Response) => void;
-    globalThis.fetch = mock(() => new Promise<Response>(r => { resolve = r; })) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(
+        () =>
+          new Promise<Response>((r) => {
+            resolve = r;
+          })
+      )
+    );
     const store = useUserStore();
     const oldRequest = store.ensureCurrentUser();
     store.setToken('new-token');
-    globalThis.fetch = mock(async () => json({ ...user, is_admin: false })) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => json({ ...user, is_admin: false })));
     await store.ensureCurrentUser();
     resolve(json({}, 401));
     await expect(oldRequest).rejects.toThrow();
@@ -80,11 +103,11 @@ describe('account state', () => {
 
   test('refreshes account privileges and can retry a failed load', async () => {
     const store = useUserStore();
-    globalThis.fetch = mock(async () => json({}, 503)) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => json({}, 503)));
     await expect(store.ensureCurrentUser()).rejects.toThrow();
-    globalThis.fetch = mock(async () => json(user)) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => json(user)));
     await store.ensureCurrentUser();
-    globalThis.fetch = mock(async () => json({ ...user, is_admin: false })) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => json({ ...user, is_admin: false })));
     await store.ensureCurrentUser(true);
     expect(store.isAdmin).toBe(false);
     store.setToken('another-token');
@@ -93,17 +116,23 @@ describe('account state', () => {
   });
 
   test('loads the login profile and clears a session if loading fails', async () => {
-    globalThis.fetch = mock(async (input: RequestInfo | URL) =>
-      input.toString().endsWith('/login/access_token')
-        ? json({ access_token: 'new-token' }) : json(user)
-    ) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(async (input: RequestInfo | URL) =>
+        input.toString().endsWith('/login/access_token')
+          ? json({ access_token: 'new-token' })
+          : json(user)
+      )
+    );
     const store = useUserStore();
     expect(await store.login('runner@example.com', 'password')).toBe(true);
     expect(store.isAdmin).toBe(true);
-    globalThis.fetch = mock(async (input: RequestInfo | URL) =>
-      input.toString().endsWith('/login/access_token')
-        ? json({ access_token: 'bad-profile-token' }) : json({}, 503)
-    ) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(async (input: RequestInfo | URL) =>
+        input.toString().endsWith('/login/access_token')
+          ? json({ access_token: 'bad-profile-token' })
+          : json({}, 503)
+      )
+    );
     expect(await store.login('runner@example.com', 'password')).toBe(false);
     expect(store.token).toBeNull();
     expect(store.isAdmin).toBe(false);
@@ -112,18 +141,24 @@ describe('account state', () => {
   test('does not clear a newer login when an earlier profile response arrives late', async () => {
     let resolveOldProfile!: (response: Response) => void;
     let profileStarted!: () => void;
-    const started = new Promise<void>(resolve => { profileStarted = resolve; });
+    const started = new Promise<void>((resolve) => {
+      profileStarted = resolve;
+    });
     let logins = 0;
-    globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-      if (input.toString().endsWith('/login/access_token')) {
-        return json({ access_token: ++logins === 1 ? 'old-login-token' : 'new-login-token' });
-      }
-      if (new Headers(init?.headers).get('Authorization') === 'Bearer old-login-token') {
-        profileStarted();
-        return new Promise<Response>(resolve => { resolveOldProfile = resolve; });
-      }
-      return json({ ...user, name: 'newuser', is_admin: false });
-    }) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (input.toString().endsWith('/login/access_token')) {
+          return json({ access_token: ++logins === 1 ? 'old-login-token' : 'new-login-token' });
+        }
+        if (new Headers(init?.headers).get('Authorization') === 'Bearer old-login-token') {
+          profileStarted();
+          return new Promise<Response>((resolve) => {
+            resolveOldProfile = resolve;
+          });
+        }
+        return json({ ...user, name: 'newuser', is_admin: false });
+      })
+    );
     const store = useUserStore();
     const oldLogin = store.login('runner@example.com', 'password');
     await started;
@@ -137,13 +172,18 @@ describe('account state', () => {
   test('ignores a token response from a superseded login', async () => {
     let resolveOldToken!: (response: Response) => void;
     let logins = 0;
-    globalThis.fetch = mock(async (input: RequestInfo | URL) => {
-      if (input.toString().endsWith('/login/access_token')) {
-        if (++logins === 1) return new Promise<Response>(resolve => { resolveOldToken = resolve; });
-        return json({ access_token: 'new-login-token' });
-      }
-      return json({ ...user, name: 'newuser' });
-    }) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock(async (input: RequestInfo | URL) => {
+        if (input.toString().endsWith('/login/access_token')) {
+          if (++logins === 1)
+            return new Promise<Response>((resolve) => {
+              resolveOldToken = resolve;
+            });
+          return json({ access_token: 'new-login-token' });
+        }
+        return json({ ...user, name: 'newuser' });
+      })
+    );
     const store = useUserStore();
     const oldLogin = store.login('runner@example.com', 'password');
     expect(await store.login('new@example.com', 'password')).toBe(true);

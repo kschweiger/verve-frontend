@@ -1,7 +1,8 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
-import { useEquipmentStore } from '../../src/stores/equipment';
+import { useEquipmentStore, type Equipment } from '../../src/stores/equipment';
 
 const originalFetch = globalThis.fetch;
 const originalLocalStorage = globalThis.localStorage;
@@ -12,7 +13,7 @@ const jsonResponse = (body: unknown, init?: ResponseInit): Response =>
     ...init,
   });
 
-const equipment = {
+const equipment: Equipment = {
   id: 'equipment-1',
   name: 'Road bike',
   equipment_type: 'bike',
@@ -44,7 +45,7 @@ describe('equipment item mutations', () => {
   test('patches an item and synchronizes both equipment caches from the response', async () => {
     const updated = { ...equipment, name: 'Touring bike' };
     const fetchMock = mock(async () => jsonResponse(updated));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
     const store = useEquipmentStore();
     store.allEquipment = [equipment];
     store.activityEquipment = [equipment];
@@ -67,7 +68,7 @@ describe('equipment item mutations', () => {
   });
 
   test('preserves cached items when an update request fails', async () => {
-    globalThis.fetch = mock(async () => jsonResponse({}, { status: 503 })) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => jsonResponse({}, { status: 503 })));
     const store = useEquipmentStore();
     store.allEquipment = [equipment];
 
@@ -81,7 +82,7 @@ describe('equipment item mutations', () => {
     const fetchMock = mock()
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(jsonResponse({ data: [] }));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
     const store = useEquipmentStore();
     store.allEquipment = [equipment];
     store.activityEquipment = [equipment];
@@ -99,7 +100,7 @@ describe('equipment item mutations', () => {
   });
 
   test('does not remove cached items when delete fails', async () => {
-    globalThis.fetch = mock(async () => new Response(null, { status: 500 })) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => new Response(null, { status: 500 })));
     const store = useEquipmentStore();
     store.allEquipment = [equipment];
 
@@ -110,9 +111,11 @@ describe('equipment item mutations', () => {
   });
 
   test('reports set refresh failure after a successful delete', async () => {
-    globalThis.fetch = mock()
-      .mockResolvedValueOnce(new Response(null, { status: 204 }))
-      .mockResolvedValueOnce(new Response(null, { status: 503 })) as typeof fetch;
+    globalThis.fetch = stubFetch(
+      mock()
+        .mockResolvedValueOnce(new Response(null, { status: 204 }))
+        .mockResolvedValueOnce(new Response(null, { status: 503 }))
+    );
     const store = useEquipmentStore();
     store.allEquipment = [equipment];
 

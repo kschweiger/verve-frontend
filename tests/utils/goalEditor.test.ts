@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { effectScope, ref, type EffectScope } from 'vue';
@@ -48,8 +49,9 @@ function editor() {
 test('failed goal saves preserve edits and report backend errors', async () => {
   const state = editor();
   state.form.value.name = 'Updated';
-  globalThis.fetch = (async () =>
-    Response.json({ detail: 'Goal cannot be edited.' }, { status: 422 })) as typeof fetch;
+  globalThis.fetch = stubFetch(async () =>
+    Response.json({ detail: 'Goal cannot be edited.' }, { status: 422 })
+  );
   expect(await state.save()).toBe(false);
   expect(state.form.value.name).toBe('Updated');
   expect(state.error.value).toBe('Goal cannot be edited.');
@@ -67,12 +69,12 @@ test('goal edits are sequential, update all caches, and retry only unsaved field
   state.form.value.target = 20;
   const attributes: string[] = [];
   let fail = true;
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) => {
     const attribute = new URL(input.toString(), 'https://api.test').searchParams.get('attribute')!;
     attributes.push(attribute);
     if (attribute === 'target' && fail) return Response.json({}, { status: 503 });
     return Response.json({ ...goal, name: 'Updated', target: attribute === 'target' ? 20 : 10 });
-  }) as typeof fetch;
+  });
   expect(await state.save()).toBe(false);
   expect(attributes).toEqual(['name', 'target']);
   expect(store.goals[0]?.name).toBe('Updated');
@@ -91,12 +93,12 @@ test('pending goal saves ignore duplicate submissions and cannot finish a dispos
   state.form.value.name = 'Updated';
   let complete!: (response: Response) => void;
   let requests = 0;
-  globalThis.fetch = (() => {
+  globalThis.fetch = stubFetch(() => {
     requests++;
     return new Promise<Response>((resolve) => {
       complete = resolve;
     });
-  }) as typeof fetch;
+  });
   const pending = state.save();
   expect(state.isSaving.value).toBe(true);
   expect(await state.save()).toBe(false);

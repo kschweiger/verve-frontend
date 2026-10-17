@@ -74,7 +74,7 @@ export const CHART_HOVER_COLORS = [
   '#7c3aed', // Purple 600
 ];
 
-export const RANK_COLORS = {
+export const RANK_COLORS: Partial<Record<number, string>> = {
   1: '#F59E0B',        // Gold (Amber-500 placeholder)
   2: '#9CA3AF',        // Silver (Gray-400 placeholder)
   3: VERVE_COLORS.orange // Bronze (Using Verve Orange)

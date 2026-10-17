@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -34,7 +35,7 @@ describe('records store type filter', () => {
     const userStore = useUserStore();
     userStore.setToken('token-123');
     const fetchMock = mock(async () => jsonResponse({ data: {} }));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     const recordsStore = useRecordsStore();
     recordsStore.setInitialTypeId(2);
@@ -50,7 +51,7 @@ describe('records store type filter', () => {
 
   test('does not fetch overview without a concrete type_id', async () => {
     const fetchMock = mock(async () => jsonResponse({ data: {} }));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     const recordsStore = useRecordsStore();
     await recordsStore.fetchOverview();

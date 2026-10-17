@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -130,7 +131,7 @@ describe('activity API page helper', () => {
           {
             id: '00000000-0000-4000-8000-000000000001',
             start: '2026-06-01T08:00:00Z',
-      timezone: 'Europe/Berlin',
+            timezone: 'Europe/Berlin',
             duration: 'PT1H',
             distance: 10,
             type_id: 1,
@@ -142,7 +143,7 @@ describe('activity API page helper', () => {
         ],
       })
     );
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     const result = await fetchActivityPage({
       limit: 25,
@@ -173,7 +174,7 @@ describe('track extension API requests', () => {
     const userStore = useUserStore();
     userStore.setToken('token-123');
     const fetchMock = mock(async () => new Response(null, { status: 204 }));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     await removeTrackExtensionData('activity-123', 'heartrate');
 
@@ -189,7 +190,7 @@ describe('track extension API requests', () => {
   test('reports a failed track-extension removal', async () => {
     const userStore = useUserStore();
     userStore.setToken('token-123');
-    globalThis.fetch = mock(async () => new Response(null, { status: 500 })) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => new Response(null, { status: 500 })));
 
     await expect(removeTrackExtensionData('activity-123', 'power')).rejects.toThrow(
       'Failed to remove track extension data.'
@@ -199,7 +200,7 @@ describe('track extension API requests', () => {
   test('rejects a successful-looking response that does not match the documented 204 status', async () => {
     const userStore = useUserStore();
     userStore.setToken('token-123');
-    globalThis.fetch = mock(async () => new Response(null, { status: 200 })) as typeof fetch;
+    globalThis.fetch = stubFetch(mock(async () => new Response(null, { status: 200 })));
 
     await expect(removeTrackExtensionData('activity-123', 'cadence')).rejects.toThrow(
       'Failed to remove track extension data.'

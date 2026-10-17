@@ -1,3 +1,4 @@
+import { stubFetch } from '../helpers/fetch';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
@@ -173,7 +174,7 @@ describe('collection API requests', () => {
     const userStore = useUserStore();
     userStore.setToken('token-123');
     const fetchMock = mock(async () => jsonResponse({ data: [overview] }));
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     await fetchCollections({ limit: 20, offset: 40, year: 2026, month: 6 });
 
@@ -198,7 +199,7 @@ describe('collection API requests', () => {
         activity_ids: ['00000000-0000-4000-8000-000000000001'],
       })
     );
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     const result = await createCollection({
       name: 'Trip',
@@ -239,7 +240,7 @@ describe('collection API requests', () => {
         ],
       })
     );
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     await updateCollection('collection-1', {
       name: 'Trip updated',
@@ -285,7 +286,7 @@ describe('collection API requests', () => {
         total_elevation_change_down: null,
       });
     });
-    globalThis.fetch = fetchMock as typeof fetch;
+    globalThis.fetch = stubFetch(fetchMock);
 
     await expect(fetchCollection('collection-1')).resolves.toEqual(
       expect.objectContaining({ id: 'collection-1' })
