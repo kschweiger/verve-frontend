@@ -7,9 +7,9 @@ import {
   fetchCollection,
   fetchCollectionTrack,
   fetchCollections,
-  parseCollectionDetailResponse,
-  parseCollectionListResponse,
-  parseCollectionTrackResponse,
+  mapCollectionDetailResponse,
+  mapCollectionListResponse,
+  mapCollectionTrackResponse,
   updateCollection,
 } from '../../src/services/collections';
 
@@ -69,7 +69,7 @@ afterEach(() => {
 
 describe('collection response parsing', () => {
   test('parses collection list responses and sorts by start descending', () => {
-    const result = parseCollectionListResponse({
+    const result = mapCollectionListResponse({
       data: [
         { ...overview, id: 'older', start: '2026-05-01T08:00:00Z' },
         { ...overview, id: 'newer', start: '2026-06-01T08:00:00Z' },
@@ -84,7 +84,7 @@ describe('collection response parsing', () => {
   });
 
   test('parses detail responses and derives effective and pause durations', () => {
-    const result = parseCollectionDetailResponse({
+    const result = mapCollectionDetailResponse({
       id: 'collection-1',
       name: 'Trip',
       description: null,
@@ -99,7 +99,10 @@ describe('collection response parsing', () => {
       total_elevation_change_down: 490,
     });
 
-    expect(result.activities.map((activity) => activity.id)).toEqual(['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002']);
+    expect(result.activities.map((activity) => activity.id)).toEqual([
+      '00000000-0000-4000-8000-000000000001',
+      '00000000-0000-4000-8000-000000000002',
+    ]);
     expect(result.totalDuration).toBe('3h 0m');
     expect(result.totalMovingDuration).toBe('2h 30m');
     expect(result.effectiveDuration).toBe('2h 30m');
@@ -109,7 +112,7 @@ describe('collection response parsing', () => {
   });
 
   test('falls back to total duration for collection effective duration when moving duration is missing', () => {
-    const result = parseCollectionDetailResponse({
+    const result = mapCollectionDetailResponse({
       id: 'collection-1',
       name: 'Trip',
       description: null,
@@ -129,7 +132,7 @@ describe('collection response parsing', () => {
   });
 
   test('parses collection track points with activity grouping fields', () => {
-    const result = parseCollectionTrackResponse({
+    const result = mapCollectionTrackResponse({
       data: [
         {
           id: 1,
@@ -162,21 +165,6 @@ describe('collection response parsing', () => {
         collectionDist: 0,
       })
     );
-  });
-
-  test.each(['2026-06-01T08:00:00', '2026-02-30T08:00:00Z'])('rejects invalid collection track timestamp %s', (time) => {
-    expect(() => parseCollectionTrackResponse({ data: [{
-      id: 1,
-      activity_id: '00000000-0000-4000-8000-000000000001',
-      activity_index: 0,
-      time,
-    }] })).toThrow('Invalid collection track point');
-  });
-
-  test('rejects malformed collection response shapes', () => {
-    expect(() => parseCollectionListResponse({ data: {} })).toThrow('Invalid collection list response');
-    expect(() => parseCollectionDetailResponse({ activities: [] })).toThrow('Invalid collection detail response');
-    expect(() => parseCollectionTrackResponse({ data: [{ id: 'bad' }] })).toThrow('Invalid collection track point');
   });
 });
 
@@ -245,7 +233,10 @@ describe('collection API requests', () => {
         name: 'Trip updated',
         description: 'Updated',
         created_at: '2026-06-01T08:00:00Z',
-        activity_ids: ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'],
+        activity_ids: [
+          '00000000-0000-4000-8000-000000000001',
+          '00000000-0000-4000-8000-000000000002',
+        ],
       })
     );
     globalThis.fetch = fetchMock as typeof fetch;

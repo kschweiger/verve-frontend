@@ -1,7 +1,8 @@
+import type { UserPublic } from '../types/api';
 import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
-import { fetchUserSettings, parseUserProfile, saveUserTimezone } from '../services/settings';
+import { fetchUserSettings, mapUserProfile, saveUserTimezone } from '../services/settings';
 
 // --- INTERFACES ---
 export interface UserProfile {
@@ -136,8 +137,8 @@ export const useSettingsStore = defineStore('settings', () => {
       ]);
 
       if (!profileResponse.ok) throw new Error('Failed to load user profile.');
-      const profileData: unknown = await profileResponse.json();
-      const profile = parseUserProfile(profileData);
+      const profileData: UserPublic = await profileResponse.json();
+      const profile = mapUserProfile(profileData);
       if (currentSession === session) userProfile.value = profile;
     } catch (e: unknown) {
       if (currentSession === session) {

@@ -35,7 +35,7 @@ export const useTypeStore = defineStore('type', () => {
     isLoading.value = true;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/resolve/types`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/resolve/activity_types`, {
         method: 'GET',
       });
       if (!response.ok) throw new Error('Failed to fetch activity types.');
@@ -70,6 +70,6 @@ export const useTypeStore = defineStore('type', () => {
     activityTypes,
     locationTypes,
     fetchActivityTypes,
-    fetchLocationTypes
+    fetchLocationTypes,
   };
 });

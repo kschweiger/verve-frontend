@@ -1,3 +1,4 @@
+import type { HeatMapResponse } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
@@ -8,22 +9,17 @@ import type { ActivityFilters } from './activity';
 // [lat, lon, intensity]
 export type HeatPoint = [number, number, number];
 
-interface HeatmapResponse {
-  points: HeatPoint[];
-  center: [number, number];
-}
-
 export const useHeatmapStore = defineStore('heatmap', () => {
   // --- STATE ---
   const heatmapPoints = ref<HeatPoint[]>([]);
-  const heatmapCenter = ref<[number, number]>([0, 0]);
+  const heatmapCenter = ref<[number, number] | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
   // --- ACTION ---
   const captureSession = useAccountSession(() => {
     heatmapPoints.value = [];
-    heatmapCenter.value = [0, 0];
+    heatmapCenter.value = null;
     isLoading.value = false;
     error.value = null;
   });
@@ -60,7 +56,7 @@ export const useHeatmapStore = defineStore('heatmap', () => {
 
       if (!response.ok) throw new Error('Failed to fetch heatmap data.');
 
-      const data: HeatmapResponse = await response.json();
+      const data: HeatMapResponse = await response.json();
       if (!isCurrent()) return;
 
       heatmapPoints.value = data.points;

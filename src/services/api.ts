@@ -1,32 +1,10 @@
 // src/services/api.ts
 import { useUserStore } from '../stores/auth';
 import type { Activity } from '../stores/activity';
-import type { ActivityTagPublic } from '../stores/tags';
-import { parseISODuration, formatDuration, isAwareTimestamp } from '../utils/datetime';
-import { parseApiActivity, parseActivityPageData } from './activityResponses';
+import type * as Backend from '../types/api';
+import { parseISODuration, formatDuration } from '../utils/datetime';
 
-export interface ApiActivity {
-  id: string;
-  start: string;
-  timezone: string;
-  created_at: string;
-  duration: string;
-  moving_duration?: string | null;
-  distance: number | null;
-  elevation_change_up?: number | null;
-  elevation_change_down?: number | null;
-  type_id: number;
-  sub_type_id: number | null;
-  name: string;
-  avg_speed?: number | null;
-  max_speed?: number | null;
-  avg_heartrate?: number | null;
-  max_heartrate?: number | null;
-  avg_power?: number | null;
-  max_power?: number | null;
-  meta_data?: Record<string, unknown>;
-  tags: ActivityTagPublic[];
-}
+export type ApiActivity = Backend.ActivityPublic;
 
 export interface ActivityPageParams {
   limit?: number;
@@ -55,26 +33,9 @@ export interface TrackPoint {
 export const supportedTrackExtensions = ['heartrate', 'power', 'cadence'] as const;
 export type SupportedTrackExtension = (typeof supportedTrackExtensions)[number];
 
-interface ApiTrackPointResponse {
-  id?: number;
-  latitude?: number | null;
-  longitude?: number | null;
-  elevation?: number | null;
-  cum_distance?: number | null;
-  time?: string;
-  speed?: number | null;
-  heartrate?: number | null;
-  cadence?: number | null;
-  power?: number | null;
-}
+export type SegmentMetrics = Backend.SegmentMetrics;
 
-export interface SegmentMetrics {
-  avg: number;
-  min: number | null;
-  max: number | null;
-}
-
-export type SegmentMetric = 'pace' | 'heartrate' | 'power' | 'speed' | 'cadence';
+export type SegmentMetric = Backend.SegmentMetric;
 
 export interface SegmentDisplayMetadata {
   primaryMetric: SegmentMetric;
@@ -131,15 +92,16 @@ const getJsonAuthHeaders = (): HeadersInit => ({
   'Content-Type': 'application/json',
 });
 
-export const mapApiActivity = (value: unknown): Activity => {
-  const apiActivity = parseApiActivity(value);
+export const mapApiActivity = (apiActivity: ApiActivity): Activity => {
   const durationSeconds = parseISODuration(apiActivity.duration);
   const movingDurationSeconds =
     apiActivity.moving_duration === null || apiActivity.moving_duration === undefined
       ? null
       : parseISODuration(apiActivity.moving_duration);
   const effectiveDurationSeconds =
-    movingDurationSeconds !== null && movingDurationSeconds > 0 ? movingDurationSeconds : durationSeconds;
+    movingDurationSeconds !== null && movingDurationSeconds > 0
+      ? movingDurationSeconds
+      : durationSeconds;
 
   return {
     id: apiActivity.id,
@@ -164,25 +126,9 @@ export const mapApiActivity = (value: unknown): Activity => {
     avg_power: apiActivity.avg_power ?? null,
     max_power: apiActivity.max_power ?? null,
     metaData: apiActivity.meta_data ?? null,
-    tags: apiActivity.tags ?? [],
+    tags: apiActivity.tags.map((tag) => ({ ...tag, category_id: tag.category_id ?? null })),
   };
 };
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-const toNullableNumber = (value: unknown): number | null =>
-  typeof value === 'number' ? value : null;
-
-const toNumber = (value: unknown): number | null => (typeof value === 'number' ? value : null);
-
-const toString = (value: unknown): string | null => (typeof value === 'string' ? value : null);
-
-const toNumberArray = (value: unknown): number[] =>
-  Array.isArray(value) ? value.filter((item): item is number => typeof item === 'number') : [];
-
-const toStringArray = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 
 const appendNullableNumberParam = (
   params: URLSearchParams,
@@ -194,129 +140,41 @@ const appendNullableNumberParam = (
   }
 };
 
-const segmentMetrics = ['pace', 'heartrate', 'power', 'speed', 'cadence'] as const;
-const speedUnits = ['m/s', 'km/h', 'miles/h'] as const;
-const paceUnits = ['s/km', 's/mile', 'min/km', 'min/mile'] as const;
+const mapSegmentStatistics = (value: Backend.SegmentStatisticsResponse): SegmentStatistics => ({
+  segmentSetId: value.segment_set_id,
+  name: value.name,
+  cuts: value.cuts,
+  displayMetadata: {
+    primaryMetric: value.display_metadata.primary_metric,
+    displayMetrics: value.display_metadata.display_metrics,
+    speedUnit: value.display_metadata.speed_unit ?? 'km/h',
+    paceUnit: value.display_metadata.pace_unit ?? 'min/km',
+  },
+  segments: value.segments.map((segment) => ({
+    distanceM: segment.distance_m,
+    durationS: segment.duration_s,
+    elevationGain: segment.elevation_gain,
+    elevationLoss: segment.elevation_loss,
+    pace: segment.pace ?? null,
+    speed: segment.speed ?? null,
+    heartrate: segment.heartrate ?? null,
+    power: segment.power ?? null,
+    cadence: segment.cadence ?? null,
+  })),
+});
 
-const isSegmentMetric = (value: unknown): value is SegmentMetric =>
-  typeof value === 'string' && segmentMetrics.includes(value as SegmentMetric);
-
-const toSpeedUnit = (value: unknown): SegmentDisplayMetadata['speedUnit'] =>
-  typeof value === 'string' && speedUnits.includes(value as SegmentDisplayMetadata['speedUnit'])
-    ? (value as SegmentDisplayMetadata['speedUnit'])
-    : 'km/h';
-
-const toPaceUnit = (value: unknown): SegmentDisplayMetadata['paceUnit'] =>
-  typeof value === 'string' && paceUnits.includes(value as SegmentDisplayMetadata['paceUnit'])
-    ? (value as SegmentDisplayMetadata['paceUnit'])
-    : 'min/km';
-
-const mapSegmentMetrics = (value: unknown): SegmentMetrics | null => {
-  if (!isRecord(value)) return null;
-
-  const avg = toNumber(value.avg);
-  const min = toNumber(value.min);
-  const max = toNumber(value.max);
-
-  if (avg === null) return null;
-
-  return { avg, min, max };
-};
-
-const mapSegmentDisplayMetadata = (value: unknown): SegmentDisplayMetadata => {
-  if (!isRecord(value)) throw new Error('Invalid segment display metadata response.');
-
-  const primaryMetric = isSegmentMetric(value.primary_metric) ? value.primary_metric : null;
-  const displayMetrics = Array.isArray(value.display_metrics)
-    ? value.display_metrics.filter(isSegmentMetric)
-    : [];
-
-  if (primaryMetric === null || displayMetrics.length === 0) {
-    throw new Error('Invalid segment display metadata response.');
-  }
-
-  return {
-    primaryMetric,
-    displayMetrics: displayMetrics.includes(primaryMetric) ? displayMetrics : [primaryMetric, ...displayMetrics],
-    speedUnit: toSpeedUnit(value.speed_unit),
-    paceUnit: toPaceUnit(value.pace_unit),
-  };
-};
-
-const mapSegmentStats = (value: unknown): SegmentStats | null => {
-  if (!isRecord(value)) return null;
-
-  const distanceM = toNumber(value.distance_m);
-  const durationS = toNumber(value.duration_s);
-  const elevationGain = toNumber(value.elevation_gain);
-  const elevationLoss = toNumber(value.elevation_loss);
-
-  if (durationS === null) {
-    return null;
-  }
-
-  return {
-    distanceM,
-    durationS,
-    elevationGain,
-    elevationLoss,
-    pace: mapSegmentMetrics(value.pace),
-    speed: mapSegmentMetrics(value.speed),
-    heartrate: mapSegmentMetrics(value.heartrate),
-    power: mapSegmentMetrics(value.power),
-    cadence: mapSegmentMetrics(value.cadence),
-  };
-};
-
-const mapSegmentStatistics = (value: unknown): SegmentStatistics => {
-  if (!isRecord(value)) throw new Error('Invalid segment statistics response.');
-
-  const segmentSetId = toString(value.segment_set_id);
-  const name = toString(value.name);
-  if (segmentSetId === null || name === null || !Array.isArray(value.segments)) {
-    throw new Error('Invalid segment statistics response.');
-  }
-
-  return {
-    segmentSetId,
-    name,
-    cuts: toNumberArray(value.cuts),
-    displayMetadata: mapSegmentDisplayMetadata(value.display_metadata),
-    segments: value.segments.map(mapSegmentStats).filter((segment): segment is SegmentStats => segment !== null),
-  };
-};
-
-const mapSegmentSetPublic = (value: unknown): SegmentSetPublic => {
-  if (!isRecord(value)) throw new Error('Invalid segment set response.');
-
-  const id = toString(value.id);
-  const name = toString(value.name);
-  const activityId = toString(value.activity_id);
-
-  if (id === null || name === null || activityId === null) {
-    throw new Error('Invalid segment set response.');
-  }
-
-  return { id, name, activityId };
-};
-
-const mapApiTrackPoint = (point: ApiTrackPointResponse): TrackPoint | null => {
-  if (typeof point.id !== 'number') return null;
-  if (!isAwareTimestamp(point.time)) throw new Error('Invalid track timestamp. Expected an explicit UTC offset.');
-
-  return {
-    id: point.id,
-    lat: point.latitude ?? null,
-    lon: point.longitude ?? null,
-    ele: point.elevation ?? null,
-    dist: point.cum_distance ?? 0,
-    time: point.time,
-    speed: point.speed ?? null,
-    hr: point.heartrate ?? null,
-    cad: point.cadence ?? null,
-    power: point.power ?? null,
-  };
-};
+export const mapApiTrackPoint = (point: Backend.TrackPointResponse): TrackPoint => ({
+  id: point.id,
+  lat: point.latitude,
+  lon: point.longitude,
+  ele: point.elevation,
+  dist: point.cum_distance ?? 0,
+  time: point.time,
+  speed: point.speed,
+  hr: point.heartrate,
+  cad: point.cadence,
+  power: point.power,
+});
 
 export async function fetchActivitySummary(activityId: string): Promise<Activity> {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}`, {
@@ -326,7 +184,7 @@ export async function fetchActivitySummary(activityId: string): Promise<Activity
 
   if (!response.ok) throw new Error('Activity not found.');
 
-  const apiActivity: unknown = await response.json();
+  const apiActivity: ApiActivity = await response.json();
   return mapApiActivity(apiActivity);
 }
 
@@ -354,8 +212,8 @@ export async function fetchActivityPage(params: ActivityPageParams): Promise<Act
 
   if (!response.ok) throw new Error('Failed to fetch activities.');
 
-  const responseData: unknown = await response.json();
-  return parseActivityPageData(responseData).map(mapApiActivity);
+  const responseData: Backend.ListResponse<ApiActivity> = await response.json();
+  return responseData.data.map(mapApiActivity);
 }
 
 export async function fetchActivityTrack(activityId: string): Promise<TrackPoint[]> {
@@ -366,29 +224,8 @@ export async function fetchActivityTrack(activityId: string): Promise<TrackPoint
 
   if (!response.ok) throw new Error('Failed to fetch activity track data.');
 
-  const responseData: unknown = await response.json();
-
-  if (!isRecord(responseData) || !Array.isArray(responseData.data)) {
-    return [];
-  }
-
-  return responseData.data
-    .filter(isRecord)
-    .map((point) =>
-      mapApiTrackPoint({
-        id: toNumber(point.id) ?? undefined,
-        latitude: toNullableNumber(point.latitude),
-        longitude: toNullableNumber(point.longitude),
-        elevation: toNullableNumber(point.elevation),
-        cum_distance: toNullableNumber(point.cum_distance),
-        time: typeof point.time === 'string' ? point.time : undefined,
-        speed: toNullableNumber(point.speed),
-        heartrate: toNullableNumber(point.heartrate),
-        cadence: toNullableNumber(point.cadence),
-        power: toNullableNumber(point.power),
-      })
-    )
-    .filter((point): point is TrackPoint => point !== null);
+  const responseData: Backend.ListResponse<Backend.TrackPointResponse> = await response.json();
+  return responseData.data.map(mapApiTrackPoint);
 }
 
 export async function removeTrackExtensionData(
@@ -408,32 +245,38 @@ export async function removeTrackExtensionData(
 }
 
 export async function fetchActivitySegmentSetIds(activityId: string): Promise<string[]> {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/track/segments/sets/${activityId}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/track/segments/sets/${activityId}`,
+    {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    }
+  );
 
   if (!response.ok) throw new Error('Failed to fetch segment sets.');
 
-  const responseData: unknown = await response.json();
-  if (!isRecord(responseData)) return [];
-
-  return toStringArray(responseData.data);
+  const responseData: Backend.ListResponse<string> = await response.json();
+  return responseData.data;
 }
 
 export async function fetchSegmentStatistics(segmentSetId: string): Promise<SegmentStatistics> {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/track/segments/set/${segmentSetId}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/track/segments/set/${segmentSetId}`,
+    {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    }
+  );
 
   if (!response.ok) throw new Error('Failed to fetch segment statistics.');
 
-  const responseData: unknown = await response.json();
+  const responseData: Backend.SegmentStatisticsResponse = await response.json();
   return mapSegmentStatistics(responseData);
 }
 
-export async function createSegmentSet(payload: SegmentSetCreatePayload): Promise<SegmentSetPublic> {
+export async function createSegmentSet(
+  payload: SegmentSetCreatePayload
+): Promise<SegmentSetPublic> {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/track/segments/set`, {
     method: 'POST',
     headers: getJsonAuthHeaders(),
@@ -446,31 +289,37 @@ export async function createSegmentSet(payload: SegmentSetCreatePayload): Promis
 
   if (!response.ok) throw new Error('Failed to create segment set.');
 
-  const responseData: unknown = await response.json();
-  return mapSegmentSetPublic(responseData);
+  const responseData: Backend.SegmentSetPublic = await response.json();
+  return { id: responseData.id, name: responseData.name, activityId: responseData.activity_id };
 }
 
 export async function updateSegmentSet(
   segmentSetId: string,
   payload: SegmentSetUpdatePayload
 ): Promise<void> {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/track/segments/set/${segmentSetId}`, {
-    method: 'PATCH',
-    headers: getJsonAuthHeaders(),
-    body: JSON.stringify({
-      name: payload.name,
-      cuts: payload.cuts,
-    }),
-  });
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/track/segments/set/${segmentSetId}`,
+    {
+      method: 'PATCH',
+      headers: getJsonAuthHeaders(),
+      body: JSON.stringify({
+        name: payload.name,
+        cuts: payload.cuts,
+      }),
+    }
+  );
 
   if (!response.ok) throw new Error('Failed to update segment set.');
 }
 
 export async function deleteSegmentSet(segmentSetId: string): Promise<void> {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/track/segments/set/${segmentSetId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/track/segments/set/${segmentSetId}`,
+    {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    }
+  );
 
   if (!response.ok) throw new Error('Failed to delete segment set.');
 }

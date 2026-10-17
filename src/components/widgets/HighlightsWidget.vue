@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { Trophy } from '@lucide/vue';
+import type { HighlightMetric } from '@/services/records';
 import { useHighlightStore } from '@/stores/highlights';
 import { type Activity } from '@/stores/activity';
 import { fetchActivitySummary } from '@/services/api';
@@ -9,12 +10,12 @@ import { formatDuration, parseISODuration } from '@/utils/datetime';
 const highlightStore = useHighlightStore();
 
 interface CuratedRecordDefinition {
-  metric: string;
+  metric: HighlightMetric;
   label: string;
 }
 
 interface CuratedRecord {
-  metric: string;
+  metric: HighlightMetric;
   label: string;
   activity: Activity;
   value: number | string;

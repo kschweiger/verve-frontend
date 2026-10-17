@@ -1,27 +1,17 @@
+import type { ActivityHighlightPublic, HighlightMetric, ListResponse } from '../types/api';
+import { mapActivityHighlight, type ActivityHighlight } from '../services/records';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 
-// --- INTERFACES ---
-export interface Highlight {
-  activity_id: string;
-  metric: string;
-  scope: 'yearly' | 'lifetime';
-  year: number;
-  value: number;
-  rank: 1 | 2 | 3;
-}
-
-interface ApiResponse<T> {
-  data: T;
-}
+export type { ActivityHighlight as Highlight } from '../services/records';
 
 export const useHighlightStore = defineStore('highlight', () => {
-  const availableMetrics = ref<string[]>([]);
-  const activityHighlights = ref<Highlight[]>([]); // For the detail view
-  const dashboardHighlights = ref<Highlight[]>([]); // For the dashboard widget
+  const availableMetrics = ref<HighlightMetric[]>([]);
+  const activityHighlights = ref<ActivityHighlight[]>([]); // For the detail view
+  const dashboardHighlights = ref<ActivityHighlight[]>([]); // For the dashboard widget
   const isLoading = ref(false);
 
   const isDashboardLoading = ref(false);
@@ -54,7 +44,7 @@ export const useHighlightStore = defineStore('highlight', () => {
       if (!isCurrent()) return;
       if (!response.ok) throw new Error('Failed to fetch highlight metrics.');
 
-      const data: ApiResponse<string[]> = await response.json();
+      const data: ListResponse<HighlightMetric> = await response.json();
       if (!isCurrent()) return;
       availableMetrics.value = data.data;
     } catch (e) {
@@ -79,9 +69,9 @@ export const useHighlightStore = defineStore('highlight', () => {
         activityHighlights.value = [];
         return;
       }
-      const data: ApiResponse<Highlight[]> = await response.json();
+      const data: ListResponse<ActivityHighlightPublic> = await response.json();
       if (!isCurrent()) return;
-      activityHighlights.value = data.data;
+      activityHighlights.value = data.data.map(mapActivityHighlight);
     } catch (e) {
       if (!isCurrent()) return;
       console.error(e);
@@ -93,7 +83,7 @@ export const useHighlightStore = defineStore('highlight', () => {
     }
   }
 
-  async function fetchDashboardHighlights(metric: string, year: number | null) {
+  async function fetchDashboardHighlights(metric: HighlightMetric, year: number | null) {
     const isCurrent = beginDashboardHighlightsRequest();
     isDashboardLoading.value = true;
     dashboardHighlights.value = [];
@@ -110,9 +100,9 @@ export const useHighlightStore = defineStore('highlight', () => {
       if (!isCurrent()) return;
       if (!response.ok) return;
 
-      const data: ApiResponse<Highlight[]> = await response.json();
+      const data: ListResponse<ActivityHighlightPublic> = await response.json();
       if (!isCurrent()) return;
-      dashboardHighlights.value = data.data;
+      dashboardHighlights.value = data.data.map(mapActivityHighlight);
     } catch (e) {
       if (!isCurrent()) return;
       console.error(e);

@@ -34,9 +34,12 @@ afterEach(() => {
 
 const settingsFixture = (timezone: unknown = 'Europe/Berlin') => ({
   settings: {
-    default_type_id: 1, defautl_sub_type_id: null, locale: 'en',
+    default_type_id: 1,
+    defautl_sub_type_id: null,
+    locale: 'en',
     heatmap_settings: { excluded_activity_types: [] },
-    records_settings: { default_activity_type: 1 }, timezone,
+    records_settings: { default_activity_type: 1 },
+    timezone,
   },
 });
 
@@ -51,7 +54,7 @@ describe('shared timezone settings', () => {
     }) as typeof fetch;
     const store = useSettingsStore();
     const results = await Promise.all([store.ensureSettings(), store.ensureSettings()]);
-    expect(results.every(settings => settings.timezone === 'America/New_York')).toBe(true);
+    expect(results.every((settings) => settings.timezone === 'America/New_York')).toBe(true);
     expect(store.timezone).toBe('America/New_York');
     await store.ensureSettings();
     expect(requests).toBe(1);
@@ -65,14 +68,6 @@ describe('shared timezone settings', () => {
     expect((await useSettingsStore().ensureSettings()).timezone).toBe('Europe/Berlin');
   });
 
-  test.each([null, '', 'Mars/Olympus_Mons', 12])('rejects malformed timezone %p', async timezone => {
-    globalThis.fetch = mock(async () => jsonResponse(settingsFixture(timezone))) as typeof fetch;
-    const store = useSettingsStore();
-    await expect(store.ensureSettings()).rejects.toThrow();
-    expect(store.userSettings).toBeNull();
-    expect(store.timezone).toBeNull();
-  });
-
   test('clears cached settings on logout', async () => {
     globalThis.fetch = mock(async () => jsonResponse(settingsFixture())) as typeof fetch;
     const store = useSettingsStore();
@@ -82,28 +77,41 @@ describe('shared timezone settings', () => {
     expect(store.timezone).toBeNull();
   });
 
-  test.each([
-    { heatmap_settings: { excluded_activity_types: null } },
-    { records_settings: { default_activity_type: null } },
-  ])('rejects non-nullable nested settings %p', async invalidSettings => {
-    const fixture = settingsFixture();
-    globalThis.fetch = mock(async () => jsonResponse({
-      settings: { ...fixture.settings, ...invalidSettings },
-    })) as typeof fetch;
-    await expect(useSettingsStore().ensureSettings()).rejects.toThrow();
+  test('normalizes omitted nested preference fields with documented defaults', async () => {
+    globalThis.fetch = mock(async () =>
+      jsonResponse({
+        settings: {
+          default_type_id: 1,
+          defautl_sub_type_id: null,
+          heatmap_settings: {},
+          records_settings: {},
+        },
+      })
+    ) as typeof fetch;
+    const settings = await useSettingsStore().ensureSettings();
+    expect(settings.locale).toBe('en');
+    expect(settings.heatmap_settings.excluded_activity_types).toEqual([]);
+    expect(settings.records_settings?.default_activity_type).toBe(1);
   });
 
   test('retries a failed initial load', async () => {
     globalThis.fetch = mock(async () => jsonResponse({}, { status: 503 })) as typeof fetch;
     const store = useSettingsStore();
     await expect(store.ensureSettings()).rejects.toThrow();
-    globalThis.fetch = mock(async () => jsonResponse(settingsFixture('Asia/Tokyo'))) as typeof fetch;
+    globalThis.fetch = mock(async () =>
+      jsonResponse(settingsFixture('Asia/Tokyo'))
+    ) as typeof fetch;
     expect((await store.ensureSettings()).timezone).toBe('Asia/Tokyo');
   });
 
   test('ignores an old account response', async () => {
     let resolveResponse!: (response: Response) => void;
-    globalThis.fetch = mock(() => new Promise<Response>(resolve => { resolveResponse = resolve; })) as typeof fetch;
+    globalThis.fetch = mock(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveResponse = resolve;
+        })
+    ) as typeof fetch;
     const store = useSettingsStore();
     const pending = store.ensureSettings();
     useUserStore().logout();
@@ -116,12 +124,17 @@ describe('shared timezone settings', () => {
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
       requests.push({ url: input.toString(), init });
-      return init?.method === 'PATCH' ? jsonResponse({}) : jsonResponse(settingsFixture('Etc/GMT+1'));
+      return init?.method === 'PATCH'
+        ? jsonResponse({})
+        : jsonResponse(settingsFixture('Etc/GMT+1'));
     }) as typeof fetch;
     const store = useSettingsStore();
     expect(await store.updateTimezone('Etc/GMT+1')).toBe(true);
     expect(requests[0]?.url.endsWith('/users/me/timezone?timezone_name=Etc%2FGMT%2B1')).toBe(true);
-    expect(requests[0]?.init).toEqual({ method: 'PATCH', headers: { Authorization: 'Bearer token-123' } });
+    expect(requests[0]?.init).toEqual({
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer token-123' },
+    });
     expect(store.timezone).toBe('Etc/GMT+1');
   });
 
@@ -142,7 +155,10 @@ describe('shared timezone settings', () => {
     globalThis.fetch = mock(async (_input: RequestInfo | URL, init?: RequestInit) => {
       if (init?.method === 'PATCH') return jsonResponse({});
       getCount++;
-      if (getCount === 1) return new Promise<Response>((_resolve, reject) => { rejectOldLoad = reject; });
+      if (getCount === 1)
+        return new Promise<Response>((_resolve, reject) => {
+          rejectOldLoad = reject;
+        });
       return jsonResponse(settingsFixture('Asia/Tokyo'));
     }) as typeof fetch;
     const store = useSettingsStore();
