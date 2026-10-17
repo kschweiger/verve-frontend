@@ -15,7 +15,9 @@ const mapContainer = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
 let polylines: L.Polyline[] = [];
 
-const activityById = computed(() => new Map(props.activities.map((activity) => [activity.id, activity])));
+const activityById = computed(
+  () => new Map(props.activities.map((activity) => [activity.id, activity]))
+);
 
 const activityColor = (activityId: string) => {
   const sortedIds = props.activities.map((item) => item.id);
@@ -27,7 +29,9 @@ const groupedTrackData = computed(() => {
   const groups = new Map<string, CollectionTrackPoint[]>();
   for (const point of props.trackData) {
     if (point.lat === null || point.lon === null) continue;
-    groups.set(point.activityId, [...(groups.get(point.activityId) ?? []), point]);
+    const group = groups.get(point.activityId);
+    if (group) group.push(point);
+    else groups.set(point.activityId, [point]);
   }
   return groups;
 });
@@ -79,7 +83,8 @@ onMounted(() => {
 
   map = L.map(mapContainer.value).setView([47.37, 8.54], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
 
   drawMap();
@@ -101,8 +106,15 @@ watch(
 <template>
   <div class="overflow-hidden rounded-xl border border-verve-medium/30 bg-white shadow-sm">
     <div ref="mapContainer" class="h-[28rem] w-full"></div>
-    <div v-if="legendItems.length > 0" class="flex flex-wrap gap-3 border-t border-verve-medium/20 p-4">
-      <div v-for="item in legendItems" :key="item.activityId" class="flex items-center gap-2 text-sm text-verve-brown">
+    <div
+      v-if="legendItems.length > 0"
+      class="flex flex-wrap gap-3 border-t border-verve-medium/20 p-4"
+    >
+      <div
+        v-for="item in legendItems"
+        :key="item.activityId"
+        class="flex items-center gap-2 text-sm text-verve-brown"
+      >
         <span class="size-3 rounded-full" :style="{ backgroundColor: item.color }"></span>
         <span class="max-w-[14rem] truncate">{{ item.label }}</span>
       </div>

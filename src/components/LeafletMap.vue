@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onBeforeUnmount, onMounted, watch } from 'vue';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { TrackPoint } from '@/services/api';
@@ -97,7 +97,8 @@ onMounted(() => {
     map = L.map(mapContainer.value).setView([47.37, 8.54], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
     map.on('mouseout', () => {
@@ -108,6 +109,14 @@ onMounted(() => {
 
     drawTrackOnMap();
   }
+});
+
+onBeforeUnmount(() => {
+  map?.remove();
+  map = null;
+  hoverMarker = null;
+  trackPolyline = null;
+  cutMarkers = [];
 });
 
 watch(
