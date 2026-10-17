@@ -1,10 +1,10 @@
+import { responseError, getAuthHeaders } from '../services/authHeaders';
 import type { ActivityHighlightPublic, HighlightMetric, ListResponse } from '../types/api';
 import { mapActivityHighlight, type ActivityHighlight } from '../services/records';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
-import { useUserStore } from './auth';
 
 export type { ActivityHighlight as Highlight } from '../services/records';
 
@@ -15,12 +15,6 @@ export const useHighlightStore = defineStore('highlight', () => {
   const isLoading = ref(false);
 
   const isDashboardLoading = ref(false);
-
-  const userStore = useUserStore();
-  const getAuthHeaders = () => {
-    if (!userStore.token) throw new Error('Not authenticated');
-    return { Authorization: `Bearer ${userStore.token}` };
-  };
 
   // --- ACTIONS ---
 
@@ -42,7 +36,7 @@ export const useHighlightStore = defineStore('highlight', () => {
         headers: getAuthHeaders(),
       });
       if (!isCurrent()) return;
-      if (!response.ok) throw new Error('Failed to fetch highlight metrics.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch highlight metrics.');
 
       const data: ListResponse<HighlightMetric> = await response.json();
       if (!isCurrent()) return;

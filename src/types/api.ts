@@ -248,3 +248,23 @@ export interface ActivityCalendarItem {
   effective_duration: number;
   elevation_gain: number | null;
 }
+
+export interface GoalPublic {
+  name: string;
+  description?: string | null;
+  current?: number;
+  target: number;
+  current_updated?: string | null;
+  upper_bound?: boolean;
+  active?: boolean;
+  temporal_type?: 'yearly' | 'monthly' | 'weekly';
+  year?: number;
+  month?: number | null;
+  week?: number | null;
+  type: 'activity' | 'manual' | 'location';
+  aggregation: 'count' | 'total_distance' | 'avg_distance' | 'max_distance' | 'duration';
+  constraints?: Record<string, unknown>;
+  id: string;
+  reached: boolean;
+  progress: number;
+}

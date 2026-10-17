@@ -1,3 +1,4 @@
+import { responseError, getAuthHeaders, getJsonAuthHeaders } from '../services/authHeaders';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
@@ -7,23 +8,6 @@ import { mapApiActivity } from '../services/api';
 import type { ActivityPublic, ListResponse } from '../types/api';
 import { isSupportedTimezone } from '../services/timezones';
 import type { ActivityTagPublic } from './tags';
-
-function activityErrorMessage(value: unknown, fallback: string): string {
-  if (typeof value !== 'object' || value === null || !('detail' in value)) return fallback;
-  if (typeof value.detail === 'string') return value.detail;
-  if (Array.isArray(value.detail)) {
-    const first: unknown = value.detail[0];
-    if (
-      typeof first === 'object' &&
-      first !== null &&
-      'msg' in first &&
-      typeof first.msg === 'string'
-    ) {
-      return first.msg;
-    }
-  }
-  return fallback;
-}
 
 export interface Activity {
   id: string;
@@ -144,11 +128,11 @@ export const useActivityStore = defineStore('activity', () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/?limit=8`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${userStore.token}` },
+        headers: getAuthHeaders(),
       });
       if (!isCurrent()) return;
 
-      if (!response.ok) throw new Error('Failed to fetch activities.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch activities.');
 
       const data: ListResponse<ActivityPublic> = await response.json();
       if (!isCurrent()) return;
@@ -203,12 +187,13 @@ export const useActivityStore = defineStore('activity', () => {
         `${import.meta.env.VITE_API_BASE_URL}/activity/?${params.toString()}`,
         {
           method: 'GET',
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
         }
       );
       if (!isCurrent()) return;
 
-      if (!response.ok) throw new Error('Failed to fetch paginated activities.');
+      if (!response.ok)
+        throw await responseError(response, 'Failed to fetch paginated activities.');
 
       const data: ListResponse<ActivityPublic> = await response.json();
       if (!isCurrent()) return;
@@ -261,18 +246,13 @@ export const useActivityStore = defineStore('activity', () => {
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${userStore.token}` },
+        headers: getAuthHeaders(),
         body: formData,
       });
       if (!isCurrent())
         return { success: false, message: 'Account changed while processing the request.' };
 
-      if (!response.ok) {
-        const errorData: unknown = await response.json();
-        if (!isCurrent())
-          return { success: false, message: 'Account changed while processing the request.' };
-        throw new Error(activityErrorMessage(errorData, 'Upload failed.'));
-      }
+      if (!response.ok) throw await responseError(response, 'Upload failed.');
 
       fetchRecentActivities();
       notifyUpdate();
@@ -297,15 +277,12 @@ export const useActivityStore = defineStore('activity', () => {
       }
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}`, {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${userStore.token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getJsonAuthHeaders(),
         body: JSON.stringify(payload),
       });
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Failed to update activity.');
+      if (!response.ok) throw await responseError(response, 'Failed to update activity.');
       const data: ActivityPublic = await response.json();
       if (!isCurrent()) return false;
       const updatedActivity = mapApiActivity(data);
@@ -343,22 +320,14 @@ export const useActivityStore = defineStore('activity', () => {
         `${import.meta.env.VITE_API_BASE_URL}/activity/?${query.toString()}`,
         {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${userStore.token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: getJsonAuthHeaders(),
           body: JSON.stringify(payload),
         }
       );
       if (!isCurrent())
         return { success: false, message: 'Account changed while processing the request.' };
 
-      if (!response.ok) {
-        const err: unknown = await response.json();
-        if (!isCurrent())
-          return { success: false, message: 'Account changed while processing the request.' };
-        throw new Error(activityErrorMessage(err, 'Failed to create activity.'));
-      }
+      if (!response.ok) throw await responseError(response, 'Failed to create activity.');
 
       const activityData: ActivityPublic = await response.json();
       if (!isCurrent())
@@ -374,7 +343,7 @@ export const useActivityStore = defineStore('activity', () => {
           `${import.meta.env.VITE_API_BASE_URL}/track/?${trackQuery.toString()}`,
           {
             method: 'PUT',
-            headers: { Authorization: `Bearer ${userStore.token}` },
+            headers: getAuthHeaders(),
             body: formData,
           }
         );
@@ -414,7 +383,7 @@ export const useActivityStore = defineStore('activity', () => {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/media/images/activity/${activityId}`,
         {
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
         }
       );
       if (!isCurrent()) return;
@@ -446,13 +415,13 @@ export const useActivityStore = defineStore('activity', () => {
         `${import.meta.env.VITE_API_BASE_URL}/media/image/activity/${activityId}`,
         {
           method: 'PUT',
-          headers: { Authorization: `Bearer ${userStore.token}` },
+          headers: getAuthHeaders(),
           body: formData,
         }
       );
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Upload failed');
+      if (!response.ok) throw await responseError(response, 'Upload failed');
       if (imagesActivityId === null || imagesActivityId === activityId) {
         await fetchActivityImages(activityId);
       }
@@ -472,11 +441,11 @@ export const useActivityStore = defineStore('activity', () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/media/image/${imageId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${userStore.token}` },
+        headers: getAuthHeaders(),
       });
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Delete failed');
+      if (!response.ok) throw await responseError(response, 'Delete failed');
       activityImages.value = activityImages.value.filter((img) => img.id !== imageId);
       return true;
     } catch (e) {
@@ -493,11 +462,11 @@ export const useActivityStore = defineStore('activity', () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/activity/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${userStore.token}` },
+        headers: getAuthHeaders(),
       });
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Failed to delete activity');
+      if (!response.ok) throw await responseError(response, 'Failed to delete activity');
 
       recentActivities.value = recentActivities.value.filter((a) => a.id !== id);
       notifyUpdate();

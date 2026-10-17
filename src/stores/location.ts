@@ -1,9 +1,9 @@
+import { responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 // src/stores/location.ts
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
-import { useUserStore } from './auth';
 import type { Activity } from './activity';
 import { mapApiActivity } from '../services/api';
 import type { ActivityPublic, ListResponse } from '../types/api';
@@ -62,12 +62,6 @@ export const useLocationStore = defineStore('location', () => {
   const isDetailLoading = ref(false);
   const detailError = ref<string | null>(null);
 
-  const userStore = useUserStore();
-  const getHeaders = () => ({
-    Authorization: `Bearer ${userStore.token}`,
-    'Content-Type': 'application/json',
-  });
-
   // --- Actions ---
   const captureSession = useAccountSession(() => {
     locationsActivityId = null;
@@ -113,7 +107,7 @@ export const useLocationStore = defineStore('location', () => {
       );
       if (!isCurrent()) return;
 
-      if (!response.ok) throw new Error('Failed to fetch locations.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch locations.');
 
       const data = await response.json();
       if (!isCurrent()) return;
@@ -158,7 +152,7 @@ export const useLocationStore = defineStore('location', () => {
         }
       );
       if (!isCurrent()) return [];
-      if (!response.ok) throw new Error('Search failed');
+      if (!response.ok) throw await responseError(response, 'Search failed');
 
       const data = await response.json();
       if (!isCurrent()) return [];
@@ -185,7 +179,8 @@ export const useLocationStore = defineStore('location', () => {
         }
       );
       if (!isCurrent()) return;
-      if (!locResponse.ok) throw new Error('Failed to load location details.');
+      if (!locResponse.ok)
+        throw await responseError(locResponse, 'Failed to load location details.');
       const locationData: typeof selectedLocation.value = await locResponse.json();
       if (!isCurrent()) return;
       selectedLocation.value = locationData;
@@ -223,7 +218,7 @@ export const useLocationStore = defineStore('location', () => {
       });
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Failed to create location.');
+      if (!response.ok) throw await responseError(response, 'Failed to create location.');
       return true;
     } catch (e: unknown) {
       if (!isCurrent()) return false;
@@ -245,7 +240,7 @@ export const useLocationStore = defineStore('location', () => {
       });
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Failed to delete location.');
+      if (!response.ok) throw await responseError(response, 'Failed to delete location.');
 
       visibleLocations.value = visibleLocations.value.filter((l) => l.id !== locationId);
       if (selectedLocation.value?.id === locationId) {
@@ -280,7 +275,7 @@ export const useLocationStore = defineStore('location', () => {
       );
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Failed to update location type');
+      if (!response.ok) throw await responseError(response, 'Failed to update location type');
 
       if (selectedLocation.value?.id === id) {
         selectedLocation.value.type_id = typeId;
@@ -306,7 +301,7 @@ export const useLocationStore = defineStore('location', () => {
         }
       );
       if (!isCurrent()) return;
-      if (!response.ok) throw new Error('Failed to fetch activity locations.');
+      if (!response.ok) throw await responseError(response, 'Failed to fetch activity locations.');
 
       const data = await response.json();
       if (!isCurrent()) return;
@@ -332,7 +327,7 @@ export const useLocationStore = defineStore('location', () => {
       );
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Failed to add location.');
+      if (!response.ok) throw await responseError(response, 'Failed to add location.');
 
       if (locationsActivityId === null || locationsActivityId === activityId) {
         await fetchLocationsForActivity(activityId);
@@ -361,7 +356,7 @@ export const useLocationStore = defineStore('location', () => {
       );
       if (!isCurrent()) return false;
 
-      if (!response.ok) throw new Error('Failed to remove location.');
+      if (!response.ok) throw await responseError(response, 'Failed to remove location.');
 
       if (locationsActivityId === null || locationsActivityId === activityId) {
         await fetchLocationsForActivity(activityId);
