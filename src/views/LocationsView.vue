@@ -388,9 +388,11 @@ async function saveTypeChange() {
             <h3 class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mb-3">Matched Activities ({{
               locationStore.selectedLocationActivities.length }})</h3>
 
-            <div v-if="locationStore.isLoading" class="flex justify-center py-4">
+            <div v-if="locationStore.isDetailLoading" class="flex justify-center py-4">
               <span class="animate-pulse text-verve-brown/60 text-sm">Loading history...</span>
             </div>
+
+            <p v-else-if="locationStore.detailError" role="alert" class="py-4 text-sm text-red-700">{{ locationStore.detailError }}</p>
 
             <div v-else-if="locationStore.selectedLocationActivities.length > 0" class="space-y-3">
               <div v-for="act in locationStore.selectedLocationActivities" :key="act.id"

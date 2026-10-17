@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -116,6 +117,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
     isLoading.value = false;
     areTypesLoading.value = false;
   });
+  const beginInventoryRequest = useLatestRequest(captureSession);
+  const beginSetsRequest = useLatestRequest(captureSession);
+  const beginActivityEquipmentRequest = useLatestRequest(captureSession);
 
   async function fetchEquipmentTypes() {
     const isCurrent = captureSession();
@@ -145,7 +149,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
   }
 
   async function fetchAllEquipment() {
-    const isCurrent = captureSession();
+    const isCurrent = beginInventoryRequest();
     isLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/`, {
@@ -210,23 +214,24 @@ export const useEquipmentStore = defineStore('equipment', () => {
     if (response.status !== 204) throw new Error('Failed to delete equipment.');
     allEquipment.value = allEquipment.value.filter((item) => item.id !== id);
     activityEquipment.value = activityEquipment.value.filter((item) => item.id !== id);
+    const ownsSets = beginSetsRequest();
     try {
       const setsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/set/`, {
         headers: getAuthHeaders(),
       });
-      if (!isCurrent()) return;
+      if (!isCurrent() || !ownsSets()) return;
       if (!setsResponse.ok) throw new Error();
       const setsData: unknown = await setsResponse.json();
-      if (!isCurrent()) return;
+      if (!isCurrent() || !ownsSets()) return;
       equipmentSets.value = parseEquipmentSetsResponse(setsData);
     } catch {
-      if (!isCurrent()) return;
+      if (!isCurrent() || !ownsSets()) return;
       throw new Error('Equipment was deleted, but equipment sets could not be refreshed.');
     }
   }
 
   async function fetchAllSets() {
-    const isCurrent = captureSession();
+    const isCurrent = beginSetsRequest();
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/equipment/set/`, {
         headers: getAuthHeaders(),
@@ -311,7 +316,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
   }
 
   async function fetchEquipmentForActivity(activityId: string) {
-    const isCurrent = captureSession();
+    const isCurrent = beginActivityEquipmentRequest();
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/activity/${activityId}`,
       {

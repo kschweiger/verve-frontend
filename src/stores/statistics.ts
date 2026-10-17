@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -125,9 +126,14 @@ export const useStatisticsStore = defineStore('statistics', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
+  const isCalendarLoading = ref(false);
+  const calendarError = ref<string | null>(null);
+
   const userStore = useUserStore();
 
   const captureSession = useAccountSession(() => {
+    isCalendarLoading.value = false;
+    calendarError.value = null;
     yearlyStats.value = null;
     weeklyStats.value = null;
     calendarData.value = null;
@@ -139,9 +145,13 @@ export const useStatisticsStore = defineStore('statistics', () => {
     isLoading.value = false;
     error.value = null;
   });
+  const beginYearRequest = useLatestRequest(captureSession);
+  const beginCalendarRequest = useLatestRequest(captureSession);
+  const beginWeekRequest = useLatestRequest(captureSession);
+  const beginGridRequest = useLatestRequest(captureSession);
 
   async function fetchYearlyStats(year: number | null) {
-    const isCurrent = captureSession();
+    const isCurrent = beginYearRequest();
     isLoading.value = true;
     error.value = null;
 
@@ -185,13 +195,13 @@ export const useStatisticsStore = defineStore('statistics', () => {
   }
 
   async function fetchCalendar(year: number, month: number) {
-    const isCurrent = captureSession();
-    isLoading.value = true;
-    error.value = null;
+    const isCurrent = beginCalendarRequest();
+    isCalendarLoading.value = true;
+    calendarError.value = null;
 
     if (!userStore.token) {
-      error.value = 'Not authenticated';
-      isLoading.value = false;
+      calendarError.value = 'Not authenticated';
+      isCalendarLoading.value = false;
       return;
     }
 
@@ -212,10 +222,10 @@ export const useStatisticsStore = defineStore('statistics', () => {
       calendarData.value = data;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      error.value = e instanceof Error ? e.message : String(e);
+      calendarError.value = e instanceof Error ? e.message : String(e);
     } finally {
       if (isCurrent()) {
-        isLoading.value = false;
+        isCalendarLoading.value = false;
       }
     }
   }
@@ -225,7 +235,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     week: number | null,
     activityTypeId: number
   ) {
-    const isCurrent = captureSession();
+    const isCurrent = beginWeekRequest();
     isWeeklyLoading.value = true;
     weeklyError.value = null;
 
@@ -266,7 +276,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
   }
 
   async function fetchActivityGrid(weeks = 52) {
-    const isCurrent = captureSession();
+    const isCurrent = beginGridRequest();
     isActivityGridLoading.value = true;
     activityGridError.value = null;
 
@@ -306,6 +316,8 @@ export const useStatisticsStore = defineStore('statistics', () => {
   }
 
   return {
+    isCalendarLoading,
+    calendarError,
     yearlyStats,
     weeklyStats,
     calendarData,

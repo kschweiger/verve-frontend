@@ -165,8 +165,13 @@ const getDaySummary = (day: CalendarDay) => {
       </div>
     </div>
 
+    <div v-if="statsStore.calendarError" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">
+      <p>{{ statsStore.calendarError }}</p>
+      <button type="button" @click="loadData" class="mt-3 rounded-lg px-3 py-2 font-bold underline focus-visible:outline-2 focus-visible:outline-offset-2">Retry calendar</button>
+    </div>
+
     <div
-      v-if="!isCalendarDataCurrent"
+      v-else-if="statsStore.isCalendarLoading || !isCalendarDataCurrent"
       class="flex h-64 items-center justify-center rounded-xl border border-verve-medium/30 bg-white text-verve-brown/40 shadow-sm"
     >
       Loading calendar...

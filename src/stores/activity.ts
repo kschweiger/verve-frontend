@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
@@ -123,10 +124,12 @@ export const useActivityStore = defineStore('activity', () => {
     isImagesLoading.value = false;
     lastUpdate.value = Date.now();
   });
+  const beginRecentRequest = useLatestRequest(captureSession);
+  const beginListRequest = useLatestRequest(captureSession);
+  const beginImagesRequest = useLatestRequest(captureSession);
 
   async function fetchRecentActivities() {
-    const isCurrent = captureSession();
-    if (isRecentLoading.value) return;
+    const isCurrent = beginRecentRequest();
     isRecentLoading.value = true;
     recentError.value = null;
 
@@ -159,7 +162,8 @@ export const useActivityStore = defineStore('activity', () => {
   }
 
   async function fetchActivities(filters: ActivityFilters, loadMore = false) {
-    const isCurrent = captureSession();
+    if (loadMore && (isListLoading.value || !canLoadMore.value)) return;
+    const isCurrent = beginListRequest();
     isListLoading.value = true;
     listError.value = null;
 
@@ -167,7 +171,7 @@ export const useActivityStore = defineStore('activity', () => {
       paginatedActivities.value = [];
       currentPage.value = 1;
       canLoadMore.value = true;
-      currentFilters.value = filters;
+      currentFilters.value = { ...filters };
     }
 
     if (!userStore.token) {
@@ -396,7 +400,7 @@ export const useActivityStore = defineStore('activity', () => {
   }
 
   async function fetchActivityImages(activityId: string) {
-    const isCurrent = captureSession();
+    const isCurrent = beginImagesRequest();
     isImagesLoading.value = true;
     activityImages.value = [];
 

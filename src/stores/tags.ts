@@ -1,3 +1,4 @@
+import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 // src/stores/tags.ts
 import { ref } from 'vue';
@@ -44,9 +45,10 @@ export const useTagsStore = defineStore('tags', () => {
     isLoading.value = false;
     error.value = null;
   });
+  const beginTagsRequest = useLatestRequest(captureSession);
 
   async function fetchAll() {
-    const isCurrent = captureSession();
+    const isCurrent = beginTagsRequest();
     isLoading.value = true;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/all`, {

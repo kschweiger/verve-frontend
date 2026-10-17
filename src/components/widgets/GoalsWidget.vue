@@ -105,8 +105,13 @@ const getProgressBarColor = (goal: Goal) => {
     </div>
 
     <!-- Content -->
-    <div v-if="goalStore.isLoading" class="grow flex items-center justify-center text-verve-brown/60 text-sm">
+    <div v-if="goalStore.isLoadingPeriods" class="grow flex items-center justify-center text-verve-brown/60 text-sm">
       Loading...
+    </div>
+
+    <div v-else-if="goalStore.periodsError" role="alert" class="p-3 text-sm text-red-700">
+      <p>{{ goalStore.periodsError }}</p>
+      <button type="button" @click="refreshGoals" class="mt-2 rounded px-2 py-1 font-bold underline focus-visible:outline-2 focus-visible:outline-offset-2">Retry goals</button>
     </div>
 
     <div v-else-if="currentGoals.length === 0"

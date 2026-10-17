@@ -3,7 +3,7 @@
 ## Dashboard
 
 - Activity history, summary metrics, recent activities, goals, and curated records form the activity overview. A header Add action opens upload and manual creation.
-- `GET /api/v1/statistics/activity-grid?weeks=52` is the shared history and summary source. The backend owns aggregation; the frontend formats and renders it.
+- `GET /api/v1/statistics/activity_grid?weeks=52` is the shared history and summary source. The backend owns aggregation; the frontend formats and renders it.
 - At widths of 1024px and above, show 52 weeks with Monday–Sunday rows. Below 1024px, show the trailing 12 weeks in chronological order without changing the request or summary period.
 - Grid intensity uses activity duration. Active cells expose date, activity count, and active duration; show total duration separately when it differs. Details are available through mouse, keyboard, and touch interaction.
 - Inactive and future cells do not expose activity details or enter the keyboard tab order. Details must not clip or shift the layout.
@@ -16,6 +16,7 @@
 
 - Below 1024px, show an ordered agenda for the selected month, including rest days and excluding adjacent-month dates.
 - At 1024px and above, show the desktop calendar with its weekly-summary column.
+- Query-backed views keep the latest selected filters or period when requests finish out of order. Superseded failures do not replace the current loading or error state. Duplicate activity pagination actions request and append a page only once.
 - Month navigation uses the existing calendar API. Do not show stale previous-month data while the next month loads.
 - Compact history and calendar layouts must fit narrow screens without horizontal overflow.
 
