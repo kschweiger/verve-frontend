@@ -14,6 +14,8 @@
 
 - Goal editing keeps the modal open with edits and an inline error when a field fails to save. Disable duplicate saves while pending. Save changed fields sequentially through the documented per-attribute endpoint and synchronize all matching goal caches from each response. On retry, submit only fields that have not already been saved; close after every changed field succeeds.
 
+- Activity and location goal creation share timeframe controls, period serialization, validation, and submission state. Pending saves disable duplicate submissions and form controls. Failed saves preserve the form and show an inline error. Changing an activity parent type clears the previous subtype in goal filters, activity creation, and equipment defaults.
+
 ## Calendar
 
 - Below 1024px, show an ordered agenda for the selected month, including rest days and excluding adjacent-month dates.
