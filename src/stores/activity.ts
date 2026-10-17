@@ -101,6 +101,7 @@ export const useActivityStore = defineStore('activity', () => {
   const currentFilters = ref<ActivityFilters>({});
 
   const activityImages = ref<ActivityImage[]>([]);
+  let imagesActivityId: string | null = null;
   const isImagesLoading = ref(false);
   const lastUpdate = ref<number>(Date.now());
 
@@ -111,6 +112,7 @@ export const useActivityStore = defineStore('activity', () => {
   }
 
   const captureSession = useAccountSession(() => {
+    imagesActivityId = null;
     recentActivities.value = [];
     isRecentLoading.value = false;
     recentError.value = null;
@@ -400,6 +402,7 @@ export const useActivityStore = defineStore('activity', () => {
   }
 
   async function fetchActivityImages(activityId: string) {
+    imagesActivityId = activityId;
     const isCurrent = beginImagesRequest();
     isImagesLoading.value = true;
     activityImages.value = [];
@@ -452,7 +455,9 @@ export const useActivityStore = defineStore('activity', () => {
       if (!isCurrent()) return false;
 
       if (!response.ok) throw new Error('Upload failed');
-      await fetchActivityImages(activityId);
+      if (imagesActivityId === null || imagesActivityId === activityId) {
+        await fetchActivityImages(activityId);
+      }
       if (!isCurrent()) return false;
       return true;
     } catch (e) {

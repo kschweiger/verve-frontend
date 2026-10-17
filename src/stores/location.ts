@@ -54,6 +54,7 @@ export const useLocationStore = defineStore('location', () => {
   const selectedLocation = ref<Location | null>(null);
   const selectedLocationActivities = ref<Activity[]>([]);
   const currentActivityLocations = ref<Location[]>([]);
+  let locationsActivityId: string | null = null;
 
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -69,6 +70,7 @@ export const useLocationStore = defineStore('location', () => {
 
   // --- Actions ---
   const captureSession = useAccountSession(() => {
+    locationsActivityId = null;
     isDetailLoading.value = false;
     detailError.value = null;
     visibleLocations.value = [];
@@ -293,7 +295,9 @@ export const useLocationStore = defineStore('location', () => {
   }
 
   async function fetchLocationsForActivity(activityId: string) {
+    locationsActivityId = activityId;
     const isCurrent = beginActivityLocationsRequest();
+    currentActivityLocations.value = [];
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/activity/${activityId}/locations`,
@@ -330,7 +334,9 @@ export const useLocationStore = defineStore('location', () => {
 
       if (!response.ok) throw new Error('Failed to add location.');
 
-      await fetchLocationsForActivity(activityId);
+      if (locationsActivityId === null || locationsActivityId === activityId) {
+        await fetchLocationsForActivity(activityId);
+      }
       if (!isCurrent()) return false;
       return true;
     } catch (e) {
@@ -357,7 +363,9 @@ export const useLocationStore = defineStore('location', () => {
 
       if (!response.ok) throw new Error('Failed to remove location.');
 
-      await fetchLocationsForActivity(activityId);
+      if (locationsActivityId === null || locationsActivityId === activityId) {
+        await fetchLocationsForActivity(activityId);
+      }
       if (!isCurrent()) return false;
       return true;
     } catch (e) {

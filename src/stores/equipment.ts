@@ -98,6 +98,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
   const allEquipment = ref<Equipment[]>([]);
   const equipmentSets = ref<EquipmentSet[]>([]);
   const activityEquipment = ref<Equipment[]>([]);
+  let equipmentActivityId: string | null = null;
   const equipmentTypes = ref<EquipmentType[]>([]);
 
   const isLoading = ref(false);
@@ -110,6 +111,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
   });
 
   const captureSession = useAccountSession(() => {
+    equipmentActivityId = null;
     allEquipment.value = [];
     equipmentSets.value = [];
     activityEquipment.value = [];
@@ -316,7 +318,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
   }
 
   async function fetchEquipmentForActivity(activityId: string) {
+    equipmentActivityId = activityId;
     const isCurrent = beginActivityEquipmentRequest();
+    activityEquipment.value = [];
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/equipment/activity/${activityId}`,
       {
@@ -344,7 +348,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
     );
     if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to add equipment.');
-    await fetchEquipmentForActivity(activityId);
+    if (equipmentActivityId === null || equipmentActivityId === activityId) {
+      await fetchEquipmentForActivity(activityId);
+    }
   }
 
   async function removeEquipmentFromActivity(equipmentId: string, activityId: string) {
@@ -358,7 +364,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
     );
     if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to remove equipment.');
-    await fetchEquipmentForActivity(activityId);
+    if (equipmentActivityId === null || equipmentActivityId === activityId) {
+      await fetchEquipmentForActivity(activityId);
+    }
   }
 
   async function addSetToActivity(setId: string, activityId: string) {
@@ -372,7 +380,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
     );
     if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to add set to activity.');
-    await fetchEquipmentForActivity(activityId);
+    if (equipmentActivityId === null || equipmentActivityId === activityId) {
+      await fetchEquipmentForActivity(activityId);
+    }
   }
 
   async function removeSetFromActivity(setId: string, activityId: string) {
@@ -386,7 +396,9 @@ export const useEquipmentStore = defineStore('equipment', () => {
     );
     if (!isCurrent()) return;
     if (!response.ok) throw new Error('Failed to remove set from activity.');
-    await fetchEquipmentForActivity(activityId);
+    if (equipmentActivityId === null || equipmentActivityId === activityId) {
+      await fetchEquipmentForActivity(activityId);
+    }
   }
 
   return {
