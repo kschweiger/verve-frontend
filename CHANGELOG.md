@@ -1,4 +1,30 @@
 <!-- insertion marker -->
+<a name="1.0.0"></a>
+
+## [1.0.0](https://github.com/kschweiger/verve-frontend/compare/0.14.0...1.0.0) (2026-10-20)
+
+### Features
+
+- add admin user maintenance tools ([1413d17](https://github.com/kschweiger/verve-frontend/commit/1413d172cbec26d486e86937b9a24192e25257df))
+
+### Bug Fixes
+
+- display cadence in activity-specific units and preserve missing values ([4f4f634](https://github.com/kschweiger/verve-frontend/commit/4f4f6345ea5d22e9b71fd798e521c6798da70b80))
+- validate releases before publishing stable aliases ([44c07f3](https://github.com/kschweiger/verve-frontend/commit/44c07f37f7460c8606048e4bdeb051ceec2694cb))
+- make activity photos keyboard accessible ([2108a24](https://github.com/kschweiger/verve-frontend/commit/2108a24ddae9372799e2eb2e68edf8ba7bf38947))
+- group collection tracks efficiently and release maps ([81bf1d7](https://github.com/kschweiger/verve-frontend/commit/81bf1d7f38df02cb5a9c7877333900abfc665912))
+- preserve failed goal edits and share HTTP helpers ([9f0af21](https://github.com/kschweiger/verve-frontend/commit/9f0af212f66fdb4597ca6a0b365f97a400588e7d))
+- keep query results and status owned by latest requests ([66e30e7](https://github.com/kschweiger/verve-frontend/commit/66e30e7547060459fd450a91bd95ecc688dcc019))
+- apply manual goal progress through documented endpoint ([bed3cdd](https://github.com/kschweiger/verve-frontend/commit/bed3cdd2d6176cca0fe18c1dbf3f22a544ddc22e))
+- isolate account-owned state across sessions ([a470452](https://github.com/kschweiger/verve-frontend/commit/a4704521b096fc4845c9ffbdb6319606693f2801))
+- adapt to @lucide/vue ([b9a6c22](https://github.com/kschweiger/verve-frontend/commit/b9a6c22b2a0822d6b997a17157dba32de0130803))
+
+### Code Refactoring
+
+- share dependent selects and goal creation ([c924480](https://github.com/kschweiger/verve-frontend/commit/c924480d8b4a62032fcd933ce4a11c5a7f430cde))
+- trust shared API contract types ([d78813a](https://github.com/kschweiger/verve-frontend/commit/d78813afd81285d6a97f506520c875019bc24702))
+- separate activity detail loading and segments ([14a8e46](https://github.com/kschweiger/verve-frontend/commit/14a8e46d052908d5678150f03ca6c12727e22fa7))
+
 <a name="0.14.0"></a>
 
 ## [0.14.0](https://github.com/kschweiger/verve-frontend/compare/0.13.0...0.14.0) (2026-10-11)
