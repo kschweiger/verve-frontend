@@ -1,8 +1,12 @@
 # ==========================================
 # Stage 1: Builder
 # ==========================================
-# We use standard Debian-based Bun for maximum compatibility during build
-FROM oven/bun:1@sha256:ec06c3b6cea04192ae6770c434f668ca41d343ad19fa6472216c7b48be39c598 AS builder
+# Keep Bun for dependency installation and provide Node for vue-tsc.
+# vue-tsc patches the TypeScript compiler through Node module-loading hooks.
+FROM oven/bun:1@sha256:ec06c3b6cea04192ae6770c434f668ca41d343ad19fa6472216c7b48be39c598 AS bun
+FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS builder
+
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
 WORKDIR /app
 

@@ -8,7 +8,7 @@ The backend can be found [here](https://github.com/kschweiger/verve-backend).
 
 ## Setup
 
-Build and run the frontend with [bun](https://bun.com/).
+Build and run the frontend with [Bun](https://bun.com/) and [Node.js](https://nodejs.org/) (Node 24 recommended). Node must be available on `PATH` for `vue-tsc`; running it under the Bun runtime causes Vue component resolution errors. The Docker builder includes both runtimes.
 
 ```bash
 bun install
