@@ -1,4 +1,8 @@
 <!-- insertion marker -->
+<a name="1.0.1"></a>
+
+## [1.0.1](https://github.com/kschweiger/verve-frontend/compare/1.0.0...1.0.1) (2026-10-20)
+
 <a name="1.0.0"></a>
 
 ## [1.0.0](https://github.com/kschweiger/verve-frontend/compare/0.14.0...1.0.0) (2026-10-20)
