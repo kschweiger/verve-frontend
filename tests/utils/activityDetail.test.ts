@@ -421,3 +421,71 @@ for (const [name, setup] of mutationRefreshes) {
     }
   );
 }
+
+test('segment cadence uses activity units without scaling or losing fractions and zero', async () => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) => Response.json(
+    input.toString().includes('/sets/') ? { data: [setId] } : {
+      ...statistics([]),
+      display_metadata: { primary_metric: 'cadence', display_metrics: ['cadence'] },
+      segments: [{
+        distance_m: null, duration_s: 60, elevation_gain: null, elevation_loss: null,
+        cadence: { min: 160, avg: 171.5, max: 180 },
+      }],
+    }
+  ));
+  const unit = ref<'steps/min' | 'RPM'>('steps/min');
+  const segments = inScope(() => useActivitySegments(ref(firstId), track, ref(null), unit));
+  await settled(segments.isLoadingSegmentSets);
+  const segment = segments.selectedSegmentStatistics.value!.segments[0]!;
+  expect(segments.formatSegmentMetricAverage(segment, 'cadence')).toBe('171.5 steps/min');
+  expect(segments.formatSegmentMetric('cadence', segment.cadence!.min)).toBe('160 steps/min');
+  expect(segments.formatSegmentMetric('cadence', segment.cadence!.max)).toBe('180 steps/min');
+  expect(segments.formatSegmentMetric('cadence', 0)).toBe('0 steps/min');
+  expect(segments.formatSegmentMetric('cadence', null)).toBe('-');
+  expect(segments.formatSegmentMetricAverage({
+    ...segment, cadence: { min: null, avg: 0, max: null },
+  }, 'cadence')).toBe('0 steps/min');
+  unit.value = 'RPM';
+  expect(segments.formatSegmentMetric('cadence', 85.5)).toBe('85.5 RPM');
+});
+
+test('returning from a classification edit refetches track and segment cadence', async () => {
+  let running = false;
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = input.toString();
+    if (init?.method === 'PATCH') running = true;
+    const summary = { ...activity(firstId), type_id: 90, sub_type_id: running ? 91 : 94 };
+    const cadence = running ? 171 : 85.5;
+    if (url.includes('/track/segments/sets/')) return Response.json({ data: [setId] });
+    if (url.includes('/track/segments/set/')) return Response.json({
+      ...statistics([]),
+      segments: [{
+        distance_m: null, duration_s: 60, elevation_gain: null, elevation_loss: null,
+        cadence: { min: cadence, avg: cadence, max: cadence },
+      }],
+    });
+    return Response.json(url.includes('/track/')
+      ? { data: [{ ...point(1, 0), cadence }] } : summary);
+  });
+  function mountDetail() {
+    const scope = effectScope();
+    scopes.push(scope);
+    const result = scope.run(() => {
+      const detail = useActivityDetail(ref(firstId));
+      return { detail, segments: useActivitySegments(ref(firstId), detail.trackData, ref(null)) };
+    })!;
+    return { ...result, scope };
+  }
+  const before = mountDetail();
+  await settled(before.detail.isLoading);
+  await settled(before.segments.isLoadingSegmentSets);
+  expect(before.detail.trackData.value[0]?.cad).toBe(85.5);
+  before.scope.stop();
+  expect(await useActivityStore().updateActivity(firstId, { sub_type_id: 91 })).toBe(true);
+  const after = mountDetail();
+  await settled(after.detail.isLoading);
+  await settled(after.segments.isLoadingSegmentSets);
+  expect(after.detail.activity.value?.sub_type_id).toBe(91);
+  expect(after.detail.trackData.value[0]?.cad).toBe(171);
+  expect(after.segments.selectedSegmentStatistics.value?.segments[0]?.cadence?.avg).toBe(171);
+});

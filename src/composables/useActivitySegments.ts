@@ -22,11 +22,13 @@ import {
 import { elapsedSecondsBetweenInstants } from '../utils/datetime';
 import { useAccountSession } from './useAccountSession';
 import { useLatestRequest } from './useLatestRequest';
+import { formatCadence, type CadenceUnit } from './useCadence';
 
 export function useActivitySegments(
   activityId: MaybeRefOrGetter<string>,
   trackData: Readonly<Ref<TrackPoint[]>>,
-  hoveredPointIndex: Readonly<Ref<number | null>>
+  hoveredPointIndex: Readonly<Ref<number | null>>,
+  cadenceUnit: MaybeRefOrGetter<CadenceUnit> = 'counts/min'
 ) {
   const segmentSetIds = ref<string[]>([]);
   const segmentStatisticsById = ref<Record<string, SegmentStatistics>>({});
@@ -656,7 +658,7 @@ export function useActivitySegments(
     }
     if (metric === 'heartrate') return formatNullableMetric(value, 'bpm');
     if (metric === 'power') return formatNullableMetric(value, 'W');
-    return formatNullableMetric(value, 'rpm');
+    return formatCadence(value, toValue(cadenceUnit));
   }
 
   function formatSegmentMetricAverage(segment: SegmentStats, metric: SegmentMetric) {

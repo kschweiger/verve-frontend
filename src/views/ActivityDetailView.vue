@@ -24,6 +24,7 @@ import {
   buildActivitySummaryMetrics,
 } from '@/utils/activitySummaryMetrics';
 import { getAvailableTrackExtensions, trackExtensionLabels } from '@/utils/trackExtensions';
+import { useCadence } from '@/composables/useCadence';
 import { useActivityDateTime } from '@/composables/useActivityDateTime';
 import { useActivityDetail } from '@/composables/useActivityDetail';
 import { useAccountSession } from '@/composables/useAccountSession';
@@ -49,6 +50,7 @@ const {
   captureActivity,
 } = useActivityDetail(() => props.id);
 const activityDateTime = useActivityDateTime(activity);
+const cadenceUnit = useCadence(activity);
 const beginExtensionRefresh = useLatestRequest(captureActivity);
 
 const hoveredPointIndex = ref<number | null>(null);
@@ -295,6 +297,7 @@ watch(
       <ActivitySegmentsPanel
         :key="`${activity.id}:${activityHighlightsKey}`"
         :activity-id="activity.id"
+        :cadence-unit="cadenceUnit"
         :track-data="trackData"
         :hovered-index="hoveredPointIndex"
         @cuts-change="visibleSegmentCutIndices = $event"
@@ -329,6 +332,7 @@ watch(
         <!-- Metrics Chart -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
           <CombinedMetricsChart
+            :cadence-unit="cadenceUnit"
             :track-data="trackData"
             :hovered-index="hoveredPointIndex"
             :cut-indices="visibleSegmentCutIndices"

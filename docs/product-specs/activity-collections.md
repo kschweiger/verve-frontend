@@ -6,6 +6,8 @@
 - Users create a collection by naming it and selecting activities; description is optional.
 - The list shows backend overview metrics and sorts collections by start descending. Detail shows totals and activities ordered by start ascending.
 - Collection track points are grouped by `activity_id`, with a separate colored map polyline for each activity. Omit the map and its placeholder when no coordinate data exists.
+- Collection track cadence is already classified separately by the backend for each activity. Preserve its full precision, zero/null values, and activity ID; never scale samples or aggregate different cadence units. The current collection UI displays no cadence statistics.
+- Opening a collection refetches its detail and track, including updated cadence after member activity type/subtype edits; collection track data is not persisted between views.
 - The activity picker has its own pagination/filter state so collection flows do not disturb the Activities page.
 - Deletion requires confirmation.
 

@@ -851,6 +851,7 @@ const swimmingMetadataExample = `{
           <h3 class="text-lg font-bold text-verve-brown mt-6 mb-3">Feature Properties (Track Data)</h3>
           <p class="text-verve-brown/80 leading-relaxed text-sm mb-2">
             These arrays must be the same length as the <code>geometry.coordinates</code>.
+            Verve 1.0 cadence samples are integers; activity API responses can retain fractional cadence.
           </p>
           <div class="overflow-x-auto border border-verve-medium/30 rounded-xl">
             <table class="w-full text-sm text-left bg-white">
@@ -885,7 +886,10 @@ const swimmingMetadataExample = `{
                   <td class="px-4 py-2 font-mono text-xs">cadences</td>
                   <td class="px-4 py-2 text-xs">Array[Int]</td>
                   <td class="px-4 py-2 text-xs text-center text-verve-brown/40">No</td>
-                  <td class="px-4 py-2 text-xs text-verve-brown/60">RPM.</td>
+                  <td class="px-4 py-2 text-xs text-verve-brown/60">
+                    Total steps/min (both feet) for Foot Sports with Run, Trail Run, or Treadmill;
+                    RPM for Cycling; counts/min otherwise.
+                  </td>
                 </tr>
                 <tr>
                   <td class="px-4 py-2 font-mono text-xs">temperatures</td>

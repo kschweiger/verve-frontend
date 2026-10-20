@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -12,9 +12,11 @@ import {
   PointElement,
   Filler,
   type ChartOptions,
+  type ChartDataset,
   type TooltipItem,
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
+import { formatCadence, formatCadenceValue, type CadenceUnit } from '@/composables/useCadence';
 import type { TrackPoint } from '@/services/api';
 import { VERVE_COLORS, hexToRgba } from '@/utils/colors';
 import { elapsedSecondsBetweenInstants } from '@/utils/datetime';
@@ -33,6 +35,7 @@ ChartJS.register(
 
 const props = defineProps<{
   trackData: TrackPoint[];
+  cadenceUnit: CadenceUnit;
   hoveredIndex: number | null;
   cutIndices?: number[];
 }>();
@@ -50,7 +53,7 @@ interface MetricConfig {
   fallbackValue: number | null;
 }
 
-const metricDefinitions: Record<string, MetricConfig> = {
+const metricDefinitions = computed<Record<string, MetricConfig>>(() => ({
   speed: {
     key: 'speed',
     label: 'Speed (km/h)',
@@ -67,10 +70,10 @@ const metricDefinitions: Record<string, MetricConfig> = {
   },
   cad: {
     key: 'cad',
-    label: 'Cadence (rpm)',
+    label: `Cadence (${props.cadenceUnit})`,
     color: VERVE_COLORS.brown,
     transform: (v) => v,
-    fallbackValue: 0,
+    fallbackValue: null,
   },
   power: {
     key: 'power',
@@ -79,21 +82,18 @@ const metricDefinitions: Record<string, MetricConfig> = {
     transform: (v) => v,
     fallbackValue: 0,
   },
-};
+}));
 
 const selectedMetricKey = ref<string>('');
 const availableMetrics = ref<string[]>([]);
 const hasElevation = ref(false);
 
-onMounted(() => {
-  analyzeData();
-});
-
 watch(
   () => props.trackData,
   () => {
     analyzeData();
-  }
+  },
+  { immediate: true }
 );
 
 function analyzeData() {
@@ -128,7 +128,7 @@ function analyzeData() {
 }
 
 const yAxisLabel = computed(() => {
-  const def = metricDefinitions[selectedMetricKey.value];
+  const def = metricDefinitions.value[selectedMetricKey.value];
   return def ? def.label : '';
 });
 
@@ -148,7 +148,7 @@ const elapsedSecondsAtIndex = (index: number) => {
 };
 
 const chartData = computed(() => {
-  const metricConf = metricDefinitions[selectedMetricKey.value];
+  const metricConf = metricDefinitions.value[selectedMetricKey.value];
 
   // Early return guards against undefined trackData or empty array
   if (!props.trackData || props.trackData.length === 0 || !metricConf) {
@@ -157,13 +157,11 @@ const chartData = computed(() => {
 
   const labels = props.trackData.map((_, index) => formatTimeLabel(elapsedSecondsAtIndex(index)));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const datasets: any[] = [];
+  const datasets: ChartDataset<'line', (number | null)[]>[] = [];
 
   // Metric Dataset (Foreground)
   const metricData = props.trackData.map((p) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawVal = (p as any)[metricConf.key];
+    const rawVal = p[metricConf.key];
     if (typeof rawVal !== 'number') return metricConf.fallbackValue;
     return metricConf.transform(rawVal);
   });
@@ -178,7 +176,7 @@ const chartData = computed(() => {
     pointRadius: 0,
     borderWidth: 1.5,
     tension: 0.2,
-    spanGaps: true,
+    spanGaps: metricConf.key !== 'cad',
   });
 
   // Elevation Dataset (Background)
@@ -236,20 +234,18 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       intersect: false,
       mode: 'index' as const,
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onHover: (event: any, chartElement: any[]) => {
-      if (chartElement.length > 0) {
-        const index = chartElement[0].index;
-        if (index !== props.hoveredIndex) {
-          emit('point-hover', index);
-        }
-      }
+    onHover: (_event, chartElements) => {
+      const index = chartElements[0]?.index;
+      if (index !== undefined && index !== props.hoveredIndex) emit('point-hover', index);
     },
     plugins: {
       legend: { display: false },
       tooltip: {
         callbacks: {
           label: (context: TooltipItem<'line'>) => {
+            if (selectedMetricKey.value === 'cad' && context.dataset.yAxisID === 'yMetric') {
+              return `Cadence: ${formatCadence(context.parsed.y, props.cadenceUnit)}`;
+            }
             let label = context.dataset.label || '';
             if (label) label += ': ';
             if (context.parsed.y !== null) label += context.parsed.y.toFixed(1);
@@ -289,6 +285,10 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         display: true,
         position: 'left',
         title: { display: true, text: yAxisLabel.value },
+        ticks:
+          selectedMetricKey.value === 'cad'
+            ? { callback: (value) => formatCadenceValue(Number(value)) }
+            : {},
         grid: { color: '#e5e7eb' },
       },
       yElevation: {

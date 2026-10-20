@@ -2,9 +2,11 @@
 import { reactive, toRef, watch } from 'vue';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Trash2 } from '@lucide/vue';
 import type { TrackPoint } from '@/services/api';
+import type { CadenceUnit } from '@/composables/useCadence';
 import { useActivitySegments } from '@/composables/useActivitySegments';
 const props = defineProps<{
   activityId: string;
+  cadenceUnit: CadenceUnit;
   trackData: TrackPoint[];
   hoveredIndex: number | null;
 }>();
@@ -13,7 +15,8 @@ const segments = reactive(
   useActivitySegments(
     () => props.activityId,
     toRef(props, 'trackData'),
-    toRef(props, 'hoveredIndex')
+    toRef(props, 'hoveredIndex'),
+    toRef(props, 'cadenceUnit')
   )
 );
 watch(
