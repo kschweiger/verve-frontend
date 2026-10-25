@@ -4,7 +4,7 @@
 # Keep Bun for dependency installation and provide Node for vue-tsc.
 # vue-tsc patches the TypeScript compiler through Node module-loading hooks.
 FROM oven/bun:1@sha256:ec06c3b6cea04192ae6770c434f668ca41d343ad19fa6472216c7b48be39c598 AS bun
-FROM node:24-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS builder
+FROM node:26-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS builder
 
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
