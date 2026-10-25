@@ -4,7 +4,7 @@
 # Keep Bun for dependency installation and provide Node for vue-tsc.
 # vue-tsc patches the TypeScript compiler through Node module-loading hooks.
 FROM oven/bun:1@sha256:ec06c3b6cea04192ae6770c434f668ca41d343ad19fa6472216c7b48be39c598 AS bun
-FROM node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS builder
+FROM node:24-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS builder
 
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
@@ -34,7 +34,7 @@ RUN bun run build
 # Stage 2: Runtime
 # ==========================================
 # We use Alpine here because it's the final runtime, and we only need Nginx.
-FROM nginx:alpine@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d AS production
+FROM nginx:alpine@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417 AS production
 
 # 1. Clean default Nginx files
 RUN rm -rf /usr/share/nginx/html/*
