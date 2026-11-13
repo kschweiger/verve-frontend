@@ -1,4 +1,12 @@
 <!-- insertion marker -->
+<a name="1.1.0"></a>
+
+## [1.1.0](https://github.com/kschweiger/verve-frontend/compare/1.0.1...1.1.0) (2026-11-13)
+
+### Features
+
+- add export button ([988c1f6](https://github.com/kschweiger/verve-frontend/commit/988c1f6976bae54d1a2441a11709d7313a823053))
+
 <a name="1.0.1"></a>
 
 ## [1.0.1](https://github.com/kschweiger/verve-frontend/compare/1.0.0...1.0.1) (2026-10-20)
@@ -284,4 +292,3 @@
 - Use activity name in recent activity, activity list and activity detail view ([ae66a24](https://github.com/kschweiger/verve-frontend/commit/ae66a245c0fdaa65b28128c25e232f712f1bece5))
 - **LastActivityWidget:** Display activity type as title ([53d8a28](https://github.com/kschweiger/verve-frontend/commit/53d8a28cd408f9178b5ee70afc019863f158c729))
 - Save usernames in state ([85286ab](https://github.com/kschweiger/verve-frontend/commit/85286ab16e45eb00c2ef90bfbe92a10e0a94ba56))
-
