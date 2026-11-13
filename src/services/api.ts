@@ -313,3 +313,18 @@ export async function deleteSegmentSet(segmentSetId: string): Promise<void> {
 
   if (!response.ok) throw await responseError(response, 'Failed to delete segment set.');
 }
+
+export type ActivityExportFormat = 'geojson' | 'gpx';
+
+export async function fetchActivityExport(
+  activityId: string,
+  format: ActivityExportFormat
+): Promise<Blob> {
+  const query = new URLSearchParams({ output_format: format });
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/activity/${encodeURIComponent(activityId)}/export?${query}`,
+    { method: 'GET', headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw await responseError(response, 'Failed to export activity.');
+  return response.blob();
+}
