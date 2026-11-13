@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useActivityStore } from '@/stores/activity';
 import { removeTrackExtensionData, type SupportedTrackExtension } from '@/services/api';
+import ActivityExportButton from '@/components/ActivityExportButton.vue';
 import ActivityEquipment from '@/components/ActivityEquipment.vue';
 import ActivityHighlights from '@/components/ActivityHighlights.vue';
 import ActivitySegmentsPanel from '@/components/ActivitySegmentsPanel.vue';
@@ -222,7 +223,7 @@ watch(
     <div v-else-if="activity" :key="activity.id" class="max-w-7xl mx-auto space-y-8">
       <!-- 1. Top Metrics Display -->
       <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
-        <div class="flex justify-between items-start mb-6">
+        <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
           <div>
             <h1 class="text-3xl font-bold text-verve-brown">
               {{ activity.name || activityDateTime.date }}
@@ -232,7 +233,8 @@ watch(
               <span class="block break-words">{{ activity.timezone }}</span>
             </p>
           </div>
-          <div class="flex items-center space-x-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <ActivityExportButton :activity-id="activity.id" />
             <button
               v-if="availableTrackExtensions.length > 0"
               type="button"
