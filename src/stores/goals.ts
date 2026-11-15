@@ -31,7 +31,7 @@ export interface GoalCreatePayload {
   description?: string;
   target: number;
   type: string;
-  aggregation: string;
+  aggregation: GoalPublic['aggregation'];
   temporal_type: string;
   year: number;
   month?: number | null;

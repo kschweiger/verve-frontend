@@ -51,6 +51,7 @@ const useEquipmentConstraint = ref(false);
 const selectedEquipmentIds = ref<string[]>([]);
 
 const aggregations = [
+  { value: 'active_days', label: 'Active Days' },
   { value: 'count', label: 'Count (Number of Activities)' },
   { value: 'total_distance', label: 'Total Distance (km)' },
   { value: 'avg_distance', label: 'Average Distance (km)' },

@@ -262,7 +262,7 @@ export interface GoalPublic {
   month?: number | null;
   week?: number | null;
   type: 'activity' | 'manual' | 'location';
-  aggregation: 'count' | 'total_distance' | 'avg_distance' | 'max_distance' | 'duration';
+  aggregation: 'count' | 'active_days' | 'total_distance' | 'avg_distance' | 'max_distance' | 'duration';
   constraints?: Record<string, unknown>;
   id: string;
   reached: boolean;

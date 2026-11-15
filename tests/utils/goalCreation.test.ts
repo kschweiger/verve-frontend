@@ -134,3 +134,20 @@ test('weekly validation is shared by location and activity creation', async () =
   expect(state.errors.value.week).toBeTruthy();
   expect(requested).toBe(false);
 });
+
+test('submits active day goals with existing periods and filters', async () => {
+  const draft = ref({ ...period, name: 'Stay active', description: '', target: 10 });
+  const state = scope.run(() => useGoalCreation(draft))!;
+  let payload: unknown;
+  globalThis.fetch = stubFetch(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'PUT') payload = JSON.parse(String(init.body));
+    return Response.json({ data: [] });
+  });
+  expect(await state.submit({
+    type: 'activity', aggregation: 'active_days', constraints: { type_id: 1 },
+  })).toBe(true);
+  expect(payload).toMatchObject({
+    name: 'Stay active', target: 10, type: 'activity', aggregation: 'active_days',
+    temporal_type: 'monthly', year: 2026, month: 10, week: null, constraints: { type_id: 1 },
+  });
+});

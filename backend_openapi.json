@@ -13479,6 +13479,7 @@
         "type": "string",
         "enum": [
           "count",
+          "active_days",
           "total_distance",
           "avg_distance",
           "max_distance",

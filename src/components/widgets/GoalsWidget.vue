@@ -61,6 +61,7 @@ const handleManualUpdate = async (goal: Goal, increase: boolean) => {
 const getGoalUnit = (agg: string) => {
   if (agg.includes('distance')) return 'km';
   if (agg === 'duration') return 'h';
+  if (agg === 'active_days') return 'days';
   return '';
 };
 

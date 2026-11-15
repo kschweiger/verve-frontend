@@ -23,6 +23,7 @@ const isEquipmentExpanded = ref(false);
 const progressPercent = computed(() => Math.min(props.goal.progress * 100, 100));
 
 const formatValue = (val: number, agg: string) => {
+  if (agg === 'active_days') return `${val} ${val === 1 ? 'day' : 'days'}`;
   if (agg === 'duration') {
     const hours = Math.floor(val / 3600);
     const mins = Math.floor((val % 3600) / 60);
