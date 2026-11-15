@@ -2539,6 +2539,55 @@
         }
       }
     },
+    "/api/v1/activity/{id}/is_exportable": {
+      "get": {
+        "tags": [
+          "activity"
+        ],
+        "summary": "Is Activity Exportable",
+        "description": "Check GeoJSON track prerequisites without loading or exporting the track.",
+        "operationId": "activity-is_activity_exportable",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityExportability"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/activity/{id}/export": {
       "get": {
         "tags": [
@@ -10660,6 +10709,19 @@
           "name"
         ],
         "title": "ActivityCreate"
+      },
+      "ActivityExportability": {
+        "properties": {
+          "is_exportable": {
+            "type": "boolean",
+            "title": "Is Exportable"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_exportable"
+        ],
+        "title": "ActivityExportability"
       },
       "ActivityGridResponse": {
         "properties": {

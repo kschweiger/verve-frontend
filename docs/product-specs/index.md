@@ -14,3 +14,4 @@ Business behavior and data contracts. Read the specs relevant to the feature bei
 | [Equipment](equipment.md)                           | Personal equipment, individual item edits, deletion, and sets.         |
 | [Activity segment sets](activity-segment-sets.md)   | Interval statistics and track-point cut editing.                       |
 | [Swimming metadata](verve-swimming-metadata.md)     | Portable swim metadata, backend representation, and display.           |
+| [Activity export](activity-export.md)               | GeoJSON and GPX downloads from activity detail.                        |

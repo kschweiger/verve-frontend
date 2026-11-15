@@ -268,3 +268,7 @@ export interface GoalPublic {
   reached: boolean;
   progress: number;
 }
+
+export interface ActivityExportability {
+  is_exportable: boolean;
+}

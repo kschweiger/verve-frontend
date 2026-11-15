@@ -74,7 +74,17 @@ afterEach(() => {
   URL.createObjectURL = originals.create;
   URL.revokeObjectURL = originals.revoke;
 });
-function mount() {
+async function flushEligibility() {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await nextTick();
+}
+async function mountReady() {
+  const ui = mount();
+  await flushEligibility();
+  return ui;
+}
+function mount(eligibilityFetch = stubFetch(async () => Response.json({ is_exportable: true }))) {
+  globalThis.fetch = eligibilityFetch;
   const downloads: string[] = [];
   const listeners = new Map<string, (event: unknown) => void>();
   Object.assign(globalThis, {
@@ -118,7 +128,7 @@ function mount() {
   return { id, app, pinia, root, buttons, click, downloads, listeners, revoked, all };
 }
 test('split button menu supports focus, keyboard selection, fixed default and cleanup', async () => {
-  const ui = mount();
+  const ui = await mountReady();
   const urls: string[] = [];
   globalThis.fetch = stubFetch(async (url: Parameters<typeof fetch>[0]) => {
     urls.push(String(url));
@@ -139,7 +149,7 @@ test('split button menu supports focus, keyboard selection, fixed default and cl
   expect(ui.revoked).toEqual(['blob:test', 'blob:test']);
 });
 test('prevents duplicate requests, reports failure and permits retry', async () => {
-  const ui = mount();
+  const ui = await mountReady();
   let finish!: (response: Response) => void;
   let calls = 0;
   globalThis.fetch = stubFetch(() => {
@@ -163,13 +173,15 @@ test('prevents duplicate requests, reports failure and permits retry', async () 
 });
 for (const change of ['activity', 'account', 'unmount'] as const) {
   test(`ignores pending downloads after ${change} change`, async () => {
-    const ui = mount();
+    const ui = await mountReady();
     let finish!: (response: Response) => void;
     globalThis.fetch = stubFetch(
-      () =>
-        new Promise((resolve) => {
-          finish = resolve;
-        })
+      (url: Parameters<typeof fetch>[0]) =>
+        String(url).endsWith('/is_exportable')
+          ? Promise.resolve(Response.json({ is_exportable: true }))
+          : new Promise((resolve) => {
+              finish = resolve;
+            })
     );
     const pending = ui.click(ui.buttons()[0]!);
     if (change === 'activity') {
@@ -188,7 +200,7 @@ for (const change of ['activity', 'account', 'unmount'] as const) {
 }
 
 test('Escape and outside clicks dismiss the menu; focus leaving permits Tab', async () => {
-  const ui = mount();
+  const ui = await mountReady();
   await ui.click(ui.buttons()[1]!);
   const menu = ui.all(ui.root).find((el) => el.props.role === 'menu')!;
   (menu.props.onKeydown as (event: unknown) => void)({ key: 'Escape', preventDefault() {} });
@@ -205,3 +217,39 @@ test('Escape and outside clicks dismiss the menu; focus leaving permits Tab', as
   await nextTick();
   expect(ui.buttons()).toHaveLength(2);
 });
+
+for (const exportable of [true, false]) {
+  test(`export visibility follows backend eligibility ${exportable}`, async () => {
+    let finish!: (response: Response) => void;
+    const ui = mount(stubFetch(() => new Promise((resolve) => { finish = resolve; })));
+    expect(ui.buttons()).toHaveLength(0);
+    finish(Response.json({ is_exportable: exportable }));
+    await flushEligibility();
+    expect(ui.buttons()).toHaveLength(exportable ? 2 : 0);
+  });
+}
+test('hides export when eligibility request fails', async () => {
+  const ui = mount(stubFetch(async () => { throw new Error('Offline'); }));
+  await flushEligibility();
+  expect(ui.buttons()).toHaveLength(0);
+  expect(ui.all(ui.root).some((el) => el.props.role === 'alert')).toBe(false);
+});
+for (const change of ['activity', 'account', 'unmount'] as const) {
+  test(`ignores stale eligibility after ${change} change`, async () => {
+    const pending: Array<(response: Response) => void> = [];
+    const ui = mount(stubFetch(() => new Promise((resolve) => { pending.push(resolve); })));
+    if (change === 'activity') ui.id.value = 'two';
+    if (change === 'account') useUserStore(ui.pinia).token = 'other';
+    if (change === 'unmount') { ui.app.unmount(); cleanup = () => {}; }
+    await nextTick();
+    pending[0]!(Response.json({ is_exportable: true }));
+    await flushEligibility();
+    expect(ui.buttons()).toHaveLength(0);
+    if (change !== 'unmount') {
+      expect(pending).toHaveLength(2);
+      pending[1]!(Response.json({ is_exportable: true }));
+      await flushEligibility();
+      expect(ui.buttons()).toHaveLength(2);
+    }
+  });
+}

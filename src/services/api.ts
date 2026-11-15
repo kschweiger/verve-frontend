@@ -328,3 +328,15 @@ export async function fetchActivityExport(
   if (!response.ok) throw await responseError(response, 'Failed to export activity.');
   return response.blob();
 }
+
+export async function fetchActivityExportability(
+  activityId: string
+): Promise<Backend.ActivityExportability> {
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/activity/${encodeURIComponent(activityId)}/is_exportable`,
+    { method: 'GET', headers: getAuthHeaders() }
+  );
+  if (!response.ok) throw await responseError(response, 'Failed to check activity exportability.');
+  const responseData: Backend.ActivityExportability = await response.json();
+  return responseData;
+}

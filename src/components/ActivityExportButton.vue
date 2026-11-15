@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, useId, watch } from "vue";
 import { ChevronDown, Download, LoaderCircle } from "@lucide/vue";
-import { fetchActivityExport, type ActivityExportFormat } from "@/services/api";
+import { fetchActivityExportability, fetchActivityExport, type ActivityExportFormat } from "@/services/api";
 import { useAccountSession } from "@/composables/useAccountSession";
 
 const props = defineProps<{ activityId: string }>();
@@ -12,6 +12,8 @@ const menu = ref<HTMLElement | null>(null);
 const open = ref(false);
 const busy = ref(false);
 const error = ref<string | null>(null);
+const isExportable = ref(false);
+let eligibilityGeneration = 0;
 let generation = 0;
 let active = true;
 function reset() {
@@ -20,8 +22,22 @@ function reset() {
   busy.value = false;
   error.value = null;
 }
-useAccountSession(reset);
-watch(() => props.activityId, reset, { flush: "sync" });
+async function refreshEligibility() {
+  const request = ++eligibilityGeneration;
+  isExportable.value = false;
+  try {
+    const result = await fetchActivityExportability(props.activityId);
+    if (active && request === eligibilityGeneration) isExportable.value = result.is_exportable;
+  } catch {
+    // Keep controls hidden unless the backend confirms eligibility.
+  }
+}
+function resetAndCheckEligibility() {
+  reset();
+  void refreshEligibility();
+}
+useAccountSession(resetAndCheckEligibility);
+watch(() => props.activityId, resetAndCheckEligibility, { immediate: true, flush: "sync" });
 function close(restoreFocus = false) {
   open.value = false;
   if (restoreFocus) toggle.value?.focus();
@@ -114,7 +130,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="root" class="relative" @focusout="focusLeft">
+  <div v-if="isExportable" ref="root" class="relative" @focusout="focusLeft">
     <div class="inline-flex rounded-xl border border-verve-medium text-sm font-semibold text-verve-brown"
       :aria-busy="busy">
       <button type="button"

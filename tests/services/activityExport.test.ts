@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { createPinia, setActivePinia } from 'pinia';
 import { stubFetch } from '../helpers/fetch';
 import { useUserStore } from '../../src/stores/auth';
-import { fetchActivityExport } from '../../src/services/api';
+import { fetchActivityExport, fetchActivityExportability } from '../../src/services/api';
 
 const originalFetch = globalThis.fetch;
 const originalStorage = globalThis.localStorage;
@@ -47,4 +47,24 @@ test('reports unsupported data and network errors', async () => {
     throw new Error('Offline');
   });
   await expect(fetchActivityExport('activity-1', 'geojson')).rejects.toThrow('Offline');
+});
+
+for (const is_exportable of [true, false]) {
+  test(`fetches authenticated exportability ${is_exportable}`, async () => {
+    authenticate();
+    globalThis.fetch = stubFetch(async (url: Parameters<typeof fetch>[0], init: Parameters<typeof fetch>[1]) => {
+      expect(String(url)).toEndWith('/activity/activity-1/is_exportable');
+      expect(init?.method).toBe('GET');
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-token');
+      return Response.json({ is_exportable });
+    });
+    expect(await fetchActivityExportability('activity-1')).toEqual({ is_exportable });
+  });
+}
+test('propagates eligibility HTTP and network failures', async () => {
+  authenticate();
+  globalThis.fetch = stubFetch(async () => new Response(null, { status: 422 }));
+  await expect(fetchActivityExportability('activity-1')).rejects.toThrow('Failed to check activity exportability.');
+  globalThis.fetch = stubFetch(async () => { throw new Error('Offline'); });
+  await expect(fetchActivityExportability('activity-1')).rejects.toThrow('Offline');
 });
