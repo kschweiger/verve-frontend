@@ -5,6 +5,8 @@ import { useActivityStore } from '@/stores/activity';
 import { removeTrackExtensionData, type SupportedTrackExtension } from '@/services/api';
 import ActivityExportButton from '@/components/ActivityExportButton.vue';
 import ActivityEquipment from '@/components/ActivityEquipment.vue';
+import ActivityWorkout from '@/components/ActivityWorkout.vue';
+import { useTypeStore } from '@/stores/types';
 import ActivityHighlights from '@/components/ActivityHighlights.vue';
 import ActivitySegmentsPanel from '@/components/ActivitySegmentsPanel.vue';
 import LeafletMap from '@/components/LeafletMap.vue';
@@ -39,6 +41,13 @@ const router = useRouter();
 const activityStore = useActivityStore();
 
 const locationStore = useLocationStore();
+const typeStore = useTypeStore();
+void typeStore.fetchActivityTypes();
+const isStrengthTraining = computed(() =>
+  typeStore.activityTypes.some(
+    (type) => type.id === activity.value?.type_id && type.name === 'Strength Training'
+  )
+);
 
 const {
   activity,
@@ -293,6 +302,8 @@ watch(
       </div>
 
       <ActivityMetadataWidget v-if="activityMetadata" :metadata="activityMetadata" />
+
+      <ActivityWorkout v-if="isStrengthTraining" :activity-id="activity.id" />
 
       <ActivityHighlights :key="activityHighlightsKey" :activity-id="id" />
 

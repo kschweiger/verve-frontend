@@ -44,3 +44,44 @@ test('duplicate uses a bodyless POST with the encoded name', async () => {
   expect(options?.method).toBe('POST');
   expect(options?.body).toBeUndefined();
 });
+
+test('activity snapshot requests use the activity path and bodyless plan query', async () => {
+  const calls: { url: string; init?: RequestInit }[] = [];
+  globalThis.fetch = (async (input, init) => {
+    calls.push({ url: String(input), init });
+    return Response.json({ id: 'snapshot', activity_id: 'activity', entries: [] });
+  }) as typeof fetch;
+  const { fetchActivityExercisePlan, applyWorkoutPlan } =
+    await import('../../src/services/workoutPlans');
+  const snapshot = await fetchActivityExercisePlan('activity');
+  await applyWorkoutPlan('activity', 'plan & one');
+  expect(snapshot.entries).toEqual([]);
+  expect(calls[0]?.url).toContain('/activity_exercise_plans/activity');
+  expect(calls[1]?.url).toContain('/activity_exercise_plans/activity?plan_id=plan+%26+one');
+  expect(calls[1]?.init?.method).toBe('POST');
+  expect(calls[1]?.init?.body).toBeUndefined();
+  expect(calls[1]?.init?.headers).toEqual({ Authorization: 'Bearer test-token' });
+});
+
+test('activity snapshot replacement sends authenticated entries including clearing', async () => {
+  const calls: { url: string; init?: RequestInit }[] = [];
+  globalThis.fetch = (async (input, init) => {
+    calls.push({ url: String(input), init });
+    return Response.json({ id: 'snapshot', activity_id: 'activity', entries: [] });
+  }) as typeof fetch;
+  const { updateActivityExercisePlan } = await import('../../src/services/workoutPlans');
+  await updateActivityExercisePlan('activity', [
+    { exercise_id: 'exercise', sets: null, repetitions: 5, weight: 0 },
+  ]);
+  await updateActivityExercisePlan('activity', []);
+  expect(calls.map((call) => JSON.parse(String(call.init?.body)))).toEqual([
+    { entries: [{ exercise_id: 'exercise', sets: null, repetitions: 5, weight: 0 }] },
+    { entries: [] },
+  ]);
+  expect(calls[0]?.url).toContain('/activity_exercise_plans/activity');
+  expect(calls[0]?.init?.method).toBe('PATCH');
+  expect(calls[0]?.init?.headers).toEqual({
+    Authorization: 'Bearer test-token',
+    'Content-Type': 'application/json',
+  });
+});

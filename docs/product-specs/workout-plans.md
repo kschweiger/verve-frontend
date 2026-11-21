@@ -4,4 +4,12 @@ Authenticated users can find Workout Plans under Planning on desktop and mobile.
 
 A saved plan opens read-only. Edit changes its name or replaces its exercise entries; Cancel discards the draft. A name conflict is shown at the name field and other save failures preserve the draft. Saved exercises no longer active remain visible and can be edited or removed, but cannot be newly selected. If an exercise label cannot be loaded, the entry remains and the lookup can be retried.
 
-Duplicate creates an independent copy with a chosen name, including inactive entries. Delete requires confirmation naming the plan. Plans are not connected to activity history in this version.
+Duplicate creates an independent copy with a chosen name, including inactive entries. Delete requires confirmation naming the plan.
+
+Strength Training activity details can apply a template once to create an independent workout snapshot. A saved snapshot opens in the workout summary, including when its exercise list is empty. Edit opens a draft with the exercise and target controls used in Planning. Users can add active exercises, including repeats, and edit or remove existing inactive exercises. Save replaces the activity's exercise entries. Cancel discards the draft.
+
+Each saved exercise row offers **Delete** in the workout summary. This removes that individual entry as soon as the server confirms the deletion. Deleting the last entry leaves a saved empty workout.
+
+Catalog loading can be retried while existing entries remain editable. If an exercise label is unavailable, the panel keeps the entry visible by its ID and offers a retry.
+
+Save failures keep the draft visible. When the API rejects the sign-in, the panel offers **Sign in again**. Signing out discards any open draft. After signing in, users can reopen the activity and continue working with its workout.

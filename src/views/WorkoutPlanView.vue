@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import WorkoutExerciseFields from '@/components/WorkoutExerciseFields.vue';
 import { useUserStore } from '@/stores/auth';
 import { ApiResponseError } from '@/services/authHeaders';
 import {
@@ -16,7 +17,6 @@ import {
 } from '@/services/workoutPlans';
 import {
   draftEntries,
-  newDraftEntry,
   planChanges,
   serializeEntries,
   type DraftEntry,
@@ -44,13 +44,11 @@ const nameError = ref('');
 const labelError = ref(false);
 const catalogError = ref(false);
 const catalogLoading = ref(false);
-const search = ref('');
 const dialog = ref<'duplicate' | 'delete' | null>(null);
 const duplicateName = ref('');
 const dialogInput = ref<HTMLInputElement | null>(null);
 const dialogBox = ref<HTMLDialogElement | null>(null);
 const dialogCancel = ref<HTMLButtonElement | null>(null);
-const searchInput = ref<HTMLInputElement | null>(null);
 let dialogTrigger: HTMLElement | null = null;
 let generation = 0;
 let labelGeneration = 0;
@@ -64,13 +62,6 @@ function lookupLabel(id: string): Promise<Exercise> {
   pendingLabels.set(id, request);
   return request;
 }
-const filteredExercises = computed(() =>
-  exercises.value
-    .filter(
-      (e) => e.is_active && e.name.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())
-    )
-    .sort((a, b) => a.name.localeCompare(b.name))
-);
 function draftFrom(value: WorkoutPlan) {
   name.value = value.name;
   entries.value = draftEntries(value.entries);
@@ -211,11 +202,6 @@ async function save() {
     if (current === generation) saving.value = false;
   }
 }
-function addExercise(exercise: Exercise) {
-  entries.value.push(newDraftEntry(exercise.id));
-  search.value = '';
-  void nextTick(() => searchInput.value?.focus());
-}
 async function openDialog(kind: 'duplicate' | 'delete') {
   dialogTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   dialog.value = kind;
@@ -306,88 +292,20 @@ async function confirmDialog() {
               Could not load the exercise catalog.
               <button type="button" class="underline" @click="retryCatalog">Retry</button>
             </div>
-            <label for="exercise-search" class="mt-3 block text-sm font-bold"
-              >Search exercises</label
-            ><input
-              id="exercise-search"
-              ref="searchInput"
-              v-model="search"
-              type="search"
-              class="mt-2"
-              :class="fieldClass"
-              placeholder="Search active exercises"
-              @keydown.enter.prevent
+            <WorkoutExerciseFields
+              v-model="entries"
+              :exercises="exercises"
+              :labels="labels"
+              :catalog-loading="catalogLoading"
+              :catalog-error="catalogError"
             />
-            <ul v-if="search" class="max-h-48 overflow-auto bg-white">
-              <li v-for="exercise in filteredExercises" :key="exercise.id">
-                <button
-                  type="button"
-                  class="w-full px-4 py-2 text-left hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-orange"
-                  @click="addExercise(exercise)"
-                >
-                  {{ exercise.name }}
-                </button>
-              </li>
-              <li v-if="catalogLoading" class="p-3">Loading exercises...</li>
-              <li v-else-if="!filteredExercises.length && !catalogError" class="p-3">
-                No matching exercises.
-              </li>
-            </ul>
-            <ul class="mt-4 space-y-2">
-              <li v-for="(entry, index) in entries" :key="entry.key" class="bg-white p-4">
-                <div class="flex justify-between gap-4">
-                  <strong class="min-w-0 wrap-anywhere"
-                    >{{ labels[entry.exercise_id]?.name ?? `Exercise ${entry.exercise_id}` }}
-                    <span
-                      v-if="labels[entry.exercise_id] && !labels[entry.exercise_id]?.is_active"
-                      class="text-sm font-normal"
-                      >(inactive)</span
-                    ></strong
-                  ><button
-                    type="button"
-                    class="underline focus-visible:outline-2 focus-visible:outline-verve-orange"
-                    :aria-label="`Remove ${labels[entry.exercise_id]?.name ?? entry.exercise_id}, row ${index + 1}`"
-                    @click="entries.splice(index, 1)"
-                  >
-                    Remove
-                  </button>
-                </div>
-                <div class="mt-3 grid grid-cols-3 gap-3">
-                  <label
-                    >Sets<input
-                      v-model.number="entry.sets"
-                      type="number"
-                      min="1"
-                      max="2147483647"
-                      step="1"
-                      :aria-label="`Sets for row ${index + 1}`"
-                      class="mt-1"
-                      :class="fieldClass" /></label
-                  ><label
-                    >Reps<input
-                      v-model.number="entry.repetitions"
-                      type="number"
-                      min="1"
-                      max="2147483647"
-                      step="1"
-                      :aria-label="`Reps for row ${index + 1}`"
-                      class="mt-1"
-                      :class="fieldClass" /></label
-                  ><label
-                    >Weight (kg)<input
-                      v-model.number="entry.weight"
-                      type="number"
-                      min="0"
-                      step="any"
-                      :aria-label="`Weight in kg for row ${index + 1}`"
-                      class="mt-1"
-                      :class="fieldClass"
-                  /></label>
-                </div>
-              </li>
-            </ul>
             <div class="mt-6 flex gap-3">
-              <button class="bg-verve-brown text-white" :class="actionClass" :disabled="saving" type="submit">
+              <button
+                class="bg-verve-brown text-white"
+                :class="actionClass"
+                :disabled="saving"
+                type="submit"
+              >
                 {{ saving ? 'Saving...' : 'Save' }}
               </button>
               <button :class="actionClass" :disabled="saving" type="button" @click="cancel">

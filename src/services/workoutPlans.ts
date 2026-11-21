@@ -102,3 +102,50 @@ export async function deleteWorkoutPlan(id: string): Promise<void> {
   if (response.status !== 204)
     throw await responseError(response, 'Failed to delete workout plan.');
 }
+
+export interface ActivityExercisePlan {
+  id: string;
+  activity_id: string;
+  source_plan_id?: string | null;
+  entries: PlanEntry[];
+}
+
+export function fetchActivityExercisePlan(activityId: string): Promise<ActivityExercisePlan> {
+  return request(
+    `/activity_exercise_plans/${encodeURIComponent(activityId)}`,
+    { headers: getAuthHeaders() },
+    'Failed to load workout.'
+  );
+}
+
+export function applyWorkoutPlan(
+  activityId: string,
+  planId: string
+): Promise<ActivityExercisePlan> {
+  const query = new URLSearchParams({ plan_id: planId });
+  return request(
+    `/activity_exercise_plans/${encodeURIComponent(activityId)}?${query}`,
+    { method: 'POST', headers: getAuthHeaders() },
+    'Failed to apply workout plan.'
+  );
+}
+
+export function updateActivityExercisePlan(
+  activityId: string,
+  entries: PlanEntryInput[]
+): Promise<ActivityExercisePlan> {
+  return request(
+    `/activity_exercise_plans/${encodeURIComponent(activityId)}`,
+    { method: 'PATCH', headers: getJsonAuthHeaders(), body: JSON.stringify({ entries }) },
+    'Failed to save workout.'
+  );
+}
+
+export async function deleteActivityExerciseEntry(activityId: string, entryId: number): Promise<void> {
+  const query = new URLSearchParams({ entry_id: String(entryId) });
+  const response = await fetch(
+    `${base}/activity_exercise_plans/${encodeURIComponent(activityId)}/entry?${query}`,
+    { method: 'DELETE', headers: getAuthHeaders() }
+  );
+  if (response.status !== 204) throw await responseError(response, 'Failed to delete exercise.');
+}
