@@ -147,6 +147,25 @@ export function applyWorkoutPlan(
   );
 }
 
+export function addActivityExercise(
+  activityId: string,
+  entry: PlanEntryInput
+): Promise<ActivityExercisePlan> {
+  return request(
+    `/activity_exercise_plans/${encodeURIComponent(activityId)}/exercises`,
+    { method: 'POST', headers: getJsonAuthHeaders(), body: JSON.stringify(entry) },
+    'Failed to save workout.'
+  );
+}
+
+export function updateLinkedWorkoutPlan(activityId: string): Promise<WorkoutPlan> {
+  return request(
+    `/activity_exercise_plans/${encodeURIComponent(activityId)}/update_template`,
+    { method: 'POST', headers: getAuthHeaders() },
+    'Failed to update linked plan.'
+  );
+}
+
 export function saveActivityAsWorkoutPlan(activityId: string, name: string): Promise<WorkoutPlan> {
   return request(
     `/activity_exercise_plans/${encodeURIComponent(activityId)}/save_as_template`,

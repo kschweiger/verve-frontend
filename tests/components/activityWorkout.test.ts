@@ -585,3 +585,177 @@ test('save as plan keeps a conflicting name for retry and confirms success in th
   expect(ui.all(ui.root).some((el) => el.tag === 'dialog')).toBe(false);
   expect(ui.all(ui.root).some((el) => el.tag === 'a')).toBe(false);
 });
+
+test('starts a workout with one exercise even when plans fail to load', async () => {
+  let post: RequestInit | undefined;
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (init?.method === 'POST') {
+      expect(url).toEndWith('/activity_exercise_plans/one/exercises');
+      post = init;
+      return Response.json(
+        { id: 'snapshot', activity_id: 'one', entries: [{ id: 1, exercise_id: 'ex', weight: 0 }] },
+        { status: 201 }
+      );
+    }
+    if (url.endsWith('/exercise_plans')) return new Response('', { status: 500 });
+    if (url.endsWith('/exercises'))
+      return Response.json({
+        data: [{ id: 'ex', code: 'ex', name: 'Squat', is_active: true, muscles: [] }],
+      });
+    return new Response('', { status: 404 });
+  });
+  const ui = mount();
+  await flush();
+  const button = (name: string) =>
+    ui.all(ui.root).find((el) => el.tag === 'button' && el.text.trim() === name)!;
+  (button('Add exercise').props.onClick as () => void)();
+  await flush();
+  const search = ui.all(ui.root).find((el) => el.props.type === 'search')!;
+  (search.props['onUpdate:modelValue'] as (value: string) => void)('Squat');
+  await nextTick();
+  (button('Squat').props.onClick as () => void)();
+  await nextTick();
+  const weight = ui.all(ui.root).find((el) => el.props['aria-label'] === 'Weight in kg for row 1')!;
+  (weight.props['onUpdate:modelValue'] as (value: number) => void)(0);
+  const form = ui.all(ui.root).find((el) => el.tag === 'form')!;
+  await (form.props.onSubmit as (event: { preventDefault(): void }) => Promise<void>)({
+    preventDefault() {},
+  });
+  await flush();
+  expect(post?.headers).toEqual({
+    Authorization: 'Bearer token',
+    'Content-Type': 'application/json',
+  });
+  expect(JSON.parse(String(post?.body))).toEqual({
+    exercise_id: 'ex',
+    sets: null,
+    repetitions: null,
+    weight: 0,
+  });
+  expect(ui.content()).toContain('0 kg');
+});
+
+test('linked plan update requires confirmation and sends no body', async () => {
+  let post: RequestInit | undefined;
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'POST') {
+      expect(String(input)).toEndWith('/activity_exercise_plans/one/update_template');
+      post = init;
+      return Response.json({ id: 'plan', name: 'Plan', entries: [] });
+    }
+    return Response.json({
+      id: 'snapshot',
+      activity_id: 'one',
+      source_plan_id: 'plan',
+      entries: [],
+    });
+  });
+  const ui = mount();
+  await flush();
+  const button = (name: string) =>
+    ui.all(ui.root).find((el) => el.tag === 'button' && el.text.trim() === name)!;
+  await (button('Update linked plan').props.onClick as () => Promise<void>)();
+  await nextTick();
+  expect(ui.content()).toContain('removes all exercises');
+  (button('Cancel').props.onClick as () => void)();
+  expect(post).toBeUndefined();
+  await (button('Update linked plan').props.onClick as () => Promise<void>)();
+  await nextTick();
+  const form = ui.all(ui.root).find((el) => el.tag === 'form')!;
+  await (form.props.onSubmit as (event: { preventDefault(): void }) => Promise<void>)({
+    preventDefault() {},
+  });
+  await flush();
+  expect(post?.headers).toEqual({ Authorization: 'Bearer token' });
+  expect(post?.body).toBeUndefined();
+  expect(ui.content()).toContain('Linked plan updated.');
+});
+
+test('a stale linked plan is removed after update returns conflict', async () => {
+  let posts = 0;
+  globalThis.fetch = stubFetch(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'POST') {
+      posts++;
+      return new Response('', { status: 409 });
+    }
+    return Response.json({
+      id: 'snapshot',
+      activity_id: 'one',
+      source_plan_id: 'plan',
+      entries: [],
+    });
+  });
+  const ui = mount();
+  await flush();
+  const update = ui
+    .all(ui.root)
+    .find((el) => el.tag === 'button' && el.text.trim() === 'Update linked plan')!;
+  await (update.props.onClick as () => Promise<void>)();
+  await nextTick();
+  const form = ui.all(ui.root).find((el) => el.tag === 'form')!;
+  await (form.props.onSubmit as (event: { preventDefault(): void }) => Promise<void>)({
+    preventDefault() {},
+  });
+  await flush();
+  expect(posts).toBe(1);
+  expect(ui.content()).toContain('This workout is no longer linked to a plan.');
+  expect(ui.content()).not.toContain('Update linked plan');
+  expect(ui.content()).toContain('Save as new plan');
+});
+
+test.each([200, 500])(
+  'recovers after losing the first save response (check status %p)',
+  async (status) => {
+    let reads = 0;
+    let posts = 0;
+    globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (init?.method === 'POST') {
+        posts++;
+        throw new TypeError('network');
+      }
+      if (url.endsWith('/exercise_plans')) return Response.json({ data: [] });
+      if (url.endsWith('/exercises'))
+        return Response.json({
+          data: [{ id: 'ex', code: 'ex', name: 'Squat', is_active: true, muscles: [] }],
+        });
+      reads++;
+      if (reads === 1) return new Response('', { status: 404 });
+      if (reads === 2 && status === 500) return new Response('', { status });
+      return Response.json({
+        id: 'snapshot',
+        activity_id: 'one',
+        entries: [{ id: 1, exercise_id: 'ex' }],
+      });
+    });
+    const ui = mount();
+    await flush();
+    const button = (name: string) =>
+      ui.all(ui.root).find((el) => el.tag === 'button' && el.text.trim() === name)!;
+    (button('Add exercise').props.onClick as () => void)();
+    await flush();
+    const search = ui.all(ui.root).find((el) => el.props.type === 'search')!;
+    (search.props['onUpdate:modelValue'] as (value: string) => void)('Squat');
+    await nextTick();
+    (button('Squat').props.onClick as () => void)();
+    await nextTick();
+    const form = ui.all(ui.root).find((el) => el.tag === 'form')!;
+    await (form.props.onSubmit as (event: { preventDefault(): void }) => Promise<void>)({
+      preventDefault() {},
+    });
+    await flush();
+    expect(reads).toBe(2);
+    if (status === 500) {
+      expect(ui.content()).toContain('Check again');
+      expect(button('Save').props.disabled).toBe(true);
+      (button('Cancel').props.onClick as () => void)();
+      await flush();
+      expect(reads).toBe(3);
+    } else {
+      expect(ui.content()).toContain('Check the saved exercises');
+    }
+    expect(posts).toBe(1);
+    expect(ui.content()).toContain('Edit workout');
+  }
+);

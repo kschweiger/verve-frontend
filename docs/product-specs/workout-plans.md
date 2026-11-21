@@ -17,3 +17,7 @@ Catalog loading can be retried while existing entries remain editable. If an exe
 Save failures keep the draft visible. When the API rejects the sign-in, the panel offers **Sign in again**. Signing out discards any open draft. After signing in, users can reopen the activity and continue working with its workout.
 
 A saved activity workout, including an empty one, can be saved as a new named plan. This copies its persisted entries and links the activity to the new plan, replacing any prior plan link. Name conflicts and other non-authentication failures keep the name available for retry. A rejected sign-in closes the dialog and offers sign-in recovery. After saving, the activity remains open and the new plan is available under Planning.
+
+When an activity has no saved workout, users can start without a plan by selecting one active catalog exercise and optionally entering targets. Save creates the workout. Cancel discards the draft. The exercise catalog remains available if the plan list fails to load.
+
+A saved workout linked to a plan offers **Update linked plan**. Confirmation replaces the linked plan's exercises with the activity's saved exercises. An empty workout clears the linked plan's exercise list. The activity remains open. If the link has already been removed, the action disappears and the panel explains why.
