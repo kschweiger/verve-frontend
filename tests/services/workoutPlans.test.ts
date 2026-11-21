@@ -105,3 +105,31 @@ test('saving an activity as a plan posts only its name with authentication', asy
   expect(JSON.parse(String(options?.body))).toEqual({ name: 'My plan' });
   expect(result.id).toBe('new-plan');
 });
+
+test('linked activities use the authenticated plan endpoint and sort by instant', async () => {
+  let url = '';
+  let options: RequestInit | undefined;
+  globalThis.fetch = (async (input, init) => {
+    url = String(input);
+    options = init;
+    return Response.json({
+      data: [
+        { id: 'older', start: '2024-01-02T00:30:00+02:00' },
+        { id: 'earlier-fraction', start: '2024-01-01T22:45:00.123400Z' },
+        { id: 'later-fraction', start: '2024-01-02T00:45:00.123900+02:00' },
+        { id: 'newest', start: '2024-01-01T22:45:01Z' },
+      ],
+    });
+  }) as typeof fetch;
+  const { fetchWorkoutPlanActivities } = await import('../../src/services/workoutPlans');
+  const activities = await fetchWorkoutPlanActivities('plan/one');
+  expect(url).toContain('/exercise_plans/plan%2Fone/activities');
+  expect(options?.method).toBeUndefined();
+  expect(options?.headers).toEqual({ Authorization: 'Bearer test-token' });
+  expect(activities.map((activity) => activity.id)).toEqual([
+    'newest',
+    'later-fraction',
+    'earlier-fraction',
+    'older',
+  ]);
+});

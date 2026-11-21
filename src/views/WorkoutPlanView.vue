@@ -2,6 +2,7 @@
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import WorkoutExerciseFields from '@/components/WorkoutExerciseFields.vue';
+import WorkoutPlanActivities from '@/components/WorkoutPlanActivities.vue';
 import { useUserStore } from '@/stores/auth';
 import { ApiResponseError } from '@/services/authHeaders';
 import {
@@ -342,6 +343,7 @@ async function confirmDialog() {
           Some exercise names could not be loaded.
           <button type="button" class="underline" @click="resolveLabels(generation)">Retry</button>
         </p>
+        <WorkoutPlanActivities v-if="plan && !editing" :plan-id="plan.id" />
       </template>
       <div v-else-if="error" role="alert" class="mt-6 text-red-700">
         {{ error }} <button type="button" class="underline" @click="load">Retry</button>

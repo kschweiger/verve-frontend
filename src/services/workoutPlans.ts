@@ -1,4 +1,4 @@
-import type { ListResponse } from '@/types/api';
+import type { ActivityPublic, ListResponse } from '@/types/api';
 import { getAuthHeaders, getJsonAuthHeaders, responseError } from './authHeaders';
 
 export interface ExerciseMuscle {
@@ -52,6 +52,23 @@ export function fetchWorkoutPlan(id: string): Promise<WorkoutPlan> {
     `/exercise_plans/${encodeURIComponent(id)}`,
     { headers: getAuthHeaders() },
     'Failed to load workout plan.'
+  );
+}
+
+function fractionalSeconds(timestamp: string): string {
+  return (/\.(\d+)(?:Z|[+-]\d{2}:\d{2})$/i.exec(timestamp)?.[1] ?? '').replace(/0+$/, '');
+}
+
+export async function fetchWorkoutPlanActivities(id: string): Promise<ActivityPublic[]> {
+  const result = await request<ListResponse<ActivityPublic>>(
+    `/exercise_plans/${encodeURIComponent(id)}/activities`,
+    { headers: getAuthHeaders() },
+    'Failed to load linked activities.'
+  );
+  return result.data.sort(
+    (a, b) =>
+      Date.parse(b.start) - Date.parse(a.start) ||
+      fractionalSeconds(b.start).localeCompare(fractionalSeconds(a.start))
   );
 }
 export async function fetchExercises(): Promise<Exercise[]> {
