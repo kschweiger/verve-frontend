@@ -9522,6 +9522,1177 @@
         }
       }
     },
+    "/api/v1/strength_training/exercises/{exercise_id}": {
+      "get": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Get an exercise by ID",
+        "description": "Look up an exercise, including inactive exercises used in historical records.",
+        "operationId": "strength_training-get_exercise",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "exercise_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID of the exercise to retrieve.",
+              "title": "Exercise Id"
+            },
+            "description": "UUID of the exercise to retrieve."
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportedLocale"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the account preference, or English if unset.",
+              "title": "Locale"
+            },
+            "description": "Defaults to the account preference, or English if unset."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExercisePublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Inactive user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Exercise or user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/exercises": {
+      "get": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "List active exercises",
+        "description": "List active exercises available for selection.",
+        "operationId": "strength_training-get_exercises",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportedLocale"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the account preference, or English if unset.",
+              "title": "Locale"
+            },
+            "description": "Defaults to the account preference, or English if unset."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse_ExercisePublic_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Inactive user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/exercise_plans/{plan_id}/activities": {
+      "get": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "List activities linked to an exercise plan",
+        "operationId": "strength_training-get_plan_activities",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse_ActivityPublic_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Exercise plan not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/exercise_plans/{plan_id}": {
+      "get": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Get Plan",
+        "operationId": "strength_training-get_plan",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plan or exercise not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Update Plan",
+        "description": "Update the name or replace the entry list. Send `{\"entries\": []}` to clear the entries.",
+        "operationId": "strength_training-update_plan",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExercisePlanUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plan or exercise not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Plan name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Delete Plan",
+        "operationId": "strength_training-delete_plan",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Plan or exercise not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Duplicate Plan",
+        "operationId": "strength_training-duplicate_plan",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\x00]*[^\\s\\x00][^\\x00]*$",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plan or exercise not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Plan name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/exercise_plans": {
+      "get": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "List Plans",
+        "operationId": "strength_training-list_plans",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse_ExercisePlanPublic_"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Create Plan",
+        "operationId": "strength_training-create_plan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExercisePlanCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plan or exercise not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Plan name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/strength_training/activity_exercise_plans/{activity_id}": {
+      "post": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Apply an exercise plan to an activity",
+        "description": "Create an independent snapshot of the template for this activity.",
+        "operationId": "strength_training-add_plan_to_activity",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          },
+          {
+            "name": "plan_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity or plan not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Activity already has a plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Get an activity exercise plan",
+        "description": "Retrieve the exercise plan snapshot for an activity.",
+        "operationId": "strength_training-get_activity_exercise_plans",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity or plan not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Replace entries in an activity plan",
+        "description": "Replace all entries. Send `{\"entries\": []}` to clear the plan.",
+        "operationId": "strength_training-update_activity_exercise_plan",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityExercisePlanUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity, plan or exercise not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/activity_exercise_plans/{activity_id}/exercises": {
+      "post": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Add an exercise to an activity plan",
+        "description": "Append an entry and create an activity plan if needed.",
+        "operationId": "strength_training-add_exercise_to_activity_plan",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityExercisePlanEntryCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity or exercise not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/activity_exercise_plans/{activity_id}/entry": {
+      "delete": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Remove an entry from an activity plan",
+        "operationId": "strength_training-remove_entry_from_activity_plan",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Activity, plan or entry not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/activity_exercise_plans/{activity_id}/save_as_template": {
+      "post": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Save an activity as a new exercise plan template",
+        "description": "Copy entries and link the activity to the new template.",
+        "operationId": "strength_training-save_template",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExercisePlanBase"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity or plan not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Plan name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/activity_exercise_plans/{activity_id}/update_template": {
+      "post": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Update the linked exercise plan template",
+        "description": "Replace template entries with copies of this activity's entries.",
+        "operationId": "strength_training-update_template",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExercisePlanPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity or plan not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Activity has no linked template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strength_training/activity_exercise_plans/{activity_id}/muscle_groups": {
+      "get": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Get muscle groups for an activity exercise plan",
+        "operationId": "strength_training-get_activity_muscle_groups",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportedLocale"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the account preference, or English if unset.",
+              "title": "Locale"
+            },
+            "description": "Defaults to the account preference, or English if unset."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse_ActivityMuscleGroupPublic_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity or plan not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health": {
       "get": {
         "tags": [
@@ -10710,6 +11881,171 @@
         ],
         "title": "ActivityCreate"
       },
+      "ActivityExercisePlanEntryCreate": {
+        "properties": {
+          "exercise_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Exercise Id"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "sets": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sets"
+          },
+          "repetitions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repetitions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_id"
+        ],
+        "title": "ActivityExercisePlanEntryCreate"
+      },
+      "ActivityExercisePlanEntryPublic": {
+        "properties": {
+          "exercise_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Exercise Id"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "sets": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sets"
+          },
+          "repetitions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repetitions"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_id",
+          "id"
+        ],
+        "title": "ActivityExercisePlanEntryPublic"
+      },
+      "ActivityExercisePlanPublic": {
+        "properties": {
+          "activity_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Activity Id"
+          },
+          "source_plan_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Plan Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityExercisePlanEntryPublic"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activity_id",
+          "id",
+          "entries"
+        ],
+        "title": "ActivityExercisePlanPublic"
+      },
+      "ActivityExercisePlanUpdate": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityExercisePlanEntryCreate"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "title": "ActivityExercisePlanUpdate"
+      },
       "ActivityExportability": {
         "properties": {
           "is_exportable": {
@@ -10821,6 +12157,56 @@
           "rank"
         ],
         "title": "ActivityHighlightPublic"
+      },
+      "ActivityMuscleGroupPublic": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "[^ ]",
+            "title": "Code",
+            "description": "Stable code identifying the muscle display group."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Unique identifier of the display group."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Translated display group name."
+          },
+          "role": {
+            "$ref": "#/components/schemas/ExerciseMuscleRole",
+            "description": "Primary if any contributing muscle is primary; otherwise secondary."
+          },
+          "exercise_count": {
+            "type": "integer",
+            "title": "Exercise Count",
+            "description": "Number of distinct catalog exercises."
+          },
+          "exercise_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Exercise Ids",
+            "description": "Distinct contributing catalog exercise IDs."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "id",
+          "name",
+          "role",
+          "exercise_count",
+          "exercise_ids"
+        ],
+        "title": "ActivityMuscleGroupPublic"
       },
       "ActivityPublic": {
         "properties": {
@@ -13475,6 +14861,295 @@
         "type": "object",
         "title": "EquipmentUpdate"
       },
+      "ExerciseMusclePublic": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "[^ ]",
+            "title": "Code",
+            "description": "Stable code identifying the muscle."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Unique identifier of the muscle."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Translated muscle name."
+          },
+          "role": {
+            "$ref": "#/components/schemas/ExerciseMuscleRole",
+            "description": "Whether the muscle is a primary target or provides secondary assistance."
+          },
+          "muscle_groups": {
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroupPublic"
+            },
+            "type": "array",
+            "title": "Muscle Groups",
+            "description": "Display groups containing this muscle, sorted by code."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "id",
+          "name",
+          "role",
+          "muscle_groups"
+        ],
+        "title": "ExerciseMusclePublic"
+      },
+      "ExerciseMuscleRole": {
+        "type": "string",
+        "enum": [
+          "primary",
+          "secondary"
+        ],
+        "title": "ExerciseMuscleRole"
+      },
+      "ExercisePlanBase": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\x00]*[^\\s\\x00][^\\x00]*$",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ExercisePlanBase"
+      },
+      "ExercisePlanCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\x00]*[^\\s\\x00][^\\x00]*$",
+            "title": "Name"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ExercisePlanEntryCreate"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ExercisePlanCreate"
+      },
+      "ExercisePlanEntryCreate": {
+        "properties": {
+          "exercise_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Exercise Id"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "sets": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sets"
+          },
+          "repetitions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repetitions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_id"
+        ],
+        "title": "ExercisePlanEntryCreate"
+      },
+      "ExercisePlanEntryPublic": {
+        "properties": {
+          "exercise_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Exercise Id"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "sets": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sets"
+          },
+          "repetitions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repetitions"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "exercise_id",
+          "id"
+        ],
+        "title": "ExercisePlanEntryPublic"
+      },
+      "ExercisePlanPublic": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\x00]*[^\\s\\x00][^\\x00]*$",
+            "title": "Name"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ExercisePlanEntryPublic"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "entries"
+        ],
+        "title": "ExercisePlanPublic"
+      },
+      "ExercisePlanUpdate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\x00]*[^\\s\\x00][^\\x00]*$",
+            "title": "Name"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ExercisePlanEntryCreate"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "title": "ExercisePlanUpdate"
+      },
+      "ExercisePublic": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "[^ ]",
+            "title": "Code",
+            "description": "Stable code identifying the exercise."
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "Whether the exercise is available for selection."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Unique identifier of the exercise."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Translated exercise name."
+          },
+          "muscles": {
+            "items": {
+              "$ref": "#/components/schemas/ExerciseMusclePublic"
+            },
+            "type": "array",
+            "title": "Muscles",
+            "description": "Muscles used by the exercise, sorted by code."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "is_active",
+          "id",
+          "name",
+          "muscles"
+        ],
+        "title": "ExercisePublic"
+      },
       "GoalAggregation": {
         "type": "string",
         "enum": [
@@ -13900,6 +15575,20 @@
         "title": "GridWeek",
         "description": "One Monday-starting calendar week in the activity grid.\n\nContract:\n- days always has exactly seven entries, ordered Monday through Sunday.\n- A GridDay entry represents a past or current date.\n- null is only used for future dates in the trailing/current week.\n- Past dates without activity are GridDay entries with zero values."
       },
+      "HTTPErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "Description of the error."
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "HTTPErrorResponse"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -14075,6 +15764,22 @@
         ],
         "title": "ListResponse[ActivityHighlightPublic]"
       },
+      "ListResponse_ActivityMuscleGroupPublic_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityMuscleGroupPublic"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ListResponse[ActivityMuscleGroupPublic]"
+      },
       "ListResponse_ActivityPublic_": {
         "properties": {
           "data": {
@@ -14170,6 +15875,38 @@
           "data"
         ],
         "title": "ListResponse[EquipmentType]"
+      },
+      "ListResponse_ExercisePlanPublic_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ExercisePlanPublic"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ListResponse[ExercisePlanPublic]"
+      },
+      "ListResponse_ExercisePublic_": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ExercisePublic"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ListResponse[ExercisePublic]"
       },
       "ListResponse_GoalPublic_": {
         "properties": {
@@ -14479,6 +16216,35 @@
           "per_sub_type"
         ],
         "title": "MetricSummary[int]"
+      },
+      "MuscleGroupPublic": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "[^ ]",
+            "title": "Code",
+            "description": "Stable code identifying the muscle display group."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Unique identifier of the display group."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Translated display group name."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "id",
+          "name"
+        ],
+        "title": "MuscleGroupPublic"
       },
       "PasswordChangeRequest": {
         "properties": {
