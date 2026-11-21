@@ -22,7 +22,12 @@ class Element {
   getRootNode() {
     return {};
   }
-  addEventListener() {}
+  listeners: Record<string, (event: Event) => void> = {};
+  addEventListener(name: string, callback: (event: Event) => void) {
+    this.listeners[name] = callback;
+  }
+  showModal() {}
+  close() {}
   removeEventListener() {}
 }
 const renderer = createRenderer<Element, Element>({
@@ -457,7 +462,9 @@ test('quick delete removes only the chosen saved entry after a 204 response', as
   const remove = (deleteFirstRow().props.onClick as () => Promise<void>)();
   await nextTick();
   expect(ui.content()).toContain('20 kg');
-  expect(ui.all(ui.root).find((el) => el.text.trim() === 'Edit workout')?.props.disabled).toBe(true);
+  expect(ui.all(ui.root).find((el) => el.text.trim() === 'Edit workout')?.props.disabled).toBe(
+    true
+  );
   finishDelete?.(new Response(null, { status: 204 }));
   await remove;
   await flush();
@@ -528,4 +535,53 @@ test('a stale saved entry refreshes the workout after quick-delete 404', async (
   expect(ui.content()).toContain('The exercise list was refreshed.');
   expect(ui.content()).not.toContain('20 kg');
   expect(ui.content()).toContain('30 kg');
+});
+
+test('save as plan keeps a conflicting name for retry and confirms success in the workout', async () => {
+  let posts = 0;
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'POST') {
+      expect(String(input)).toContain('/activity_exercise_plans/one/save_as_template');
+      posts++;
+      return posts === 1
+        ? Response.json({ detail: 'duplicate' }, { status: 409 })
+        : Response.json({ id: 'created-plan', name: 'Morning', entries: [] }, { status: 201 });
+    }
+    return Response.json({
+      id: 'snapshot',
+      activity_id: 'one',
+      source_plan_id: 'old',
+      entries: [],
+    });
+  });
+  const ui = mount();
+  await flush();
+  const button = ui
+    .all(ui.root)
+    .find(
+      (el) =>
+        el.tag === 'button' && ui.all(el).some((child) => child.text.includes('Save as new plan'))
+    );
+  expect(button).toBeDefined();
+  await (button!.props.onClick as () => Promise<void>)();
+  await nextTick();
+  expect(ui.content()).toContain('replacing its current plan link');
+  const input = ui
+    .all(ui.root)
+    .find((el) => el.tag === 'input' && el.props.id === 'new-plan-name')!;
+  input.value = 'Morning';
+  input.listeners.input?.({ target: input } as unknown as Event);
+  const form = ui.all(ui.root).find((el) => el.tag === 'form')!;
+  const submit = form.props.onSubmit as (event: { preventDefault(): void }) => Promise<void>;
+  await submit({ preventDefault() {} });
+  await nextTick();
+  expect(ui.content()).toContain('A plan with this name already exists.');
+  expect(input.value).toBe('Morning');
+  input.value = 'Evening';
+  input.listeners.input?.({ target: input } as unknown as Event);
+  await submit({ preventDefault() {} });
+  await nextTick();
+  expect(ui.content()).toContain('Workout saved as a new plan.');
+  expect(ui.all(ui.root).some((el) => el.tag === 'dialog')).toBe(false);
+  expect(ui.all(ui.root).some((el) => el.tag === 'a')).toBe(false);
 });

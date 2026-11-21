@@ -11,16 +11,13 @@ import {
   fetchExercise,
   fetchExercises,
   fetchWorkoutPlans,
+  saveActivityAsWorkoutPlan,
   updateActivityExercisePlan,
   type ActivityExercisePlan,
   type Exercise,
   type WorkoutPlan,
 } from '@/services/workoutPlans';
-import {
-  draftEntries,
-  serializeEntries,
-  type DraftEntry,
-} from '@/utils/workoutPlanDraft';
+import { draftEntries, serializeEntries, type DraftEntry } from '@/utils/workoutPlanDraft';
 
 const props = defineProps<{ activityId: string }>();
 const auth = useUserStore();
@@ -41,6 +38,14 @@ const entries = ref<DraftEntry[]>([]);
 const exercises = ref<Exercise[]>([]);
 const catalogError = ref(false);
 const catalogLoading = ref(false);
+const planDialogOpen = ref(false);
+const planSaving = ref(false);
+const planName = ref('');
+const planNameError = ref('');
+const planError = ref('');
+const planDialog = ref<HTMLDialogElement | null>(null);
+const planInput = ref<HTMLInputElement | null>(null);
+const planButton = ref<HTMLButtonElement | null>(null);
 const fields = ref<InstanceType<typeof WorkoutExerciseFields> | null>(null);
 const workoutHeading = ref<HTMLHeadingElement | null>(null);
 const editButton = ref<HTMLButtonElement | null>(null);
@@ -212,7 +217,7 @@ async function loadCatalog() {
   }
 }
 function edit() {
-  if (!snapshot.value || deletingEntryId.value !== null) return;
+  if (!snapshot.value || deletingEntryId.value !== null || planDialogOpen.value) return;
   entries.value = draftEntries(snapshot.value.entries);
   editing.value = true;
   error.value = '';
@@ -268,7 +273,8 @@ async function save() {
 }
 
 async function removeSavedEntry(entryId: number, event?: MouseEvent) {
-  if (!snapshot.value || editing.value || deletingEntryId.value !== null) return;
+  if (!snapshot.value || editing.value || deletingEntryId.value !== null || planDialogOpen.value)
+    return;
   const previous = snapshot.value;
   const current = owner();
   const trigger = event?.currentTarget;
@@ -281,7 +287,10 @@ async function removeSavedEntry(entryId: number, event?: MouseEvent) {
   try {
     await deleteActivityExerciseEntry(props.activityId, entryId);
     if (!current()) return;
-    const updated = { ...previous, entries: previous.entries.filter((entry) => entry.id !== entryId) };
+    const updated = {
+      ...previous,
+      entries: previous.entries.filter((entry) => entry.id !== entryId),
+    };
     moveFocus = stillFocused();
     if (moveFocus) {
       const row = document.activeElement?.closest('li');
@@ -311,8 +320,81 @@ async function removeSavedEntry(entryId: number, event?: MouseEvent) {
       if (moveFocus) {
         void nextTick(() => {
           if (current() && document.activeElement === document.body) {
-            (neighborButton ?? recoveryButton.value ?? editButton.value ?? workoutHeading.value)?.focus();
+            (
+              neighborButton ??
+              recoveryButton.value ??
+              editButton.value ??
+              workoutHeading.value
+            )?.focus();
           }
+        });
+      }
+    }
+  }
+}
+
+async function openPlanDialog() {
+  if (!snapshot.value || editing.value || deletingEntryId.value !== null || planDialogOpen.value)
+    return;
+  const current = owner();
+  planName.value = '';
+  notice.value = '';
+  planNameError.value = '';
+  planError.value = '';
+  planDialogOpen.value = true;
+  await nextTick();
+  if (!current() || !planDialogOpen.value) return;
+  planDialog.value?.showModal();
+  planInput.value?.focus();
+}
+function closePlanDialog() {
+  if (planSaving.value) return;
+  const current = owner();
+  planDialog.value?.close();
+  planDialogOpen.value = false;
+  void nextTick(() => {
+    if (current()) planButton.value?.focus();
+  });
+}
+async function saveAsPlan() {
+  if (!snapshot.value || !planDialogOpen.value || planSaving.value) return;
+  if (!planName.value.trim()) {
+    planNameError.value = 'Enter a plan name.';
+    return;
+  }
+  const current = owner();
+  planSaving.value = true;
+  planNameError.value = '';
+  planError.value = '';
+  try {
+    const result = await saveActivityAsWorkoutPlan(props.activityId, planName.value);
+    if (!current()) return;
+    snapshot.value = { ...snapshot.value, source_plan_id: result.id };
+    notice.value = 'Workout saved as a new plan.';
+    planSaving.value = false;
+    closePlanDialog();
+  } catch (cause: unknown) {
+    if (!current()) return;
+    if (isSessionRejected(cause)) {
+      planSaving.value = false;
+      planDialog.value?.close();
+      planDialogOpen.value = false;
+      state.value = 'sign-in-required';
+      void nextTick(() => {
+        if (current()) recoveryButton.value?.focus();
+      });
+    } else if (cause instanceof ApiResponseError && cause.status === 409) {
+      planNameError.value = 'A plan with this name already exists.';
+    } else {
+      planError.value =
+        cause instanceof Error ? cause.message : 'Failed to save workout as a plan.';
+    }
+  } finally {
+    if (current()) {
+      planSaving.value = false;
+      if (planDialogOpen.value) {
+        void nextTick(() => {
+          if (current() && planDialogOpen.value) planInput.value?.focus();
         });
       }
     }
@@ -321,6 +403,9 @@ async function removeSavedEntry(entryId: number, event?: MouseEvent) {
 
 function reset() {
   generation++;
+  planDialog.value?.close();
+  planDialogOpen.value = false;
+  planSaving.value = false;
   labelGeneration++;
   conflict = false;
   snapshot.value = null;
@@ -362,7 +447,12 @@ onScopeDispose(() => {
     class="rounded-xl border border-verve-medium/30 bg-white p-6 shadow-sm"
     aria-labelledby="workout-heading"
   >
-    <h2 id="workout-heading" ref="workoutHeading" tabindex="-1" class="text-lg font-bold text-verve-brown">
+    <h2
+      id="workout-heading"
+      ref="workoutHeading"
+      tabindex="-1"
+      class="text-lg font-bold text-verve-brown"
+    >
       Workout
     </h2>
     <p v-if="notice" class="mt-3 text-sm text-verve-brown" role="status">{{ notice }}</p>
@@ -473,15 +563,26 @@ onScopeDispose(() => {
         </fieldset>
       </form>
       <template v-else>
-        <button
-          ref="editButton"
-          type="button"
-          class="mb-3 rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold focus-visible:outline-2 disabled:opacity-50"
-          :disabled="deletingEntryId !== null"
-          @click="edit"
-        >
-          Edit workout
-        </button>
+        <div class="mb-3 flex flex-wrap items-center gap-3">
+          <button
+            ref="editButton"
+            type="button"
+            class="rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold focus-visible:outline-2 disabled:opacity-50"
+            :disabled="deletingEntryId !== null || planDialogOpen"
+            @click="edit"
+          >
+            Edit workout
+          </button>
+          <button
+            ref="planButton"
+            type="button"
+            :disabled="deletingEntryId !== null || planDialogOpen"
+            class="rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold focus-visible:outline-2 disabled:opacity-50"
+            @click="openPlanDialog"
+          >
+            Save as new plan
+          </button>
+        </div>
         <p v-if="error" role="alert" class="mb-3 text-sm text-red-700">{{ error }}</p>
         <p v-if="snapshot.entries.length === 0" class="text-sm text-verve-brown/70">
           This workout has no exercises.
@@ -498,7 +599,8 @@ onScopeDispose(() => {
                 <span
                   v-if="labels[entry.exercise_id] && !labels[entry.exercise_id]?.is_active"
                   class="font-normal"
-                >(inactive)</span>
+                  >(inactive)</span
+                >
               </p>
               <p class="mt-1 text-verve-brown/70">
                 <span v-if="entry.sets != null">{{ entry.sets }} sets </span
@@ -510,7 +612,7 @@ onScopeDispose(() => {
               type="button"
               class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
               :aria-label="`Delete ${labels[entry.exercise_id]?.name ?? entry.exercise_id}, row ${index + 1}`"
-              :aria-disabled="deletingEntryId !== null"
+              :aria-disabled="deletingEntryId !== null || planDialogOpen"
               @click="removeSavedEntry(entry.id, $event)"
             >
               <Trash2 class="size-4" aria-hidden="true" />
@@ -531,5 +633,53 @@ onScopeDispose(() => {
         </button>
       </p>
     </div>
+    <dialog
+      v-if="planDialogOpen"
+      ref="planDialog"
+      aria-labelledby="save-plan-title"
+      class="m-auto w-full max-w-md rounded-xl bg-white p-6 text-verve-brown shadow-xl backdrop:bg-black/40"
+      @cancel.prevent="closePlanDialog"
+    >
+      <h2 id="save-plan-title" class="text-xl font-bold">Save as new plan</h2>
+      <p class="mt-2 text-sm">
+        This copies the saved workout and links this activity to the new plan<span
+          v-if="snapshot?.source_plan_id"
+          >, replacing its current plan link</span
+        >.
+      </p>
+      <form class="mt-4" @submit.prevent="saveAsPlan">
+        <label for="new-plan-name" class="block text-sm font-semibold">Plan name</label>
+        <input
+          id="new-plan-name"
+          ref="planInput"
+          v-model="planName"
+          :disabled="planSaving"
+          :aria-invalid="!!planNameError"
+          :aria-describedby="planNameError ? 'new-plan-error' : undefined"
+          class="mt-1 w-full rounded-lg border border-verve-medium px-3 py-2 focus-visible:outline-2"
+        />
+        <p v-if="planNameError" id="new-plan-error" role="alert" class="mt-2 text-sm text-red-700">
+          {{ planNameError }}
+        </p>
+        <p v-if="planError" role="alert" class="mt-2 text-sm text-red-700">{{ planError }}</p>
+        <div class="mt-4 flex gap-3">
+          <button
+            type="submit"
+            :disabled="planSaving"
+            class="rounded-lg bg-verve-brown px-4 py-2 font-semibold text-white disabled:opacity-50 focus-visible:outline-2"
+          >
+            {{ planSaving ? 'Saving...' : 'Save' }}
+          </button>
+          <button
+            type="button"
+            :disabled="planSaving"
+            class="rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold disabled:opacity-50 focus-visible:outline-2"
+            @click="closePlanDialog"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </dialog>
   </section>
 </template>

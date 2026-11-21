@@ -85,3 +85,23 @@ test('activity snapshot replacement sends authenticated entries including cleari
     'Content-Type': 'application/json',
   });
 });
+
+test('saving an activity as a plan posts only its name with authentication', async () => {
+  let url = '';
+  let options: RequestInit | undefined;
+  globalThis.fetch = (async (input, init) => {
+    url = String(input);
+    options = init;
+    return Response.json({ id: 'new-plan', name: 'My plan', entries: [] }, { status: 201 });
+  }) as typeof fetch;
+  const { saveActivityAsWorkoutPlan } = await import('../../src/services/workoutPlans');
+  const result = await saveActivityAsWorkoutPlan('activity/one', 'My plan');
+  expect(url).toContain('/activity_exercise_plans/activity%2Fone/save_as_template');
+  expect(options?.method).toBe('POST');
+  expect(options?.headers).toEqual({
+    Authorization: 'Bearer test-token',
+    'Content-Type': 'application/json',
+  });
+  expect(JSON.parse(String(options?.body))).toEqual({ name: 'My plan' });
+  expect(result.id).toBe('new-plan');
+});

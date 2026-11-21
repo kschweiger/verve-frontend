@@ -130,6 +130,14 @@ export function applyWorkoutPlan(
   );
 }
 
+export function saveActivityAsWorkoutPlan(activityId: string, name: string): Promise<WorkoutPlan> {
+  return request(
+    `/activity_exercise_plans/${encodeURIComponent(activityId)}/save_as_template`,
+    { method: 'POST', headers: getJsonAuthHeaders(), body: JSON.stringify({ name }) },
+    'Failed to save workout as a plan.'
+  );
+}
+
 export function updateActivityExercisePlan(
   activityId: string,
   entries: PlanEntryInput[]
@@ -141,7 +149,10 @@ export function updateActivityExercisePlan(
   );
 }
 
-export async function deleteActivityExerciseEntry(activityId: string, entryId: number): Promise<void> {
+export async function deleteActivityExerciseEntry(
+  activityId: string,
+  entryId: number
+): Promise<void> {
   const query = new URLSearchParams({ entry_id: String(entryId) });
   const response = await fetch(
     `${base}/activity_exercise_plans/${encodeURIComponent(activityId)}/entry?${query}`,

@@ -13,3 +13,5 @@ Each saved exercise row offers **Delete** in the workout summary. This removes t
 Catalog loading can be retried while existing entries remain editable. If an exercise label is unavailable, the panel keeps the entry visible by its ID and offers a retry.
 
 Save failures keep the draft visible. When the API rejects the sign-in, the panel offers **Sign in again**. Signing out discards any open draft. After signing in, users can reopen the activity and continue working with its workout.
+
+A saved activity workout, including an empty one, can be saved as a new named plan. This copies its persisted entries and links the activity to the new plan, replacing any prior plan link. Name conflicts and other non-authentication failures keep the name available for retry. A rejected sign-in closes the dialog and offers sign-in recovery. After saving, the activity remains open and the new plan is available under Planning.
