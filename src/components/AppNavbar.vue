@@ -11,6 +11,18 @@ const route = useRoute();
 
 const isMobileMenuOpen = ref(false);
 const accountButton = ref<HTMLButtonElement | null>(null);
+const planningButton = ref<HTMLButtonElement | null>(null);
+
+function closePlanning() {
+  activeMenu.value = null;
+  planningButton.value?.focus();
+}
+
+function leavePlanning(event: FocusEvent) {
+  const { currentTarget, relatedTarget } = event;
+  if (currentTarget instanceof HTMLElement && relatedTarget instanceof Node && currentTarget.contains(relatedTarget)) return;
+  activeMenu.value = null;
+}
 
 function loadAccount() {
   void userStore.ensureCurrentUser().catch(() => undefined);
@@ -81,7 +93,7 @@ const toggleMenu = (menu: string) => {
           <div class="flex items-center justify-start">
 
             <!-- Mobile Menu Toggle -->
-            <button @click="isMobileMenuOpen = !isMobileMenuOpen"
+            <button type="button" aria-label="Main menu" aria-controls="mobile-menu" :aria-expanded="isMobileMenuOpen" @click="isMobileMenuOpen = !isMobileMenuOpen"
               class="md:hidden p-2 -ml-2 text-verve-brown hover:bg-verve-light rounded-lg transition-colors">
               <component :is="isMobileMenuOpen ? X : Menu" class="size-6" />
             </button>
@@ -125,21 +137,24 @@ const toggleMenu = (menu: string) => {
               </div>
 
               <!-- Planning Dropdown -->
-              <div class="relative" @mouseenter="openMenu('planning')" @mouseleave="closeMenu"
-                @click="toggleMenu('planning')">
-                <span class="cursor-pointer hover:text-verve-brown flex items-center py-2"
+              <div class="relative" @focusout="leavePlanning" @keydown.esc="closePlanning">
+                <button ref="planningButton" type="button" :aria-expanded="activeMenu === 'planning'" aria-controls="planning-menu" @click="toggleMenu('planning')" class="cursor-pointer hover:text-verve-brown flex items-center py-2 focus-visible:outline-2 focus-visible:outline-verve-orange"
                   :class="{ 'text-verve-brown': activeMenu === 'planning' }">
                   Planning
                   <span class="ml-1 text-[10px] transition-transform duration-200"
                     :class="{ 'rotate-180': activeMenu === 'planning' }">▼</span>
-                </span>
+                </button>
 
                 <transition enter-active-class="transition ease-out duration-100"
                   enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0"
                   leave-active-class="transition ease-in duration-75" leave-from-class="opacity-100 translate-y-0"
                   leave-to-class="opacity-0 translate-y-1">
-                  <div v-show="activeMenu === 'planning'"
+                  <div id="planning-menu" v-show="activeMenu === 'planning'"
                     class="absolute left-0 mt-0 w-40 bg-white shadow-xl rounded-xl py-2 z-50 border border-verve-medium/20">
+                    <router-link to="/workout-plans"
+                      class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
+                      Workout Plans
+                    </router-link>
                     <router-link to="/goals"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
                       Goals
@@ -272,7 +287,7 @@ const toggleMenu = (menu: string) => {
         enter-from-class="transform -translate-y-2 opacity-0" enter-to-class="transform translate-y-0 opacity-100"
         leave-active-class="transition duration-150 ease-in" leave-from-class="transform translate-y-0 opacity-100"
         leave-to-class="transform -translate-y-2 opacity-0">
-        <div v-if="isMobileMenuOpen" class="md:hidden bg-white border-t border-verve-light">
+        <div v-if="isMobileMenuOpen" id="mobile-menu" class="md:hidden bg-white border-t border-verve-light">
           <div class="px-4 pt-2 pb-4 space-y-1">
             <router-link to="/dashboard"
               class="block px-3 py-2 rounded-md text-base font-medium text-verve-brown hover:bg-verve-light hover:text-verve-orange">
@@ -288,6 +303,8 @@ const toggleMenu = (menu: string) => {
               class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Calendar</router-link>
 
             <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">Planning</div>
+            <router-link to="/workout-plans" @click="isMobileMenuOpen = false"
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Workout Plans</router-link>
             <router-link to="/goals"
               class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Goals</router-link>
             <router-link to="/locations"

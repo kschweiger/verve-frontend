@@ -101,6 +101,9 @@ const routes: RouteRecordRaw[] = [
         name: 'records',
         component: () => import('@/views/RecordsView.vue'),
       },
+      { path: 'workout-plans', name: 'workout-plans', component: () => import('@/views/WorkoutPlanListView.vue') },
+      { path: 'workout-plans/new', name: 'workout-plan-create', component: () => import('@/views/WorkoutPlanView.vue') },
+      { path: 'workout-plans/:id', name: 'workout-plan-detail', component: () => import('@/views/WorkoutPlanView.vue') },
       {
         path: 'goals',
         name: 'goals',
