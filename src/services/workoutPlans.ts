@@ -135,6 +135,17 @@ export function fetchActivityExercisePlan(activityId: string): Promise<ActivityE
   );
 }
 
+export async function deleteActivityExercisePlan(activityId: string): Promise<void> {
+  const response = await fetch(
+    `${base}/activity_exercise_plans/${encodeURIComponent(activityId)}`,
+    {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    }
+  );
+  if (response.status !== 204) throw await responseError(response, 'Failed to delete workout.');
+}
+
 export function applyWorkoutPlan(
   activityId: string,
   planId: string

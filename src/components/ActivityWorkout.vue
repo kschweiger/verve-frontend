@@ -8,6 +8,7 @@ import {
   addActivityExercise,
   applyWorkoutPlan,
   deleteActivityExerciseEntry,
+  deleteActivityExercisePlan,
   fetchActivityExercisePlan,
   fetchExercise,
   fetchExercises,
@@ -20,6 +21,12 @@ import {
   type WorkoutPlan,
 } from '@/services/workoutPlans';
 import { draftEntries, serializeEntries, type DraftEntry } from '@/utils/workoutPlanDraft';
+
+const planDialogCopy = {
+  new: { title: 'Save as new plan', confirm: 'Save', pending: 'Saving...' },
+  update: { title: 'Update linked plan', confirm: 'Update plan', pending: 'Saving...' },
+  delete: { title: 'Delete workout?', confirm: 'Delete workout', pending: 'Deleting...' },
+};
 
 const props = defineProps<{ activityId: string }>();
 const auth = useUserStore();
@@ -47,9 +54,10 @@ const exercises = ref<Exercise[]>([]);
 const catalogError = ref(false);
 const catalogLoading = ref(false);
 const planDialogOpen = ref(false);
-const planMode = ref<'new' | 'update'>('new');
+const planMode = ref<keyof typeof planDialogCopy>('new');
 const planCancel = ref<HTMLButtonElement | null>(null);
 const updateButton = ref<HTMLButtonElement | null>(null);
+const deleteButton = ref<HTMLButtonElement | null>(null);
 const planSaving = ref(false);
 const planName = ref('');
 const planNameError = ref('');
@@ -142,6 +150,15 @@ function retryPlans() {
   const current = owner();
   void loadPlans(() => current() && state.value === 'absent');
 }
+function showPlanPicker(current: () => boolean) {
+  snapshot.value = null;
+  selected.value = '';
+  error.value = '';
+  labelGeneration++;
+  labelsFailed.value = false;
+  state.value = 'absent';
+  void loadPlans(() => current() && state.value === 'absent');
+}
 async function load() {
   const current = owner();
   state.value = 'loading';
@@ -159,13 +176,12 @@ async function load() {
     if (isSessionRejected(cause)) {
       state.value = 'sign-in-required';
     } else if (cause instanceof ApiResponseError && cause.status === 404) {
-      snapshot.value = null;
       if (conflict) {
+        snapshot.value = null;
         state.value = 'error';
         error.value = 'A workout already exists, but could not be loaded. Retry to check again.';
       } else {
-        state.value = 'absent';
-        void loadPlans(() => current() && state.value === 'absent');
+        showPlanPicker(current);
       }
     } else {
       error.value = cause instanceof Error ? cause.message : 'Failed to load workout.';
@@ -422,7 +438,7 @@ async function removeSavedEntry(entryId: number, event?: MouseEvent) {
   }
 }
 
-async function openPlanDialog(mode: 'new' | 'update' = 'new') {
+async function openPlanDialog(mode: keyof typeof planDialogCopy) {
   if (!snapshot.value || editing.value || deletingEntryId.value !== null || planDialogOpen.value)
     return;
   const current = owner();
@@ -435,16 +451,17 @@ async function openPlanDialog(mode: 'new' | 'update' = 'new') {
   await nextTick();
   if (!current() || !planDialogOpen.value) return;
   planDialog.value?.showModal();
-  if (mode === 'update') planCancel.value?.focus();
-  else planInput.value?.focus();
+  if (mode === 'new') planInput.value?.focus();
+  else planCancel.value?.focus();
 }
 function closePlanDialog() {
   if (planSaving.value) return;
   const current = owner();
+  const trigger = { new: planButton, update: updateButton, delete: deleteButton }[planMode.value];
   planDialog.value?.close();
   planDialogOpen.value = false;
   void nextTick(() => {
-    if (current()) (planMode.value === 'update' ? updateButton.value : planButton.value)?.focus();
+    if (current()) (trigger.value ?? recoveryButton.value ?? workoutHeading.value)?.focus();
   });
 }
 async function saveAsPlan() {
@@ -535,6 +552,40 @@ async function updatePlan() {
     }
   }
 }
+
+async function deleteWorkout() {
+  if (!snapshot.value || !planDialogOpen.value || planSaving.value) return;
+  const current = owner();
+  planSaving.value = true;
+  planError.value = '';
+  try {
+    await deleteActivityExercisePlan(props.activityId);
+    if (!current()) return;
+    conflict = false;
+    entries.value = [];
+    notice.value = 'Workout deleted.';
+    showPlanPicker(current);
+  } catch (cause: unknown) {
+    if (!current()) return;
+    if (isSessionRejected(cause)) {
+      state.value = 'sign-in-required';
+    } else if (cause instanceof ApiResponseError && cause.status === 404) {
+      conflict = false;
+      await load();
+    } else {
+      planError.value = cause instanceof Error ? cause.message : 'Failed to delete workout.';
+      void nextTick(() => {
+        if (current() && planDialogOpen.value) planCancel.value?.focus();
+      });
+      return;
+    }
+  } finally {
+    if (current()) planSaving.value = false;
+  }
+  if (current()) closePlanDialog();
+}
+
+const planActions = { new: saveAsPlan, update: updatePlan, delete: deleteWorkout };
 
 function reset() {
   generation++;
@@ -757,6 +808,15 @@ onScopeDispose(() => {
           >
             Update linked plan
           </button>
+          <button
+            ref="deleteButton"
+            type="button"
+            :disabled="deletingEntryId !== null || planDialogOpen"
+            class="rounded-lg border border-red-700/30 px-4 py-2 font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 disabled:opacity-50"
+            @click="openPlanDialog('delete')"
+          >
+            Delete workout
+          </button>
         </div>
         <p v-if="error" role="alert" class="mb-3 text-sm text-red-700">{{ error }}</p>
         <p v-if="snapshot.entries.length === 0" class="text-sm text-verve-brown/70">
@@ -817,7 +877,7 @@ onScopeDispose(() => {
       @cancel.prevent="closePlanDialog"
     >
       <h2 id="save-plan-title" class="text-xl font-bold">
-        {{ planMode === 'new' ? 'Save as new plan' : 'Update linked plan' }}
+        {{ planDialogCopy[planMode].title }}
       </h2>
       <p v-if="planMode === 'new'" id="plan-description" class="mt-2 text-sm">
         This copies the saved workout and links this activity to the new plan<span
@@ -825,14 +885,18 @@ onScopeDispose(() => {
           >, replacing its current plan link</span
         >.
       </p>
-      <p v-else id="plan-description" class="mt-2 text-sm">
+      <p v-else-if="planMode === 'update'" id="plan-description" class="mt-2 text-sm">
         This replaces the linked plan's exercises with this activity's saved exercises.<span
           v-if="snapshot?.entries.length === 0"
         >
           This removes all exercises from the linked plan.</span
         >
       </p>
-      <form class="mt-4" @submit.prevent="planMode === 'new' ? saveAsPlan() : updatePlan()">
+      <p v-else id="plan-description" class="mt-2 text-sm">
+        This deletes the workout and its exercises from this activity.
+        <span v-if="snapshot?.source_plan_id">The linked plan stays in Planning.</span>
+      </p>
+      <form class="mt-4" @submit.prevent="planActions[planMode]()">
         <template v-if="planMode === 'new'">
           <label for="new-plan-name" class="block text-sm font-semibold">Plan name</label>
           <input
@@ -858,9 +922,10 @@ onScopeDispose(() => {
           <button
             type="submit"
             :disabled="planSaving"
-            class="rounded-lg bg-verve-brown px-4 py-2 font-semibold text-white disabled:opacity-50 focus-visible:outline-2"
+            :class="planMode === 'delete' ? 'bg-red-700' : 'bg-verve-brown'"
+            class="rounded-lg px-4 py-2 font-semibold text-white disabled:opacity-50 focus-visible:outline-2"
           >
-            {{ planSaving ? 'Saving...' : planMode === 'new' ? 'Save' : 'Update plan' }}
+            {{ planSaving ? planDialogCopy[planMode].pending : planDialogCopy[planMode].confirm }}
           </button>
           <button
             ref="planCancel"

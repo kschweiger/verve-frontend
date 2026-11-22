@@ -636,6 +636,82 @@ test('starts a workout with one exercise even when plans fail to load', async ()
   expect(ui.content()).toContain('0 kg');
 });
 
+test.each([204, 404, 500])('deleting a saved workout handles HTTP %p', async (status) => {
+  const activityPath = '/activity_exercise_plans/one';
+  let deletion: { url: string; init: RequestInit } | undefined;
+  const appliedPlans: (string | null)[] = [];
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input), 'https://example.test');
+    if (init?.method === 'DELETE') {
+      deletion = { url: url.pathname, init };
+      return new Response(null, { status });
+    }
+    if (init?.method === 'POST') {
+      const appliedPlan = url.searchParams.get('plan_id');
+      appliedPlans.push(appliedPlan);
+      return Response.json(
+        { id: 'new-snapshot', activity_id: 'one', source_plan_id: appliedPlan, entries: [] },
+        { status: 201 }
+      );
+    }
+    if (url.pathname.endsWith('/exercise_plans'))
+      return Response.json({ data: [{ id: 'alternate', name: 'Alternate', entries: [] }] });
+    if (url.pathname.endsWith('/exercises'))
+      return Response.json({
+        data: [{ id: 'squat', name: 'Squat', code: 'squat', is_active: true, muscles: [] }],
+      });
+    if (url.pathname.endsWith(activityPath)) {
+      if (deletion && status === 204) return new Response(null, { status: 404 });
+      return Response.json({
+        id: deletion ? 'replacement' : 'old-snapshot',
+        activity_id: 'one',
+        source_plan_id: 'original',
+        entries: deletion && status === 404 ? [{ id: 1, exercise_id: 'squat' }] : [],
+      });
+    }
+    return new Response(null, { status: 404 });
+  });
+  const ui = mount();
+  const button = (name: string) =>
+    ui.all(ui.root).find((el) => el.tag === 'button' && el.text.trim() === name);
+  const click = async (name: string) => {
+    const action = button(name);
+    expect(action).toBeDefined();
+    await (action!.props.onClick as () => void | Promise<void>)();
+    await nextTick();
+  };
+  await flush();
+  await click('Delete workout');
+  await click('Cancel');
+  expect(deletion).toBeUndefined();
+  await click('Delete workout');
+  const form = ui.all(ui.root).find((el) => el.tag === 'form')!;
+  await (form.props.onSubmit as (event: { preventDefault(): void }) => Promise<void>)({
+    preventDefault() {},
+  });
+  await flush();
+
+  expect(deletion?.url).toEndWith(activityPath);
+  expect(deletion?.init.headers).toEqual({ Authorization: 'Bearer token' });
+  expect(deletion?.init.body).toBeUndefined();
+  if (status === 404) {
+    expect(ui.content()).toContain('Squat');
+    expect(button('Apply plan')).toBeUndefined();
+  } else if (status === 500) {
+    expect(ui.content()).toContain('Failed to delete workout.');
+    expect(ui.all(ui.root).some((el) => el.tag === 'dialog')).toBe(true);
+    expect(button('Apply plan')).toBeUndefined();
+  } else {
+    expect(ui.content()).toContain('Workout deleted.');
+    const select = ui.all(ui.root).find((el) => el.tag === 'select')!;
+    (select.props['onUpdate:modelValue'] as (value: string) => void)('alternate');
+    await nextTick();
+    await click('Apply plan');
+    expect(appliedPlans).toEqual(['alternate']);
+    expect(ui.content()).toContain('Update linked plan');
+  }
+});
+
 test('linked plan update requires confirmation and sends no body', async () => {
   let post: RequestInit | undefined;
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
