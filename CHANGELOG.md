@@ -1,4 +1,17 @@
 <!-- insertion marker -->
+<a name="1.2.0"></a>
+
+## [1.2.0](https://github.com/kschweiger/verve-frontend/compare/1.1.0...1.2.0) (2026-11-22)
+
+### Features
+
+- implement strength training workouts ([4e4c327](https://github.com/kschweiger/verve-frontend/commit/4e4c3275546dc8f596e40d2bb4a79269c1dbfb22))
+- support active day goals ([6fbaadf](https://github.com/kschweiger/verve-frontend/commit/6fbaadff8827e1d4525a13495486b227d08dec2e))
+
+### Code Refactoring
+
+- use backend exportability to show activity export controls ([7222d91](https://github.com/kschweiger/verve-frontend/commit/7222d91cbd8c9a8a82ea6ad08eb47796e1b78853))
+
 <a name="1.1.0"></a>
 
 ## [1.1.0](https://github.com/kschweiger/verve-frontend/compare/1.0.1...1.1.0) (2026-11-13)
