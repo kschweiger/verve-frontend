@@ -121,41 +121,46 @@ const views: { name: string; contours: string; regions: Record<string, string> }
 </script>
 
 <template>
-  <section class="mt-4 border-t border-verve-medium/60 pt-4" :aria-labelledby="titleId">
-    <h3 :id="titleId" class="font-semibold">Muscle groups</h3>
-    <div class="mt-3 flex flex-wrap items-start gap-x-6 gap-y-4">
-      <div class="grid w-full max-w-76 shrink-0 grid-cols-2 gap-2 rounded-xl bg-verve-light/60 p-3">
-        <figure v-for="view in views" :key="view.name" class="text-center">
-          <svg viewBox="11 4 138 350" class="h-auto w-full" aria-hidden="true" focusable="false">
-            <path
-              :d="outline"
-              class="fill-white/65 stroke-verve-brown/35"
-              stroke-width="1.25"
-              stroke-linejoin="round"
-            />
-            <g
-              v-for="(shape, code) in view.regions"
-              :key="code"
-              :data-muscle="code"
-              :data-role="roles.get(code)"
-              :class="regionColors[roles.get(code) ?? 'inactive']"
-              stroke-width="0.85"
-              stroke-linejoin="round"
-            >
-              <path :d="shape" />
-              <path :d="shape" transform="translate(160 0) scale(-1 1)" />
-            </g>
-            <path
-              :d="view.contours"
-              class="fill-none stroke-verve-brown/25"
-              stroke-width="1"
-              stroke-linecap="round"
-            />
-          </svg>
-          <figcaption class="mt-1 text-xs font-medium">{{ view.name }}</figcaption>
-        </figure>
-      </div>
-      <dl class="min-w-36 flex-1 space-y-3 text-sm sm:pt-1">
+  <section :aria-labelledby="titleId">
+    <h3 :id="titleId" class="font-semibold">Muscle map</h3>
+    <div class="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-verve-light/60 p-3">
+      <figure v-for="view in views" :key="view.name" class="text-center">
+        <svg viewBox="11 4 138 350" class="h-auto w-full" aria-hidden="true" focusable="false">
+          <path
+            :d="outline"
+            class="fill-white/65 stroke-verve-brown/35"
+            stroke-width="1.25"
+            stroke-linejoin="round"
+          />
+          <g
+            v-for="(shape, code) in view.regions"
+            :key="code"
+            :data-muscle="code"
+            :data-role="roles.get(code)"
+            :class="regionColors[roles.get(code) ?? 'inactive']"
+            stroke-width="0.85"
+            stroke-linejoin="round"
+          >
+            <path :d="shape" />
+            <path :d="shape" transform="translate(160 0) scale(-1 1)" />
+          </g>
+          <path
+            :d="view.contours"
+            class="fill-none stroke-verve-brown/25"
+            stroke-width="1"
+            stroke-linecap="round"
+          />
+        </svg>
+        <figcaption class="mt-1 text-xs font-medium">{{ view.name }}</figcaption>
+      </figure>
+    </div>
+    <details class="mt-2 border-t border-verve-medium/60">
+      <summary
+        class="cursor-pointer rounded-sm py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-verve-orange"
+      >
+        Muscle groups
+      </summary>
+      <dl class="space-y-3 pt-1 pb-2 text-sm">
         <div v-for="item in legend" v-show="item.groups.length" :key="item.role">
           <dt class="flex items-center gap-2 font-semibold">
             <span class="size-3 rounded-sm" :class="item.swatch" aria-hidden="true"></span>
@@ -170,6 +175,6 @@ const views: { name: string; contours: string; regions: Record<string, string> }
           </dd>
         </div>
       </dl>
-    </div>
+    </details>
   </section>
 </template>

@@ -69,6 +69,11 @@ test('highlights the backend catalog groups on the applicable body views', async
     expect(front).toContain(coloredRegion(code, role));
     expect(back).toContain(coloredRegion(code, role));
   }
-  expect(html).toContain('Neue Muskelgruppe');
+  const disclosure = html.match(/<details\b[^>]*>.*?<\/details>/s)?.[0] ?? '';
+  expect(html.indexOf('<details')).toBeGreaterThan(html.lastIndexOf('</svg>'));
+  expect(disclosure).not.toMatch(/^<details\b[^>]*\sopen[\s=>]/);
+  expect(disclosure).toContain('Primary muscles');
+  expect(disclosure).toContain('Secondary muscles');
+  expect(disclosure).toContain('Neue Muskelgruppe');
   expect(html).not.toContain('data-muscle="new_group"');
 });

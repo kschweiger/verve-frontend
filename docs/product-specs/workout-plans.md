@@ -10,9 +10,9 @@ Duplicate creates an independent copy with a chosen name, including inactive ent
 
 Strength Training activities without a saved workout can apply a template to create an independent workout snapshot. A saved snapshot opens in the workout summary, including when its exercise list is empty. Edit opens a draft with the exercise and target controls used in Planning. Users can add active exercises, including repeats, and edit or remove existing inactive exercises. Save replaces the activity's exercise entries. Cancel discards the draft.
 
-When muscle group data is available for a saved activity workout, it appears beneath the exercises. The front and back diagrams match regions to the backend catalog's muscle group codes and show primary and secondary groups in separate colors. The text legend lists the backend's localized names by role, including groups without a corresponding region in the diagram. Saving or deleting exercises refreshes the map. A map loading failure can be retried from the workout summary.
+When muscle group data is available for a saved activity workout, the muscle map appears next to the exercises on desktop and below them on mobile. The front and back diagrams match regions to the backend catalog's muscle group codes and show primary and secondary groups in separate colors. An initially collapsed section beneath the diagrams lists the backend's localized names by role, including groups without a corresponding region in the diagram. Saving or deleting exercises refreshes the map. A map loading failure can be retried from the workout summary.
 
-Each saved exercise row offers **Delete** in the workout summary. This removes that individual entry as soon as the server confirms the deletion. Deleting the last entry leaves a saved empty workout.
+Each saved exercise row has a trash icon in the workout summary. The entry disappears as soon as the server confirms deletion. Deleting the last entry leaves a saved empty workout.
 
 **Delete workout** asks for confirmation, then removes the activity's workout and its exercises. The activity and any linked template stay available. The activity then offers the plan picker again.
 

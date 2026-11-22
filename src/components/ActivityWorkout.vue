@@ -854,65 +854,69 @@ onScopeDispose(() => {
         <p v-if="snapshot.entries.length === 0" class="text-sm text-verve-brown/70">
           This workout has no exercises.
         </p>
-        <ul v-else class="divide-y divide-verve-medium/30">
-          <li
-            v-for="(entry, index) in snapshot.entries"
-            :key="entry.id"
-            class="flex items-start justify-between gap-3 py-3 text-sm text-verve-brown"
-          >
-            <div class="min-w-0">
-              <p class="font-semibold wrap-anywhere">
-                {{ labels[entry.exercise_id]?.name ?? entry.exercise_id }}
-                <span
-                  v-if="labels[entry.exercise_id] && !labels[entry.exercise_id]?.is_active"
-                  class="font-normal"
-                  >(inactive)</span
-                >
-              </p>
-              <p class="mt-1 text-verve-brown/70">
-                <span v-if="entry.sets != null">{{ entry.sets }} sets </span
-                ><span v-if="entry.repetitions != null">{{ entry.repetitions }} reps </span
-                ><span v-if="entry.weight != null">{{ entry.weight }} kg</span>
-              </p>
-            </div>
-            <button
-              type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-              :aria-label="`Delete ${labels[entry.exercise_id]?.name ?? entry.exercise_id}, row ${index + 1}`"
-              :aria-disabled="deletingEntryId !== null || planDialogOpen"
-              @click="removeSavedEntry(entry.id, $event)"
-            >
-              <Trash2 class="size-4" aria-hidden="true" />
-              Delete
-            </button>
-          </li>
-        </ul>
         <div
-          v-if="snapshot.entries.length"
-          ref="muscleGroupsRegion"
-          role="group"
-          aria-label="Workout muscle groups"
-          tabindex="-1"
-          class="focus-visible:outline-2 focus-visible:outline-offset-2"
+          v-else
+          class="grid items-start gap-5 lg:gap-8"
+          :class="{ 'lg:grid-cols-[minmax(0,1fr)_19rem]': muscleGroups.length }"
         >
-          <p
-            v-if="muscleGroups === 'loading'"
-            class="mt-4 text-sm text-verve-brown/70"
-            role="status"
-          >
-            Loading muscle groups…
-          </p>
-          <div v-else-if="muscleGroups === 'error'" class="mt-4 space-y-2 text-sm text-verve-brown">
-            <p role="status">Could not load muscle groups.</p>
-            <button
-              type="button"
-              class="rounded-sm font-semibold underline focus-visible:outline-2"
-              @click="retryMuscleGroups"
-            >
-              Retry muscle groups
-            </button>
+          <div class="min-w-0">
+            <h3 class="font-semibold">Exercises</h3>
+            <ul class="mt-1 divide-y divide-verve-medium/30">
+              <li
+                v-for="(entry, index) in snapshot.entries"
+                :key="entry.id"
+                class="flex items-start justify-between gap-3 py-3 text-sm text-verve-brown"
+              >
+                <div class="min-w-0">
+                  <p class="font-semibold wrap-anywhere">
+                    {{ labels[entry.exercise_id]?.name ?? entry.exercise_id }}
+                    <span
+                      v-if="labels[entry.exercise_id] && !labels[entry.exercise_id]?.is_active"
+                      class="font-normal"
+                      >(inactive)</span
+                    >
+                  </p>
+                  <p class="mt-1 text-verve-brown/70">
+                    <span v-if="entry.sets != null">{{ entry.sets }} sets </span
+                    ><span v-if="entry.repetitions != null">{{ entry.repetitions }} reps </span
+                    ><span v-if="entry.weight != null">{{ entry.weight }} kg</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+                  :aria-label="`Delete ${labels[entry.exercise_id]?.name ?? entry.exercise_id}, row ${index + 1}`"
+                  :aria-disabled="deletingEntryId !== null || planDialogOpen"
+                  @click="removeSavedEntry(entry.id, $event)"
+                >
+                  <Trash2 class="size-4" aria-hidden="true" />
+                </button>
+              </li>
+            </ul>
           </div>
-          <WorkoutMuscleMap v-else-if="muscleGroups.length" :groups="muscleGroups" />
+          <div
+            v-if="muscleGroups.length"
+            ref="muscleGroupsRegion"
+            role="group"
+            aria-label="Workout muscle groups"
+            tabindex="-1"
+            class="w-full max-w-76 min-w-0 focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            <p v-if="muscleGroups === 'loading'" class="text-sm text-verve-brown/70" role="status">
+              Loading muscle groups…
+            </p>
+            <div v-else-if="muscleGroups === 'error'" class="space-y-2 text-sm text-verve-brown">
+              <p role="status">Could not load muscle groups.</p>
+              <button
+                type="button"
+                class="rounded-sm font-semibold underline focus-visible:outline-2"
+                @click="retryMuscleGroups"
+              >
+                Retry muscle groups
+              </button>
+            </div>
+            <WorkoutMuscleMap v-else :groups="muscleGroups" />
+          </div>
         </div>
       </template>
       <p v-if="labelsFailed && snapshot" class="mt-3 text-sm text-verve-brown/70">
