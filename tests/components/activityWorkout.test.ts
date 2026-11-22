@@ -6,11 +6,13 @@ import { createPinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
 useClientRendering(import.meta.dir + '/../../src/components/ActivityWorkout.vue');
 useClientRendering(import.meta.dir + '/../../src/components/WorkoutExerciseFields.vue');
+useClientRendering(import.meta.dir + '/../../src/components/WorkoutMuscleMap.vue');
 const { default: ActivityWorkout } = await import('../../src/components/ActivityWorkout.vue');
 class Element {
   children: Element[] = [];
   parent: Element | null = null;
   props: Record<string, unknown> = {};
+  style = { display: '' };
   text = '';
   value: string | number = '';
   type = '';
@@ -99,6 +101,18 @@ function mount() {
       .join(' ');
   return { id, root, all, content, pinia };
 }
+
+function muscleGroup(code: string, name: string, exerciseId: string) {
+  return {
+    id: `${code}-group`,
+    code,
+    name,
+    role: 'primary',
+    exercise_count: 1,
+    exercise_ids: [exerciseId],
+  };
+}
+
 test('saved empty snapshot does not offer template application', async () => {
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
     String(input).endsWith('/exercises')
@@ -109,6 +123,55 @@ test('saved empty snapshot does not offer template application', async () => {
   await flush();
   expect(ui.content()).toContain('This workout has no exercises.');
   expect(ui.content()).not.toContain('Apply plan');
+});
+
+test('a failed muscle lookup leaves saved exercises available and can be retried', async () => {
+  let finishLookup: ((response: Response) => void) | undefined;
+  const requests: RequestInit[] = [];
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith('/strength_training/activity_exercise_plans/one/muscle_groups')) {
+      requests.push(init ?? {});
+      if (requests.length > 1)
+        return Response.json({
+          data: [muscleGroup('front_thighs', 'Front of thighs', 'exercise')],
+        });
+      return new Promise<Response>((resolve) => {
+        finishLookup = resolve;
+      });
+    }
+    if (url.endsWith('/exercises')) {
+      return Response.json({
+        data: [{ id: 'exercise', code: 'squat', name: 'Squat', is_active: true, muscles: [] }],
+      });
+    }
+    return Response.json({
+      id: 'snapshot',
+      activity_id: 'one',
+      entries: [{ id: 33, exercise_id: 'exercise', weight: 20 }],
+    });
+  });
+  const ui = mount();
+  await flush();
+  expect(ui.content()).toContain('20 kg');
+  expect(ui.content()).toContain('Loading muscle groups');
+  expect(requests[0]?.method ?? 'GET').toBe('GET');
+  expect(requests[0]?.headers).toEqual({ Authorization: 'Bearer token' });
+
+  finishLookup?.(new Response(null, { status: 500 }));
+  await flush();
+  expect(ui.content()).toContain('20 kg');
+  expect(ui.content()).not.toContain('Retry workout');
+  const retry = ui
+    .all(ui.root)
+    .find((el) => el.tag === 'button' && el.text.trim() === 'Retry muscle groups')!;
+  await (retry.props.onClick as () => Promise<void>)();
+  await flush();
+
+  const content = ui.content();
+  expect(content.indexOf('20 kg')).toBeLessThan(content.indexOf('Front of thighs'));
+  expect(content).not.toContain('Retry muscle groups');
+  expect(requests).toHaveLength(2);
 });
 test('missing snapshot offers planning while other errors offer local retry', async () => {
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
@@ -216,6 +279,8 @@ test('applying a template displays the returned independent snapshot including z
         code: 'squat',
         muscles: [],
       });
+    if (url.endsWith('/muscle_groups'))
+      return Response.json({ data: [muscleGroup('front_thighs', 'Front of thighs', 'exercise')] });
     return new Response('', { status: 404 });
   });
   const ui = mount();
@@ -229,6 +294,7 @@ test('applying a template displays the returned independent snapshot including z
   expect(ui.content()).toContain('Squat');
   expect(ui.content()).toContain('(inactive)');
   expect(ui.content()).toContain('0 kg');
+  expect(ui.content()).toContain('Front of thighs');
   expect(ui.content()).not.toContain('Apply plan');
 });
 
@@ -268,10 +334,15 @@ test('a rejected session offers sign-in recovery without retrying the apply requ
 
 test('editing preserves the saved snapshot on cancel and a failed replacement', async () => {
   let patches = 0;
+  let muscleReads = 0;
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (init?.method === 'PATCH') {
       patches++;
       return new Response('', { status: 404 });
+    }
+    if (String(input).endsWith('/muscle_groups')) {
+      muscleReads++;
+      return Response.json({ data: [muscleGroup('front_thighs', 'Front of thighs', 'exercise')] });
     }
     if (String(input).endsWith('/exercises')) return Response.json({ data: [] });
     if (String(input).endsWith('/exercises/exercise'))
@@ -294,11 +365,14 @@ test('editing preserves the saved snapshot on cancel and a failed replacement', 
     ui.all(ui.root).find((el) => el.tag === 'button' && el.text.trim() === label)!;
   (button('Edit workout').props.onClick as () => void)();
   await flush();
+  expect(ui.content()).not.toContain('Front of thighs');
   (button('Remove').props.onClick as () => void)();
   await nextTick();
   (button('Cancel').props.onClick as () => void)();
   await nextTick();
   expect(ui.content()).toContain('0 kg');
+  expect(ui.content()).toContain('Front of thighs');
+  expect(muscleReads).toBe(1);
   expect(patches).toBe(0);
   (button('Edit workout').props.onClick as () => void)();
   await flush();
@@ -331,12 +405,18 @@ test('saving an edited workout replaces entries and displays the returned snapsh
         ],
       });
     }
-    if (String(input).endsWith('/exercises')) {
+    const url = String(input);
+    if (url.endsWith('/muscle_groups')) {
+      return Response.json({
+        data: body ? [muscleGroup('chest', 'Chest', 'new')] : [],
+      });
+    }
+    if (url.endsWith('/exercises')) {
       const active = { id: 'new', code: 'new', name: 'New exercise', is_active: true, muscles: [] };
       const retired = { ...active, id: 'retired', code: 'retired', name: 'Retired exercise' };
       return Response.json({ data: ++catalogReads === 1 ? [active, retired] : [active] });
     }
-    if (String(input).endsWith('/exercises/old'))
+    if (url.endsWith('/exercises/old'))
       return Response.json({
         id: 'old',
         code: 'old',
@@ -353,6 +433,7 @@ test('saving an edited workout replaces entries and displays the returned snapsh
   });
   const ui = mount();
   await flush();
+  expect(ui.content()).not.toContain('Muscle groups');
   const button = (label: string) =>
     ui.all(ui.root).find((el) => el.tag === 'button' && el.text.trim() === label)!;
   (button('Edit workout').props.onClick as () => void)();
@@ -383,6 +464,7 @@ test('saving an edited workout replaces entries and displays the returned snapsh
   });
   expect(ui.content()).toContain('3 sets');
   expect(ui.content()).toContain('New exercise');
+  expect(ui.content()).toContain('Chest');
   expect(ui.content()).toContain('Edit workout');
 });
 
@@ -393,6 +475,7 @@ test('a rejected save keeps unsaved targets visible until the user signs out', a
       patches++;
       return Response.json({ detail: 'Could not validate credentials' }, { status: 403 });
     }
+    if (String(input).endsWith('/muscle_groups')) return Response.json({ data: [] });
     if (String(input).endsWith('/exercises')) {
       return Response.json({
         data: [{ id: 'exercise', code: 'squat', name: 'Squat', is_active: true, muscles: [] }],
@@ -431,6 +514,8 @@ test('a rejected save keeps unsaved targets visible until the user signs out', a
 
 test('quick delete removes only the chosen saved entry after a 204 response', async () => {
   let finishDelete: ((response: Response) => void) | undefined;
+  let finishInitialMuscles: ((response: Response) => void) | undefined;
+  let muscleReads = 0;
   const deletions: { url: string; options: RequestInit | undefined }[] = [];
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL, options?: RequestInit) => {
     const url = String(input);
@@ -441,9 +526,19 @@ test('quick delete removes only the chosen saved entry after a 204 response', as
         finishDelete = resolve;
       });
     }
+    if (url.endsWith('/muscle_groups')) {
+      if (++muscleReads > 1)
+        return Response.json({ data: [muscleGroup('chest', 'Chest', 'press')] });
+      return new Promise<Response>((resolve) => {
+        finishInitialMuscles = resolve;
+      });
+    }
     if (url.endsWith('/exercises')) {
       return Response.json({
-        data: [{ id: 'exercise', code: 'squat', name: 'Squat', is_active: true, muscles: [] }],
+        data: [
+          { id: 'exercise', code: 'squat', name: 'Squat', is_active: true, muscles: [] },
+          { id: 'press', code: 'press', name: 'Bench press', is_active: true, muscles: [] },
+        ],
       });
     }
     return Response.json({
@@ -451,15 +546,15 @@ test('quick delete removes only the chosen saved entry after a 204 response', as
       activity_id: 'one',
       entries: [
         { id: 33, exercise_id: 'exercise', weight: 20 },
-        { id: 34, exercise_id: 'exercise', weight: 30 },
+        { id: 34, exercise_id: 'press', weight: 30 },
       ],
     });
   });
   const ui = mount();
   await flush();
-  const deleteFirstRow = () =>
-    ui.all(ui.root).find((el) => el.props['aria-label'] === 'Delete Squat, row 1')!;
-  const remove = (deleteFirstRow().props.onClick as () => Promise<void>)();
+  const deleteFirstRow = (exercise: string) =>
+    ui.all(ui.root).find((el) => el.props['aria-label'] === `Delete ${exercise}, row 1`)!;
+  const remove = (deleteFirstRow('Squat').props.onClick as () => Promise<void>)();
   await nextTick();
   expect(ui.content()).toContain('20 kg');
   expect(ui.all(ui.root).find((el) => el.text.trim() === 'Edit workout')?.props.disabled).toBe(
@@ -474,12 +569,27 @@ test('quick delete removes only the chosen saved entry after a 204 response', as
   expect(deletions[0]?.options?.body).toBeUndefined();
   expect(ui.content()).not.toContain('20 kg');
   expect(ui.content()).toContain('30 kg');
+  expect(ui.content()).toContain('Chest');
 
-  await (deleteFirstRow().props.onClick as () => Promise<void>)();
+  finishInitialMuscles?.(
+    Response.json({
+      data: [
+        muscleGroup('front_thighs', 'Front of thighs', 'exercise'),
+        muscleGroup('chest', 'Chest', 'press'),
+      ],
+    })
+  );
+  await flush();
+  expect(ui.content()).not.toContain('Front of thighs');
+  expect(ui.content()).toContain('Chest');
+
+  await (deleteFirstRow('Bench press').props.onClick as () => Promise<void>)();
   await flush();
   expect(deletions[1]?.url).toMatch(/\?entry_id=34$/);
   expect(ui.content()).toContain('This workout has no exercises.');
   expect(ui.content()).toContain('Edit workout');
+  expect(ui.content()).not.toContain('Chest');
+  expect(muscleReads).toBe(2);
 });
 
 test('a failed quick delete keeps the saved entry visible', async () => {
@@ -487,6 +597,7 @@ test('a failed quick delete keeps the saved entry visible', async () => {
     if (options?.method === 'DELETE') {
       return Response.json({ detail: 'The exercise could not be removed.' }, { status: 500 });
     }
+    if (String(input).endsWith('/muscle_groups')) return Response.json({ data: [] });
     if (String(input).endsWith('/exercises')) {
       return Response.json({
         data: [{ id: 'exercise', code: 'squat', name: 'Squat', is_active: true, muscles: [] }],
@@ -512,6 +623,7 @@ test('a stale saved entry refreshes the workout after quick-delete 404', async (
   let snapshotReads = 0;
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL, options?: RequestInit) => {
     if (options?.method === 'DELETE') return new Response(null, { status: 404 });
+    if (String(input).endsWith('/muscle_groups')) return Response.json({ data: [] });
     if (String(input).endsWith('/exercises')) {
       return Response.json({
         data: [{ id: 'exercise', code: 'squat', name: 'Squat', is_active: true, muscles: [] }],
@@ -539,19 +651,30 @@ test('a stale saved entry refreshes the workout after quick-delete 404', async (
 
 test('save as plan keeps a conflicting name for retry and confirms success in the workout', async () => {
   let posts = 0;
+  let muscleReads = 0;
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
     if (init?.method === 'POST') {
-      expect(String(input)).toContain('/activity_exercise_plans/one/save_as_template');
+      expect(url).toContain('/activity_exercise_plans/one/save_as_template');
       posts++;
       return posts === 1
         ? Response.json({ detail: 'duplicate' }, { status: 409 })
         : Response.json({ id: 'created-plan', name: 'Morning', entries: [] }, { status: 201 });
     }
+    if (url.endsWith('/muscle_groups')) {
+      muscleReads++;
+      return Response.json({ data: [muscleGroup('front_thighs', 'Front of thighs', 'exercise')] });
+    }
+    if (url.endsWith('/exercises')) {
+      return Response.json({
+        data: [{ id: 'exercise', code: 'squat', name: 'Squat', is_active: true, muscles: [] }],
+      });
+    }
     return Response.json({
       id: 'snapshot',
       activity_id: 'one',
       source_plan_id: 'old',
-      entries: [],
+      entries: [{ id: 33, exercise_id: 'exercise', weight: 20 }],
     });
   });
   const ui = mount();
@@ -580,8 +703,10 @@ test('save as plan keeps a conflicting name for retry and confirms success in th
   input.value = 'Evening';
   input.listeners.input?.({ target: input } as unknown as Event);
   await submit({ preventDefault() {} });
-  await nextTick();
+  await flush();
   expect(ui.content()).toContain('Workout saved as a new plan.');
+  expect(ui.content()).toContain('Front of thighs');
+  expect(muscleReads).toBe(1);
   expect(ui.all(ui.root).some((el) => el.tag === 'dialog')).toBe(false);
   expect(ui.all(ui.root).some((el) => el.tag === 'a')).toBe(false);
 });
@@ -599,6 +724,8 @@ test('starts a workout with one exercise even when plans fail to load', async ()
       );
     }
     if (url.endsWith('/exercise_plans')) return new Response('', { status: 500 });
+    if (url.endsWith('/muscle_groups'))
+      return Response.json({ data: [muscleGroup('front_thighs', 'Front of thighs', 'ex')] });
     if (url.endsWith('/exercises'))
       return Response.json({
         data: [{ id: 'ex', code: 'ex', name: 'Squat', is_active: true, muscles: [] }],
@@ -634,6 +761,7 @@ test('starts a workout with one exercise even when plans fail to load', async ()
     weight: 0,
   });
   expect(ui.content()).toContain('0 kg');
+  expect(ui.content()).toContain('Front of thighs');
 });
 
 test.each([204, 404, 500])('deleting a saved workout handles HTTP %p', async (status) => {
@@ -656,6 +784,7 @@ test.each([204, 404, 500])('deleting a saved workout handles HTTP %p', async (st
     }
     if (url.pathname.endsWith('/exercise_plans'))
       return Response.json({ data: [{ id: 'alternate', name: 'Alternate', entries: [] }] });
+    if (url.pathname.endsWith('/muscle_groups')) return Response.json({ data: [] });
     if (url.pathname.endsWith('/exercises'))
       return Response.json({
         data: [{ id: 'squat', name: 'Squat', code: 'squat', is_active: true, muscles: [] }],
@@ -792,6 +921,7 @@ test.each([200, 500])(
         throw new TypeError('network');
       }
       if (url.endsWith('/exercise_plans')) return Response.json({ data: [] });
+      if (url.endsWith('/muscle_groups')) return Response.json({ data: [] });
       if (url.endsWith('/exercises'))
         return Response.json({
           data: [{ id: 'ex', code: 'ex', name: 'Squat', is_active: true, muscles: [] }],

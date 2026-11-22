@@ -2,6 +2,7 @@
 import { nextTick, onScopeDispose, ref, watch } from 'vue';
 import { Trash2 } from '@lucide/vue';
 import WorkoutExerciseFields from '@/components/WorkoutExerciseFields.vue';
+import WorkoutMuscleMap from '@/components/WorkoutMuscleMap.vue';
 import { useUserStore } from '@/stores/auth';
 import { ApiResponseError } from '@/services/authHeaders';
 import {
@@ -10,6 +11,7 @@ import {
   deleteActivityExerciseEntry,
   deleteActivityExercisePlan,
   fetchActivityExercisePlan,
+  fetchActivityMuscleGroups,
   fetchExercise,
   fetchExercises,
   fetchWorkoutPlans,
@@ -17,6 +19,7 @@ import {
   updateActivityExercisePlan,
   updateLinkedWorkoutPlan,
   type ActivityExercisePlan,
+  type ActivityMuscleGroup,
   type Exercise,
   type WorkoutPlan,
 } from '@/services/workoutPlans';
@@ -45,6 +48,8 @@ const plansError = ref('');
 const plansLoading = ref(false);
 const labels = ref<Record<string, Exercise>>({});
 const labelsFailed = ref(false);
+const muscleGroups = ref<ActivityMuscleGroup[] | 'loading' | 'error'>([]);
+const muscleGroupsRegion = ref<HTMLElement | null>(null);
 const editing = ref(false);
 const saving = ref(false);
 const deletingEntryId = ref<number | null>(null);
@@ -89,6 +94,32 @@ function isSessionRejected(cause: unknown): boolean {
     (cause.status === 401 ||
       (cause.status === 403 && cause.message === 'Could not validate credentials'))
   );
+}
+
+function savedWorkoutEntries() {
+  return state.value === 'saved' ? snapshot.value?.entries : undefined;
+}
+
+async function loadMuscleGroups() {
+  const savedEntries = savedWorkoutEntries();
+  if (!savedEntries?.length) {
+    muscleGroups.value = [];
+    return;
+  }
+  const ownsActivity = owner();
+  const current = () => ownsActivity() && savedWorkoutEntries() === savedEntries;
+  muscleGroups.value = 'loading';
+  try {
+    const groups = await fetchActivityMuscleGroups(props.activityId);
+    if (current()) muscleGroups.value = groups;
+  } catch {
+    if (current()) muscleGroups.value = 'error';
+  }
+}
+
+function retryMuscleGroups() {
+  muscleGroupsRegion.value?.focus({ preventScroll: true });
+  void loadMuscleGroups();
 }
 
 async function loadLabels(plan: ActivityExercisePlan) {
@@ -627,6 +658,7 @@ watch(
   },
   { immediate: true, flush: 'sync' }
 );
+watch(savedWorkoutEntries, loadMuscleGroups);
 onScopeDispose(() => {
   active = false;
   generation++;
@@ -855,6 +887,33 @@ onScopeDispose(() => {
             </button>
           </li>
         </ul>
+        <div
+          v-if="snapshot.entries.length"
+          ref="muscleGroupsRegion"
+          role="group"
+          aria-label="Workout muscle groups"
+          tabindex="-1"
+          class="focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          <p
+            v-if="muscleGroups === 'loading'"
+            class="mt-4 text-sm text-verve-brown/70"
+            role="status"
+          >
+            Loading muscle groups…
+          </p>
+          <div v-else-if="muscleGroups === 'error'" class="mt-4 space-y-2 text-sm text-verve-brown">
+            <p role="status">Could not load muscle groups.</p>
+            <button
+              type="button"
+              class="rounded-sm font-semibold underline focus-visible:outline-2"
+              @click="retryMuscleGroups"
+            >
+              Retry muscle groups
+            </button>
+          </div>
+          <WorkoutMuscleMap v-else-if="muscleGroups.length" :groups="muscleGroups" />
+        </div>
       </template>
       <p v-if="labelsFailed && snapshot" class="mt-3 text-sm text-verve-brown/70">
         Some exercise names could not be loaded.

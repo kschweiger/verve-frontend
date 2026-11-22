@@ -1,11 +1,13 @@
 import type { ActivityPublic, ListResponse } from '@/types/api';
 import { getAuthHeaders, getJsonAuthHeaders, responseError } from './authHeaders';
 
+type ExerciseMuscleRole = 'primary' | 'secondary';
+
 export interface ExerciseMuscle {
   code: string;
   id: string;
   name: string;
-  role: 'primary' | 'secondary';
+  role: ExerciseMuscleRole;
   muscle_groups: { code: string; id: string; name: string }[];
 }
 export interface Exercise {
@@ -127,6 +129,15 @@ export interface ActivityExercisePlan {
   entries: PlanEntry[];
 }
 
+export interface ActivityMuscleGroup {
+  id: string;
+  code: string;
+  name: string;
+  role: ExerciseMuscleRole;
+  exercise_count: number;
+  exercise_ids: string[];
+}
+
 export function fetchActivityExercisePlan(activityId: string): Promise<ActivityExercisePlan> {
   return request(
     `/activity_exercise_plans/${encodeURIComponent(activityId)}`,
@@ -144,6 +155,17 @@ export async function deleteActivityExercisePlan(activityId: string): Promise<vo
     }
   );
   if (response.status !== 204) throw await responseError(response, 'Failed to delete workout.');
+}
+
+export async function fetchActivityMuscleGroups(
+  activityId: string
+): Promise<ActivityMuscleGroup[]> {
+  const result = await request<ListResponse<ActivityMuscleGroup>>(
+    `/activity_exercise_plans/${encodeURIComponent(activityId)}/muscle_groups`,
+    { headers: getAuthHeaders() },
+    'Failed to load muscle groups.'
+  );
+  return result.data;
 }
 
 export function applyWorkoutPlan(
