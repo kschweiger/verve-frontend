@@ -811,11 +811,11 @@ onScopeDispose(() => {
         </fieldset>
       </form>
       <template v-else-if="snapshot">
-        <div class="mb-3 flex flex-wrap items-center gap-3">
+        <div class="mb-3 grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center md:gap-3">
           <button
             ref="editButton"
             type="button"
-            class="rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold focus-visible:outline-2 disabled:opacity-50"
+            class="rounded-lg border border-verve-brown/30 px-2 py-2 text-sm font-semibold focus-visible:outline-2 disabled:opacity-50 md:px-4 md:text-base"
             :disabled="deletingEntryId !== null || planDialogOpen"
             @click="edit"
           >
@@ -825,7 +825,7 @@ onScopeDispose(() => {
             ref="planButton"
             type="button"
             :disabled="deletingEntryId !== null || planDialogOpen"
-            class="rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold focus-visible:outline-2 disabled:opacity-50"
+            class="rounded-lg border border-verve-brown/30 px-2 py-2 text-sm font-semibold focus-visible:outline-2 disabled:opacity-50 md:px-4 md:text-base"
             @click="openPlanDialog('new')"
           >
             Save as new plan
@@ -835,7 +835,7 @@ onScopeDispose(() => {
             ref="updateButton"
             type="button"
             :disabled="deletingEntryId !== null || planDialogOpen"
-            class="rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold focus-visible:outline-2 disabled:opacity-50"
+            class="rounded-lg border border-verve-brown/30 px-2 py-2 text-sm font-semibold focus-visible:outline-2 disabled:opacity-50 md:px-4 md:text-base"
             @click="openPlanDialog('update')"
           >
             Update linked plan
@@ -844,7 +844,7 @@ onScopeDispose(() => {
             ref="deleteButton"
             type="button"
             :disabled="deletingEntryId !== null || planDialogOpen"
-            class="rounded-lg border border-red-700/30 px-4 py-2 font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 disabled:opacity-50"
+            class="rounded-lg border border-red-700/30 px-2 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 disabled:opacity-50 md:px-4 md:text-base"
             @click="openPlanDialog('delete')"
           >
             Delete workout
