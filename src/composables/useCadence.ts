@@ -21,10 +21,11 @@ export function useCadence(activity: MaybeRefOrGetter<ActivityClassification | n
   });
 }
 
-export function formatCadenceValue(value: number): string {
-  return Number(value.toFixed(1)).toString();
+export function formatCadenceValue(value: number, locale?: string): string {
+  const rounded = Number(value.toFixed(1));
+  return locale ? rounded.toLocaleString(locale, { maximumFractionDigits: 1 }) : rounded.toString();
 }
 
-export function formatCadence(value: number | null, unit: CadenceUnit): string {
-  return value === null ? '-' : `${formatCadenceValue(value)} ${unit}`;
+export function formatCadence(value: number | null, unit: CadenceUnit, locale?: string): string {
+  return value === null ? '-' : `${formatCadenceValue(value, locale)} ${unit}`;
 }

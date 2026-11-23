@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { onUnmounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { SupportedTrackExtension } from '@/services/api';
-import { trackExtensionLabels } from '@/utils/trackExtensions';
 import { Trash2 } from '@lucide/vue';
 
 const props = defineProps<{
   isOpen: boolean;
   extensions: SupportedTrackExtension[];
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -51,9 +53,11 @@ onUnmounted(() => {
         class="relative w-full max-w-lg overflow-hidden rounded-xl border border-verve-medium/30 bg-white text-left shadow-2xl"
       >
         <div class="p-6">
-          <h2 id="track-extension-data-title" class="text-xl font-bold text-verve-brown">Sensor data</h2>
+          <h2 id="track-extension-data-title" class="text-xl font-bold text-verve-brown">
+            {{ t('activityDetail.sensor.title') }}
+          </h2>
           <p class="mt-2 text-sm leading-relaxed text-verve-brown/70">
-            Remove a sensor stream if its readings are unreliable. This permanently removes the selected data from this activity.
+            {{ t('activityActions.track.description') }}
           </p>
 
           <ul class="mt-5 space-y-3">
@@ -62,15 +66,21 @@ onUnmounted(() => {
               :key="extension"
               class="flex items-center justify-between gap-4 rounded-xl border border-verve-medium/30 bg-verve-light/20 p-4"
             >
-              <span class="font-semibold text-verve-brown">{{ trackExtensionLabels[extension] }}</span>
+              <span class="font-semibold text-verve-brown">
+                {{ t(`activityDetail.sensor.${extension}`) }}
+              </span>
               <button
                 type="button"
                 class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
-                :aria-label="`Remove ${trackExtensionLabels[extension]} data`"
+                :aria-label="
+                  t('activityDetail.sensor.removeConfirm', {
+                    sensor: t(`activityDetail.sensor.${extension}`),
+                  })
+                "
                 @click="emit('remove', extension)"
               >
                 <Trash2 class="size-4" />
-                Remove
+                {{ t('activityActions.track.remove') }}
               </button>
             </li>
           </ul>
@@ -82,7 +92,7 @@ onUnmounted(() => {
             class="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-verve-brown ring-1 ring-inset ring-verve-medium/50 transition-colors hover:bg-verve-light/50"
             @click="emit('close')"
           >
-            Close
+            {{ t('activityActions.track.close') }}
           </button>
         </div>
       </div>

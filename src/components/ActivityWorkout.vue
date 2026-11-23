@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { nextTick, onScopeDispose, ref, watch } from 'vue';
 import { Trash2 } from '@lucide/vue';
+import { useI18n } from 'vue-i18n';
 import WorkoutExerciseFields from '@/components/WorkoutExerciseFields.vue';
 import WorkoutMuscleMap from '@/components/WorkoutMuscleMap.vue';
+import type { en as workoutMessages } from '@/i18n/workout';
 import { useUserStore } from '@/stores/auth';
 import { ApiResponseError } from '@/services/authHeaders';
 import {
@@ -25,18 +27,17 @@ import {
 } from '@/services/workoutPlans';
 import { draftEntries, serializeEntries, type DraftEntry } from '@/utils/workoutPlanDraft';
 
-const planDialogCopy = {
-  new: { title: 'Save as new plan', confirm: 'Save', pending: 'Saving...' },
-  update: { title: 'Update linked plan', confirm: 'Update plan', pending: 'Saving...' },
-  delete: { title: 'Delete workout?', confirm: 'Delete workout', pending: 'Deleting...' },
-};
+type PlanMode = keyof typeof workoutMessages.dialog;
+type ErrorKey = Exclude<keyof typeof workoutMessages.errors, 'withDetail'>;
+type WorkoutError = { key: ErrorKey; detail?: string };
 
 const props = defineProps<{ activityId: string }>();
+const { t, n } = useI18n();
 const auth = useUserStore();
 const snapshot = ref<ActivityExercisePlan | null>(null);
 const state = ref<'loading' | 'absent' | 'saved' | 'error' | 'sign-in-required'>('loading');
-const error = ref('');
-const notice = ref('');
+const error = ref<WorkoutError | null>(null);
+const notice = ref<keyof typeof workoutMessages.notices | null>(null);
 const plans = ref<WorkoutPlan[]>([]);
 const selected = ref('');
 const applying = ref(false);
@@ -44,7 +45,7 @@ const manual = ref(false);
 const unconfirmed = ref(false);
 const verifying = ref(false);
 const addButton = ref<HTMLButtonElement | null>(null);
-const plansError = ref('');
+const plansError = ref<WorkoutError | null>(null);
 const plansLoading = ref(false);
 const labels = ref<Record<string, Exercise>>({});
 const labelsFailed = ref(false);
@@ -59,14 +60,14 @@ const exercises = ref<Exercise[]>([]);
 const catalogError = ref(false);
 const catalogLoading = ref(false);
 const planDialogOpen = ref(false);
-const planMode = ref<keyof typeof planDialogCopy>('new');
+const planMode = ref<PlanMode>('new');
 const planCancel = ref<HTMLButtonElement | null>(null);
 const updateButton = ref<HTMLButtonElement | null>(null);
 const deleteButton = ref<HTMLButtonElement | null>(null);
 const planSaving = ref(false);
 const planName = ref('');
-const planNameError = ref('');
-const planError = ref('');
+const planNameError = ref<'nameRequired' | 'nameConflict' | null>(null);
+const planError = ref<WorkoutError | null>(null);
 const planDialog = ref<HTMLDialogElement | null>(null);
 const planInput = ref<HTMLInputElement | null>(null);
 const planButton = ref<HTMLButtonElement | null>(null);
@@ -80,6 +81,18 @@ let generation = 0;
 let active = true;
 let labelGeneration = 0;
 let conflict = false;
+
+function workoutError(key: ErrorKey, cause: unknown): WorkoutError {
+  return { key, detail: cause instanceof ApiResponseError ? cause.detail : undefined };
+}
+
+function errorText(failure: WorkoutError | null): string {
+  if (!failure) return '';
+  const message = t(`workout.errors.${failure.key}`);
+  return failure.detail
+    ? t('workout.errors.withDetail', { message, detail: failure.detail })
+    : message;
+}
 
 function owner() {
   const current = generation;
@@ -159,7 +172,7 @@ async function loadLabels(plan: ActivityExercisePlan) {
 }
 async function loadPlans(current: () => boolean) {
   plansLoading.value = true;
-  plansError.value = '';
+  plansError.value = null;
   try {
     const result = await fetchWorkoutPlans();
     if (current()) {
@@ -172,7 +185,7 @@ async function loadPlans(current: () => boolean) {
       else state.value = 'sign-in-required';
       return;
     }
-    plansError.value = cause instanceof Error ? cause.message : 'Failed to load workout plans.';
+    plansError.value = workoutError('loadPlans', cause);
   } finally {
     if (current()) plansLoading.value = false;
   }
@@ -184,7 +197,7 @@ function retryPlans() {
 function showPlanPicker(current: () => boolean) {
   snapshot.value = null;
   selected.value = '';
-  error.value = '';
+  error.value = null;
   labelGeneration++;
   labelsFailed.value = false;
   state.value = 'absent';
@@ -193,29 +206,29 @@ function showPlanPicker(current: () => boolean) {
 async function load() {
   const current = owner();
   state.value = 'loading';
-  error.value = '';
+  error.value = null;
   try {
     const result = await fetchActivityExercisePlan(props.activityId);
     if (!current()) return;
     snapshot.value = result;
     state.value = 'saved';
-    if (conflict) notice.value = 'The existing workout has been loaded.';
+    if (conflict) notice.value = 'existingLoaded';
     void loadLabels(result);
   } catch (cause: unknown) {
     if (!current()) return;
-    if (conflict) notice.value = '';
+    if (conflict) notice.value = null;
     if (isSessionRejected(cause)) {
       state.value = 'sign-in-required';
     } else if (cause instanceof ApiResponseError && cause.status === 404) {
       if (conflict) {
         snapshot.value = null;
         state.value = 'error';
-        error.value = 'A workout already exists, but could not be loaded. Retry to check again.';
+        error.value = { key: 'existingUnavailable' };
       } else {
         showPlanPicker(current);
       }
     } else {
-      error.value = cause instanceof Error ? cause.message : 'Failed to load workout.';
+      error.value = workoutError('loadWorkout', cause);
       state.value = 'error';
     }
   }
@@ -224,8 +237,8 @@ async function apply() {
   if (!selected.value || applying.value || manual.value || state.value !== 'absent') return;
   const current = owner();
   applying.value = true;
-  error.value = '';
-  notice.value = '';
+  error.value = null;
+  notice.value = null;
   try {
     const result = await applyWorkoutPlan(props.activityId, selected.value);
     if (!current()) return;
@@ -238,10 +251,10 @@ async function apply() {
       state.value = 'sign-in-required';
     } else if (cause instanceof ApiResponseError && cause.status === 409) {
       conflict = true;
-      notice.value = 'A workout already exists for this activity. Reloading it.';
+      notice.value = 'reloadingExisting';
       await load();
     } else {
-      error.value = cause instanceof Error ? cause.message : 'Failed to apply workout plan.';
+      error.value = workoutError('applyPlan', cause);
     }
   } finally {
     if (current()) applying.value = false;
@@ -287,7 +300,7 @@ function startManual() {
   entries.value = [];
   manual.value = true;
   editing.value = true;
-  error.value = '';
+  error.value = null;
   void loadCatalog();
   const current = owner();
   void nextTick(() => {
@@ -298,8 +311,8 @@ function edit() {
   if (!snapshot.value || deletingEntryId.value !== null || planDialogOpen.value) return;
   entries.value = draftEntries(snapshot.value.entries);
   editing.value = true;
-  error.value = '';
-  notice.value = '';
+  error.value = null;
+  notice.value = null;
   void loadCatalog();
   const current = owner();
   void nextTick(() => {
@@ -313,7 +326,7 @@ function cancel() {
   editing.value = false;
   manual.value = false;
   unconfirmed.value = false;
-  error.value = '';
+  error.value = null;
   if (saveRequiresSignIn.value) {
     state.value = 'sign-in-required';
     return;
@@ -350,7 +363,7 @@ async function save() {
   if (manual.value && updated.length !== 1) return;
   const current = owner();
   saving.value = true;
-  error.value = '';
+  error.value = null;
   try {
     const result = manual.value
       ? await addActivityExercise(props.activityId, updated[0]!)
@@ -370,7 +383,7 @@ async function save() {
     else if (manual.value && (!(cause instanceof ApiResponseError) || cause.status >= 500)) {
       unconfirmed.value = true;
       await verifyManualSave();
-    } else error.value = cause instanceof Error ? cause.message : 'Failed to save workout.';
+    } else error.value = workoutError('saveWorkout', cause);
   } finally {
     if (current()) saving.value = false;
   }
@@ -388,8 +401,8 @@ async function verifyManualSave() {
     manual.value = false;
     editing.value = false;
     unconfirmed.value = false;
-    error.value = '';
-    notice.value = 'A workout was found. Check the saved exercises before continuing.';
+    error.value = null;
+    notice.value = 'savedFound';
     void loadLabels(result);
     void nextTick(() => {
       if (current()) editButton.value?.focus();
@@ -399,9 +412,9 @@ async function verifyManualSave() {
     if (isSessionRejected(cause)) saveRequiresSignIn.value = true;
     else if (cause instanceof ApiResponseError && cause.status === 404) {
       unconfirmed.value = false;
-      error.value = 'No saved workout was found. You can try again.';
+      error.value = { key: 'savedNotFound' };
     } else {
-      error.value = 'The save result could not be confirmed. Check again before saving.';
+      error.value = { key: 'saveUnconfirmed' };
     }
   } finally {
     if (current()) verifying.value = false;
@@ -418,8 +431,8 @@ async function removeSavedEntry(entryId: number, event?: MouseEvent) {
   let moveFocus = false;
   let neighborButton: HTMLButtonElement | null = null;
   deletingEntryId.value = entryId;
-  error.value = '';
-  notice.value = 'Deleting exercise…';
+  error.value = null;
+  notice.value = 'deletingExercise';
   try {
     await deleteActivityExerciseEntry(props.activityId, entryId);
     if (!current()) return;
@@ -434,11 +447,11 @@ async function removeSavedEntry(entryId: number, event?: MouseEvent) {
       neighborButton = neighbor?.querySelector('button') ?? null;
     }
     snapshot.value = updated;
-    notice.value = 'Exercise deleted.';
+    notice.value = 'exerciseDeleted';
     void loadLabels(updated);
   } catch (cause: unknown) {
     if (!current()) return;
-    notice.value = '';
+    notice.value = null;
     if (isSessionRejected(cause)) {
       moveFocus = stillFocused();
       state.value = 'sign-in-required';
@@ -446,9 +459,9 @@ async function removeSavedEntry(entryId: number, event?: MouseEvent) {
       moveFocus = stillFocused();
       conflict = false;
       await load();
-      if (current() && state.value === 'saved') notice.value = 'The exercise list was refreshed.';
+      if (current() && state.value === 'saved') notice.value = 'exerciseListRefreshed';
     } else {
-      error.value = cause instanceof Error ? cause.message : 'Failed to delete exercise.';
+      error.value = workoutError('deleteExercise', cause);
     }
   } finally {
     if (current()) {
@@ -469,15 +482,15 @@ async function removeSavedEntry(entryId: number, event?: MouseEvent) {
   }
 }
 
-async function openPlanDialog(mode: keyof typeof planDialogCopy) {
+async function openPlanDialog(mode: PlanMode) {
   if (!snapshot.value || editing.value || deletingEntryId.value !== null || planDialogOpen.value)
     return;
   const current = owner();
   planMode.value = mode;
   planName.value = '';
-  notice.value = '';
-  planNameError.value = '';
-  planError.value = '';
+  notice.value = null;
+  planNameError.value = null;
+  planError.value = null;
   planDialogOpen.value = true;
   await nextTick();
   if (!current() || !planDialogOpen.value) return;
@@ -498,18 +511,18 @@ function closePlanDialog() {
 async function saveAsPlan() {
   if (!snapshot.value || !planDialogOpen.value || planSaving.value) return;
   if (!planName.value.trim()) {
-    planNameError.value = 'Enter a plan name.';
+    planNameError.value = 'nameRequired';
     return;
   }
   const current = owner();
   planSaving.value = true;
-  planNameError.value = '';
-  planError.value = '';
+  planNameError.value = null;
+  planError.value = null;
   try {
     const result = await saveActivityAsWorkoutPlan(props.activityId, planName.value);
     if (!current()) return;
     snapshot.value = { ...snapshot.value, source_plan_id: result.id };
-    notice.value = 'Workout saved as a new plan.';
+    notice.value = 'savedAsPlan';
     planSaving.value = false;
     closePlanDialog();
   } catch (cause: unknown) {
@@ -523,10 +536,9 @@ async function saveAsPlan() {
         if (current()) recoveryButton.value?.focus();
       });
     } else if (cause instanceof ApiResponseError && cause.status === 409) {
-      planNameError.value = 'A plan with this name already exists.';
+      planNameError.value = 'nameConflict';
     } else {
-      planError.value =
-        cause instanceof Error ? cause.message : 'Failed to save workout as a plan.';
+      planError.value = workoutError('saveAsPlan', cause);
     }
   } finally {
     if (current()) {
@@ -544,12 +556,12 @@ async function updatePlan() {
   if (!snapshot.value?.source_plan_id || !planDialogOpen.value || planSaving.value) return;
   const current = owner();
   planSaving.value = true;
-  planError.value = '';
+  planError.value = null;
   try {
     const result = await updateLinkedWorkoutPlan(props.activityId);
     if (!current() || !snapshot.value) return;
     snapshot.value = { ...snapshot.value, source_plan_id: result.id };
-    notice.value = 'Linked plan updated.';
+    notice.value = 'linkedPlanUpdated';
     planSaving.value = false;
     closePlanDialog();
   } catch (cause: unknown) {
@@ -564,14 +576,14 @@ async function updatePlan() {
       });
     } else if (cause instanceof ApiResponseError && cause.status === 409) {
       if (snapshot.value) snapshot.value = { ...snapshot.value, source_plan_id: null };
-      notice.value = 'This workout is no longer linked to a plan.';
+      notice.value = 'noPlanLink';
       planSaving.value = false;
       closePlanDialog();
       void nextTick(() => {
         if (current()) planButton.value?.focus();
       });
     } else {
-      planError.value = cause instanceof Error ? cause.message : 'Failed to update linked plan.';
+      planError.value = workoutError('updatePlan', cause);
     }
   } finally {
     if (current()) {
@@ -588,13 +600,13 @@ async function deleteWorkout() {
   if (!snapshot.value || !planDialogOpen.value || planSaving.value) return;
   const current = owner();
   planSaving.value = true;
-  planError.value = '';
+  planError.value = null;
   try {
     await deleteActivityExercisePlan(props.activityId);
     if (!current()) return;
     conflict = false;
     entries.value = [];
-    notice.value = 'Workout deleted.';
+    notice.value = 'workoutDeleted';
     showPlanPicker(current);
   } catch (cause: unknown) {
     if (!current()) return;
@@ -604,7 +616,7 @@ async function deleteWorkout() {
       conflict = false;
       await load();
     } else {
-      planError.value = cause instanceof Error ? cause.message : 'Failed to delete workout.';
+      planError.value = workoutError('deleteWorkout', cause);
       void nextTick(() => {
         if (current() && planDialogOpen.value) planCancel.value?.focus();
       });
@@ -633,7 +645,7 @@ function reset() {
   manual.value = false;
   unconfirmed.value = false;
   verifying.value = false;
-  plansError.value = '';
+  plansError.value = null;
   plansLoading.value = false;
   editing.value = false;
   saving.value = false;
@@ -645,8 +657,8 @@ function reset() {
   catalogLoading.value = false;
   catalogLoaded = false;
   catalogPromise = null;
-  notice.value = '';
-  error.value = '';
+  notice.value = null;
+  error.value = null;
   state.value = 'loading';
 }
 watch(() => auth.token, reset, { flush: 'sync' });
@@ -676,50 +688,64 @@ onScopeDispose(() => {
       tabindex="-1"
       class="text-lg font-bold text-verve-brown"
     >
-      Workout
+      {{ t('workout.title') }}
     </h2>
-    <p v-if="notice" class="mt-3 text-sm text-verve-brown" role="status">{{ notice }}</p>
-    <p v-if="state === 'loading'" class="mt-3 text-sm text-verve-brown/60">Loading workout...</p>
+    <p v-if="notice" class="mt-3 text-sm text-verve-brown" role="status">
+      {{ t(`workout.notices.${notice}`) }}
+    </p>
+    <p v-if="state === 'loading'" class="mt-3 text-sm text-verve-brown/60">
+      {{ t('workout.loading') }}
+    </p>
     <div v-else-if="state === 'sign-in-required'" class="mt-3 space-y-2">
-      <p role="alert" class="text-sm text-red-700">Your sign-in is no longer valid.</p>
+      <p role="alert" class="text-sm text-red-700">{{ t('workout.signInExpired') }}</p>
       <button
         ref="recoveryButton"
         type="button"
         class="rounded-lg px-2 py-1 font-semibold underline focus-visible:outline-2"
         @click="auth.logout"
       >
-        Sign in again
+        {{ t('workout.signInAgain') }}
       </button>
     </div>
     <div v-else-if="state === 'error'" class="mt-3 space-y-2">
-      <p role="alert" class="text-sm text-red-700">{{ error }}</p>
+      <p role="alert" class="text-sm text-red-700">{{ errorText(error) }}</p>
       <button
         ref="recoveryButton"
         type="button"
         class="rounded-lg px-2 py-1 font-semibold underline focus-visible:outline-2"
         @click="load"
       >
-        Retry workout
+        {{ t('workout.retry') }}
       </button>
     </div>
     <div v-else-if="state === 'absent' && !manual" class="mt-3 space-y-3">
-      <p v-if="plansLoading" class="text-sm">Loading plans...</p>
+      <p v-if="plansLoading" class="text-sm">{{ t('workout.plansLoading') }}</p>
       <p v-else-if="plansError" role="alert" class="text-sm text-red-700">
-        {{ plansError }}
-        <button type="button" class="underline" @click="retryPlans">Retry plans</button>
+        {{ errorText(plansError) }}
+        <button type="button" class="underline" @click="retryPlans">
+          {{ t('workout.retryPlans') }}
+        </button>
       </p>
-      <p v-else-if="plans.length === 0" class="text-sm text-verve-brown/70">
-        No workout plans available. Create one in
-        <router-link
-          :to="{ name: 'workout-plans' }"
-          class="font-semibold underline focus-visible:outline-2"
-          >Planning</router-link
-        >.
-      </p>
+      <i18n-t
+        v-else-if="plans.length === 0"
+        keypath="workout.noPlans"
+        tag="p"
+        scope="global"
+        class="text-sm text-verve-brown/70"
+      >
+        <template #planning>
+          <router-link
+            :to="{ name: 'workout-plans' }"
+            class="font-semibold underline focus-visible:outline-2"
+          >
+            {{ t('navigation.planning') }}
+          </router-link>
+        </template>
+      </i18n-t>
       <template v-else>
-        <label for="workout-plan" class="block text-sm font-semibold text-verve-brown"
-          >Workout plan</label
-        >
+        <label for="workout-plan" class="block text-sm font-semibold text-verve-brown">
+          {{ t('workout.plan') }}
+        </label>
         <div class="flex flex-wrap gap-3">
           <select
             id="workout-plan"
@@ -727,7 +753,7 @@ onScopeDispose(() => {
             :disabled="applying"
             class="min-w-0 grow rounded-lg border border-verve-medium bg-white px-3 py-2 focus-visible:outline-2"
           >
-            <option value="">Select a plan</option>
+            <option value="">{{ t('workout.selectPlan') }}</option>
             <option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option>
           </select>
           <button
@@ -736,7 +762,7 @@ onScopeDispose(() => {
             class="rounded-lg bg-verve-brown px-4 py-2 font-semibold text-white disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2"
             @click="apply"
           >
-            {{ applying ? 'Applying...' : 'Apply plan' }}
+            {{ t(applying ? 'workout.applying' : 'workout.applyPlan') }}
           </button>
         </div>
       </template>
@@ -747,17 +773,17 @@ onScopeDispose(() => {
         ref="addButton"
         @click="startManual"
       >
-        Add exercise
+        {{ t('workout.addExercise') }}
       </button>
-      <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-700">{{ errorText(error) }}</p>
     </div>
     <div v-else-if="snapshot || manual" class="mt-3">
       <form v-if="editing" @submit.prevent="save">
         <fieldset :disabled="saving || verifying">
           <div v-if="catalogError" role="alert" class="my-2 text-sm text-red-700">
-            Could not load the exercise catalog.
+            {{ t('workout.errors.loadCatalog') }}
             <button type="button" class="underline focus-visible:outline-2" @click="loadCatalog">
-              Retry catalog
+              {{ t('workout.retryCatalog') }}
             </button>
           </div>
           <WorkoutExerciseFields
@@ -771,25 +797,25 @@ onScopeDispose(() => {
           />
           <div v-if="saveRequiresSignIn" class="mt-3 space-y-2">
             <p role="alert" class="text-sm text-red-700">
-              Your sign-in is no longer valid. Signing in again discards this draft.
+              {{ t('workout.signInExpiredDraft') }}
             </p>
             <button
               type="button"
               class="rounded-lg px-2 py-1 font-semibold underline focus-visible:outline-2"
               @click="auth.logout"
             >
-              Sign in again
+              {{ t('workout.signInAgain') }}
             </button>
           </div>
           <p v-else-if="error" role="alert" class="mt-3 text-sm text-red-700">
-            {{ error }}
+            {{ errorText(error) }}
             <button
               v-if="unconfirmed"
               type="button"
               class="underline focus-visible:outline-2"
               @click="verifyManualSave"
             >
-              Check again
+              {{ t('workout.checkAgain') }}
             </button>
           </p>
           <div class="mt-4 flex gap-3">
@@ -798,14 +824,14 @@ onScopeDispose(() => {
               :disabled="saveRequiresSignIn || unconfirmed || (manual && entries.length !== 1)"
               class="rounded-lg bg-verve-brown px-4 py-2 font-semibold text-white disabled:opacity-50 focus-visible:outline-2"
             >
-              {{ saving ? 'Saving...' : 'Save' }}
+              {{ t(saving ? 'workout.saving' : 'workout.save') }}
             </button>
             <button
               type="button"
               class="rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold focus-visible:outline-2"
               @click="cancel"
             >
-              Cancel
+              {{ t('workout.cancel') }}
             </button>
           </div>
         </fieldset>
@@ -819,7 +845,7 @@ onScopeDispose(() => {
             :disabled="deletingEntryId !== null || planDialogOpen"
             @click="edit"
           >
-            Edit workout
+            {{ t('workout.edit') }}
           </button>
           <button
             ref="planButton"
@@ -828,7 +854,7 @@ onScopeDispose(() => {
             class="rounded-lg border border-verve-brown/30 px-2 py-2 text-sm font-semibold focus-visible:outline-2 disabled:opacity-50 md:px-4 md:text-base"
             @click="openPlanDialog('new')"
           >
-            Save as new plan
+            {{ t('workout.dialog.new.title') }}
           </button>
           <button
             v-if="snapshot.source_plan_id"
@@ -838,7 +864,7 @@ onScopeDispose(() => {
             class="rounded-lg border border-verve-brown/30 px-2 py-2 text-sm font-semibold focus-visible:outline-2 disabled:opacity-50 md:px-4 md:text-base"
             @click="openPlanDialog('update')"
           >
-            Update linked plan
+            {{ t('workout.dialog.update.title') }}
           </button>
           <button
             ref="deleteButton"
@@ -847,12 +873,12 @@ onScopeDispose(() => {
             class="rounded-lg border border-red-700/30 px-2 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-2 disabled:opacity-50 md:px-4 md:text-base"
             @click="openPlanDialog('delete')"
           >
-            Delete workout
+            {{ t('workout.dialog.delete.confirm') }}
           </button>
         </div>
-        <p v-if="error" role="alert" class="mb-3 text-sm text-red-700">{{ error }}</p>
+        <p v-if="error" role="alert" class="mb-3 text-sm text-red-700">{{ errorText(error) }}</p>
         <p v-if="snapshot.entries.length === 0" class="text-sm text-verve-brown/70">
-          This workout has no exercises.
+          {{ t('workout.noExercises') }}
         </p>
         <div
           v-else
@@ -860,7 +886,7 @@ onScopeDispose(() => {
           :class="{ 'lg:grid-cols-[minmax(0,1fr)_19rem]': muscleGroups.length }"
         >
           <div class="min-w-0">
-            <h3 class="font-semibold">Exercises</h3>
+            <h3 class="font-semibold">{{ t('workout.exercises') }}</h3>
             <ul class="mt-1 divide-y divide-verve-medium/30">
               <li
                 v-for="(entry, index) in snapshot.entries"
@@ -873,19 +899,37 @@ onScopeDispose(() => {
                     <span
                       v-if="labels[entry.exercise_id] && !labels[entry.exercise_id]?.is_active"
                       class="font-normal"
-                      >(inactive)</span
                     >
+                      {{ t('workout.inactive') }}
+                    </span>
                   </p>
-                  <p class="mt-1 text-verve-brown/70">
-                    <span v-if="entry.sets != null">{{ entry.sets }} sets </span
-                    ><span v-if="entry.repetitions != null">{{ entry.repetitions }} reps </span
-                    ><span v-if="entry.weight != null">{{ entry.weight }} kg</span>
+                  <p class="mt-1 flex flex-wrap gap-x-1 text-verve-brown/70">
+                    <span v-if="entry.sets != null">
+                      {{ t('workout.sets', { count: n(entry.sets) }, entry.sets) }}
+                    </span>
+                    <span v-if="entry.repetitions != null">
+                      {{
+                        t('workout.repetitions', { count: n(entry.repetitions) }, entry.repetitions)
+                      }}
+                    </span>
+                    <span v-if="entry.weight != null">
+                      {{
+                        t('workout.weight', {
+                          weight: n(entry.weight, { maximumSignificantDigits: 21 }),
+                        })
+                      }}
+                    </span>
                   </p>
                 </div>
                 <button
                   type="button"
                   class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-                  :aria-label="`Delete ${labels[entry.exercise_id]?.name ?? entry.exercise_id}, row ${index + 1}`"
+                  :aria-label="
+                    t('workout.deleteExercise', {
+                      name: labels[entry.exercise_id]?.name ?? entry.exercise_id,
+                      row: n(index + 1),
+                    })
+                  "
                   :aria-disabled="deletingEntryId !== null || planDialogOpen"
                   @click="removeSavedEntry(entry.id, $event)"
                 >
@@ -898,21 +942,21 @@ onScopeDispose(() => {
             v-if="muscleGroups.length"
             ref="muscleGroupsRegion"
             role="group"
-            aria-label="Workout muscle groups"
+            :aria-label="t('workout.muscleGroups')"
             tabindex="-1"
             class="w-full max-w-76 min-w-0 focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             <p v-if="muscleGroups === 'loading'" class="text-sm text-verve-brown/70" role="status">
-              Loading muscle groups…
+              {{ t('workout.muscleGroupsLoading') }}
             </p>
             <div v-else-if="muscleGroups === 'error'" class="space-y-2 text-sm text-verve-brown">
-              <p role="status">Could not load muscle groups.</p>
+              <p role="status">{{ t('workout.errors.loadMuscleGroups') }}</p>
               <button
                 type="button"
                 class="rounded-sm font-semibold underline focus-visible:outline-2"
                 @click="retryMuscleGroups"
               >
-                Retry muscle groups
+                {{ t('workout.retryMuscleGroups') }}
               </button>
             </div>
             <WorkoutMuscleMap v-else :groups="muscleGroups" />
@@ -920,14 +964,14 @@ onScopeDispose(() => {
         </div>
       </template>
       <p v-if="labelsFailed && snapshot" class="mt-3 text-sm text-verve-brown/70">
-        Some exercise names could not be loaded.
+        {{ t('workout.errors.loadNames') }}
         <button
           type="button"
           class="font-semibold underline focus-visible:outline-2"
           :disabled="saving"
           @click="loadLabels(snapshot)"
         >
-          Retry names
+          {{ t('workout.retryNames') }}
         </button>
       </p>
     </div>
@@ -940,28 +984,40 @@ onScopeDispose(() => {
       @cancel.prevent="closePlanDialog"
     >
       <h2 id="save-plan-title" class="text-xl font-bold">
-        {{ planDialogCopy[planMode].title }}
+        {{ t(`workout.dialog.${planMode}.title`) }}
       </h2>
       <p v-if="planMode === 'new'" id="plan-description" class="mt-2 text-sm">
-        This copies the saved workout and links this activity to the new plan<span
-          v-if="snapshot?.source_plan_id"
-          >, replacing its current plan link</span
-        >.
+        {{
+          t(
+            snapshot?.source_plan_id
+              ? 'workout.dialog.new.descriptionLinked'
+              : 'workout.dialog.new.description'
+          )
+        }}
       </p>
       <p v-else-if="planMode === 'update'" id="plan-description" class="mt-2 text-sm">
-        This replaces the linked plan's exercises with this activity's saved exercises.<span
-          v-if="snapshot?.entries.length === 0"
-        >
-          This removes all exercises from the linked plan.</span
-        >
+        {{
+          t(
+            snapshot?.entries.length === 0
+              ? 'workout.dialog.update.descriptionEmpty'
+              : 'workout.dialog.update.description'
+          )
+        }}
       </p>
       <p v-else id="plan-description" class="mt-2 text-sm">
-        This deletes the workout and its exercises from this activity.
-        <span v-if="snapshot?.source_plan_id">The linked plan stays in Planning.</span>
+        {{
+          t(
+            snapshot?.source_plan_id
+              ? 'workout.dialog.delete.descriptionLinked'
+              : 'workout.dialog.delete.description'
+          )
+        }}
       </p>
       <form class="mt-4" @submit.prevent="planActions[planMode]()">
         <template v-if="planMode === 'new'">
-          <label for="new-plan-name" class="block text-sm font-semibold">Plan name</label>
+          <label for="new-plan-name" class="block text-sm font-semibold">
+            {{ t('workout.planName') }}
+          </label>
           <input
             id="new-plan-name"
             ref="planInput"
@@ -977,10 +1033,12 @@ onScopeDispose(() => {
             role="alert"
             class="mt-2 text-sm text-red-700"
           >
-            {{ planNameError }}
+            {{ t(`workout.errors.${planNameError}`) }}
           </p>
         </template>
-        <p v-if="planError" role="alert" class="mt-2 text-sm text-red-700">{{ planError }}</p>
+        <p v-if="planError" role="alert" class="mt-2 text-sm text-red-700">
+          {{ errorText(planError) }}
+        </p>
         <div class="mt-4 flex gap-3">
           <button
             type="submit"
@@ -988,7 +1046,7 @@ onScopeDispose(() => {
             :class="planMode === 'delete' ? 'bg-red-700' : 'bg-verve-brown'"
             class="rounded-lg px-4 py-2 font-semibold text-white disabled:opacity-50 focus-visible:outline-2"
           >
-            {{ planSaving ? planDialogCopy[planMode].pending : planDialogCopy[planMode].confirm }}
+            {{ t(`workout.dialog.${planMode}.${planSaving ? 'pending' : 'confirm'}`) }}
           </button>
           <button
             ref="planCancel"
@@ -997,7 +1055,7 @@ onScopeDispose(() => {
             class="rounded-lg border border-verve-brown/30 px-4 py-2 font-semibold disabled:opacity-50 focus-visible:outline-2"
             @click="closePlanDialog"
           >
-            Cancel
+            {{ t('workout.cancel') }}
           </button>
         </div>
       </form>

@@ -2,6 +2,7 @@ import { useClientRendering } from '../helpers/vueComponents';
 import { expect, test } from 'bun:test';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
+import { createAppI18n } from '../../src/i18n';
 
 useClientRendering(import.meta.dir + '/../../src/components/WorkoutMuscleMap.vue');
 
@@ -49,9 +50,9 @@ test('highlights the backend catalog groups on the applicable body views', async
     exercise_count: 1,
     exercise_ids: ['exercise'],
   }));
-  const html = await renderToString(
-    createSSRApp({ render: () => h(WorkoutMuscleMap, { groups }) })
-  );
+  const app = createSSRApp({ render: () => h(WorkoutMuscleMap, { groups }) });
+  app.use(createAppI18n('de'));
+  const html = await renderToString(app);
   const [front, back] = html.match(/<svg\b.*?<\/svg>/gs) ?? [];
   const coloredRegion = (code: string, role: 'primary' | 'secondary') => {
     const fill = role === 'primary' ? 'fill-verve-dark' : 'fill-verve-medium';
@@ -72,8 +73,10 @@ test('highlights the backend catalog groups on the applicable body views', async
   const disclosure = html.match(/<details\b[^>]*>.*?<\/details>/s)?.[0] ?? '';
   expect(html.indexOf('<details')).toBeGreaterThan(html.lastIndexOf('</svg>'));
   expect(disclosure).not.toMatch(/^<details\b[^>]*\sopen[\s=>]/);
-  expect(disclosure).toContain('Primary muscles');
-  expect(disclosure).toContain('Secondary muscles');
+  expect(disclosure).toContain('Primär beanspruchte Muskeln');
+  expect(disclosure).toContain('Sekundär beanspruchte Muskeln');
   expect(disclosure).toContain('Neue Muskelgruppe');
+  expect(html).toContain('Vorderseite');
+  expect(html).toContain('Rückseite');
   expect(html).not.toContain('data-muscle="new_group"');
 });

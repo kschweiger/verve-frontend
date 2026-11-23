@@ -25,3 +25,5 @@ A saved activity workout, including an empty one, can be saved as a new named pl
 When an activity has no saved workout, users can start without a plan by selecting one active catalog exercise and optionally entering targets. Save creates the workout. Cancel discards the draft. The exercise catalog remains available if the plan list fails to load.
 
 A saved workout linked to a plan offers **Update linked plan**. Confirmation replaces the linked plan's exercises with the activity's saved exercises. An empty workout clears the linked plan's exercise list. The activity remains open. If the link has already been removed, the action disappears and the panel explains why.
+
+The activity workout panel, exercise fields, and muscle map use the active app language. Stored exercise IDs and target values keep their existing meaning. Exercise and muscle group names come from the backend using the account locale.

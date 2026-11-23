@@ -113,6 +113,19 @@ test('activity data becomes usable while optional segment loading is still pendi
   expect(segments.isLoadingSegmentSets.value).toBe(true);
 });
 
+test.each([
+  [new Response(null, { status: 503 }), {}],
+  [Response.json({ detail: 'Activity was archived.' }, { status: 404 }), { detail: 'Activity was archived.' }],
+])('detail load failure keeps server diagnostics separate from display copy', async (failure, expected) => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
+    input.toString().includes('/track/') ? Response.json(trackResponse) : failure
+  );
+  const detail = inScope(() => useActivityDetail(ref(firstId)));
+  await settled(detail.isLoading);
+
+  expect(detail.error.value).toEqual(expected);
+});
+
 test.each([200, 503])(
   'route ID changes replace all core data and discard an old response (%i)',
   async (status) => {
@@ -205,7 +218,7 @@ test('a failed segment load is local to the segment panel', async () => {
   globalThis.fetch = stubFetch(async () => Response.json({}, { status: 503 }));
   const segments = inScope(() => useActivitySegments(ref(firstId), track, ref(null)));
   await settled(segments.isLoadingSegmentSets);
-  expect(segments.segmentSetError.value).toBe('Failed to fetch segment sets.');
+  expect(segments.segmentSetError.value).toEqual({ key: 'loadSets' });
   expect(segments.segmentSetIds.value).toEqual([]);
   expect(segments.canStartNewSegmentSet.value).toBe(true);
 });

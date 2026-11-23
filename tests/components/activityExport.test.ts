@@ -3,6 +3,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { createRenderer, h, nextTick, ref } from 'vue';
 import { createPinia } from 'pinia';
 import { stubFetch } from '../helpers/fetch';
+import { createAppI18n } from '../../src/i18n';
 import { useUserStore } from '../../src/stores/auth';
 useClientRendering(import.meta.dir + '/../../src/components/ActivityExportButton.vue');
 const { default: ExportButton } = await import('../../src/components/ActivityExportButton.vue');
@@ -113,9 +114,11 @@ function mount(eligibilityFetch = stubFetch(async () => Response.json({ is_expor
     revoked.push(url);
   };
   const pinia = createPinia();
+  const i18n = createAppI18n();
   const id = ref('one');
   const app = renderer.createApp({ render: () => h(ExportButton, { activityId: id.value }) });
   app.use(pinia);
+  app.use(i18n);
   useUserStore(pinia).token = 'token';
   const root = new Element('root');
   app.mount(root);
@@ -125,7 +128,7 @@ function mount(eligibilityFetch = stubFetch(async () => Response.json({ is_expor
   }
   const buttons = () => all(root).filter((el) => el.tag === 'button');
   const click = (el: Element) => (el.props.onClick as () => Promise<void>)();
-  return { id, app, pinia, root, buttons, click, downloads, listeners, revoked, all };
+  return { id, app, pinia, i18n, root, buttons, click, downloads, listeners, revoked, all };
 }
 test('split button menu supports focus, keyboard selection, fixed default and cleanup', async () => {
   const ui = await mountReady();
@@ -170,6 +173,29 @@ test('prevents duplicate requests, reports failure and permits retry', async () 
     ui.all(ui.root).some((el) => el.props.role === 'alert' && el.text.includes('Failed to export'))
   ).toBe(true);
   expect(ui.buttons()[0]!.props.disabled).toBe(false);
+});
+test('export translates an inline fallback when the app language changes', async () => {
+  const ui = await mountReady();
+  globalThis.fetch = stubFetch(async () => new Response(null, { status: 422 }));
+  await ui.click(ui.buttons()[0]!);
+  ui.i18n.global.locale.value = 'de';
+  await nextTick();
+  expect(ui.buttons()[1]!.props['aria-label']).toBe('Exportformat auswählen');
+  expect(ui.all(ui.root).find((el) => el.props.role === 'alert')?.text).toBe(
+    'Aktivität konnte nicht exportiert werden.'
+  );
+});
+test('export displays the backend diagnostic verbatim in German', async () => {
+  const ui = await mountReady();
+  ui.i18n.global.locale.value = 'de';
+  globalThis.fetch = stubFetch(async () =>
+    Response.json({ detail: 'Unsupported track data' }, { status: 422 })
+  );
+  await ui.click(ui.buttons()[0]!);
+  await nextTick();
+  expect(ui.all(ui.root).find((el) => el.props.role === 'alert')?.text).toBe(
+    'Unsupported track data'
+  );
 });
 for (const change of ['activity', 'account', 'unmount'] as const) {
   test(`ignores pending downloads after ${change} change`, async () => {

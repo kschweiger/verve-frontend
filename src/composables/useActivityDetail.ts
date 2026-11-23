@@ -1,5 +1,6 @@
 import { onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import { fetchActivitySummary, fetchActivityTrack, type TrackPoint } from '../services/api';
+import { ApiResponseError } from '../services/authHeaders';
 import type { Activity } from '../stores/activity';
 import { useAccountSession } from './useAccountSession';
 import { useLatestRequest } from './useLatestRequest';
@@ -8,7 +9,7 @@ export function useActivityDetail(activityId: MaybeRefOrGetter<string>) {
   const activity = ref<Activity | null>(null);
   const trackData = ref<TrackPoint[]>([]);
   const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const error = ref<{ detail?: string } | null>(null);
   let active = true;
   function reset() {
     activity.value = null;
@@ -46,7 +47,7 @@ export function useActivityDetail(activityId: MaybeRefOrGetter<string>) {
     } catch (cause: unknown) {
       if (!isCurrent()) return false;
       if (!showLoading) throw cause;
-      error.value = cause instanceof Error ? cause.message : 'Failed to load activity.';
+      error.value = cause instanceof ApiResponseError ? { detail: cause.detail } : {};
       return false;
     } finally {
       if (isCurrent()) isLoading.value = false;

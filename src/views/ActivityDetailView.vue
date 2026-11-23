@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useActivityStore } from '@/stores/activity';
 import { removeTrackExtensionData, type SupportedTrackExtension } from '@/services/api';
+import { ApiResponseError } from '@/services/authHeaders';
 import ActivityExportButton from '@/components/ActivityExportButton.vue';
 import ActivityEquipment from '@/components/ActivityEquipment.vue';
 import ActivityWorkout from '@/components/ActivityWorkout.vue';
@@ -26,7 +28,7 @@ import {
   activitySummaryMetricListClasses,
   buildActivitySummaryMetrics,
 } from '@/utils/activitySummaryMetrics';
-import { getAvailableTrackExtensions, trackExtensionLabels } from '@/utils/trackExtensions';
+import { getAvailableTrackExtensions } from '@/utils/trackExtensions';
 import { useCadence } from '@/composables/useCadence';
 import { useActivityDateTime } from '@/composables/useActivityDateTime';
 import { useActivityDetail } from '@/composables/useActivityDetail';
@@ -37,6 +39,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const { locale, t } = useI18n();
 
 const activityStore = useActivityStore();
 
@@ -59,7 +62,14 @@ const {
   refreshSummary,
   captureActivity,
 } = useActivityDetail(() => props.id);
-const activityDateTime = useActivityDateTime(activity);
+const activityDateTime = useActivityDateTime(activity, locale);
+const localTimeUnavailable = computed(() => {
+  if (!activity.value || activityDateTime.value.isLocalTimeAvailable) return null;
+  return t('activities.row.localTimeUnavailable', {
+    timestamp: activity.value.start,
+    timezone: activity.value.timezone,
+  });
+});
 const cadenceUnit = useCadence(activity);
 const beginExtensionRefresh = useLatestRequest(captureActivity);
 
@@ -76,21 +86,19 @@ const showTrackExtensionModal = ref(false);
 const showTrackExtensionConfirmModal = ref(false);
 const selectedTrackExtension = ref<SupportedTrackExtension | null>(null);
 const isRemovingTrackExtension = ref(false);
-const trackExtensionError = ref<string | null>(null);
-const trackExtensionRefreshError = ref<string | null>(null);
+const trackExtensionError = ref<{ detail?: string } | null>(null);
+const trackExtensionRefreshError = ref(false);
 const isRefreshingTrackExtensionData = ref(false);
 const activityHighlightsKey = ref(0);
 const activitySummaryMetrics = computed(() => {
-  return activity.value === null ? [] : buildActivitySummaryMetrics(activity.value);
+  return activity.value === null ? [] : buildActivitySummaryMetrics(activity.value, locale.value);
 });
 
 const availableTrackExtensions = computed(() => getAvailableTrackExtensions(trackData.value));
 
-const selectedTrackExtensionLabel = computed(() => {
-  return selectedTrackExtension.value === null
-    ? 'sensor'
-    : trackExtensionLabels[selectedTrackExtension.value];
-});
+const selectedTrackExtensionLabel = computed(() =>
+  t(`activityDetail.sensor.${selectedTrackExtension.value ?? 'generic'}`)
+);
 
 const activityMetadata = computed(() => parseActivityMetadata(activity.value?.metaData ?? null));
 
@@ -119,13 +127,13 @@ async function handleDeleteConfirm() {
   } else {
     isDeleting.value = false;
     showDeleteModal.value = false;
-    alert('Failed to delete activity.');
+    alert(t('activityDetail.deleteActivity.failed'));
   }
 }
 
 function openTrackExtensionModal() {
   trackExtensionError.value = null;
-  trackExtensionRefreshError.value = null;
+  trackExtensionRefreshError.value = false;
   showTrackExtensionModal.value = true;
 }
 
@@ -146,15 +154,14 @@ function closeTrackExtensionConfirmation() {
 async function refreshTrackExtensionViews() {
   const isCurrent = beginExtensionRefresh();
   isRefreshingTrackExtensionData.value = true;
-  trackExtensionRefreshError.value = null;
+  trackExtensionRefreshError.value = false;
   try {
     const refreshed = await refreshDetails();
     if (!isCurrent() || !refreshed) return;
     activityHighlightsKey.value += 1;
   } catch {
     if (!isCurrent()) return;
-    trackExtensionRefreshError.value =
-      'Sensor data was removed, but this activity could not be refreshed. Try refreshing it again.';
+    trackExtensionRefreshError.value = true;
   } finally {
     if (isCurrent()) isRefreshingTrackExtensionData.value = false;
   }
@@ -175,8 +182,7 @@ async function handleTrackExtensionRemoval() {
     selectedTrackExtension.value = null;
   } catch (e: unknown) {
     if (!isCurrent()) return;
-    trackExtensionError.value =
-      e instanceof Error ? e.message : 'Failed to remove the selected sensor data.';
+    trackExtensionError.value = e instanceof ApiResponseError ? { detail: e.detail } : {};
     return;
   } finally {
     if (isCurrent()) {
@@ -197,7 +203,7 @@ function resetTransientState() {
   selectedTrackExtension.value = null;
   isRemovingTrackExtension.value = false;
   trackExtensionError.value = null;
-  trackExtensionRefreshError.value = null;
+  trackExtensionRefreshError.value = false;
   isRefreshingTrackExtensionData.value = false;
   activityHighlightsKey.value = 0;
 }
@@ -215,17 +221,21 @@ watch(
 
 <template>
   <div class="p-4 sm:p-6 lg:p-8 bg-verve-light/30 min-h-[calc(100vh-64px)]">
-    <div v-if="isLoading" class="text-center text-verve-brown/60 py-12">
-      Loading activity data...
+    <div v-if="isLoading" class="text-center text-verve-brown/60 py-12" role="status">
+      {{ t('activityDetail.loading') }}
     </div>
     <div v-else-if="error" class="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100">
-      <p role="alert">Error: {{ error }}</p>
+      <p role="alert">
+        {{ error.detail
+          ? t('activityDetail.loadErrorDetail', { detail: error.detail })
+          : t('activityDetail.loadError') }}
+      </p>
       <button
         type="button"
         @click="reload"
         class="mt-3 rounded-lg px-3 py-2 font-bold underline focus-visible:outline-2 focus-visible:outline-offset-2"
       >
-        Retry activity
+        {{ t('activityDetail.retry') }}
       </button>
     </div>
 
@@ -235,11 +245,11 @@ watch(
         <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
           <div>
             <h1 class="text-3xl font-bold text-verve-brown">
-              {{ activity.name || activityDateTime.date }}
+              {{ activity.name || (localTimeUnavailable ? t('activityDetail.unnamed') : activityDateTime.date) }}
             </h1>
             <p class="text-sm text-verve-brown/60 mt-1">
-              <time :datetime="activity.start">{{ activityDateTime.dateTime }}</time>
-              <span class="block break-words">{{ activity.timezone }}</span>
+              <time :datetime="activity.start">{{ localTimeUnavailable ?? activityDateTime.dateTime }}</time>
+              <span v-if="!localTimeUnavailable" class="block break-words">{{ activity.timezone }}</span>
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-3">
@@ -250,20 +260,22 @@ watch(
               class="px-4 py-2 border border-verve-medium text-verve-brown font-semibold rounded-xl hover:bg-verve-light transition-colors text-sm"
               @click="openTrackExtensionModal"
             >
-              Sensor data
+              {{ t('activityDetail.sensor.title') }}
             </button>
             <router-link
               :to="{ name: 'activity-edit', params: { id: activity.id } }"
               class="px-4 py-2 border border-verve-medium text-verve-brown font-semibold rounded-xl hover:bg-verve-light transition-colors text-sm"
             >
-              Edit
+              {{ t('activityDetail.edit') }}
             </router-link>
             <button
+              type="button"
               @click="showDeleteModal = true"
               class="px-3 py-2 border border-red-200 rounded-xl text-red-600 bg-white hover:bg-red-50 hover:border-red-300 transition-colors"
-              title="Delete Activity"
+              :aria-label="t('activityDetail.deleteActivity.title')"
+              :title="t('activityDetail.deleteActivity.title')"
             >
-              <Trash2 class="size-4" />
+              <Trash2 aria-hidden="true" class="size-4" />
             </button>
           </div>
         </div>
@@ -271,15 +283,15 @@ watch(
         <div :class="activitySummaryMetricListClasses">
           <div
             v-for="metric in activitySummaryMetrics"
-            :key="metric.label"
+            :key="metric.key"
             :class="activitySummaryMetricCardClasses"
           >
             <p class="text-2xl font-bold text-verve-brown">{{ metric.value }}</p>
             <p class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mt-1">
-              {{ metric.label }}
+              {{ t(`activityDetail.metrics.${metric.key}`) }}
             </p>
-            <p v-if="metric.secondary" class="mt-1 text-xs text-verve-brown/45">
-              {{ metric.secondary }}
+            <p v-if="metric.totalDuration" class="mt-1 text-xs text-verve-brown/45">
+              {{ t('activityDetail.totalDuration', { duration: metric.totalDuration }) }}
             </p>
           </div>
         </div>
@@ -289,14 +301,14 @@ watch(
           class="mt-4 flex flex-col gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
           role="alert"
         >
-          <p>{{ trackExtensionRefreshError }}</p>
+          <p>{{ t('activityDetail.sensor.refreshError') }}</p>
           <button
             type="button"
             :disabled="isRefreshingTrackExtensionData"
             class="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-2 font-semibold transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
             @click="refreshTrackExtensionViews"
           >
-            {{ isRefreshingTrackExtensionData ? 'Refreshing...' : 'Refresh activity' }}
+            {{ t(isRefreshingTrackExtensionData ? 'activityDetail.sensor.refreshing' : 'activityDetail.sensor.refresh') }}
           </button>
         </div>
       </div>
@@ -333,7 +345,7 @@ watch(
           v-if="hasLocationData"
           class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30"
         >
-          <h3 class="text-lg font-bold text-verve-brown mb-4">Elevation Profile</h3>
+          <h3 class="text-lg font-bold text-verve-brown mb-4">{{ t('activityDetail.elevationProfile') }}</h3>
           <ElevationChart
             :track-data="trackData"
             :hovered-index="hoveredPointIndex"
@@ -358,7 +370,7 @@ watch(
         v-else
         class="text-center p-12 bg-white rounded-xl shadow-sm border border-verve-medium/30 text-verve-brown/50 italic"
       >
-        <p>No map or elevation data available for this activity.</p>
+        <p>{{ t('activityDetail.noTrack') }}</p>
       </div>
 
       <!-- 3. Bottom Grid -->
@@ -389,8 +401,11 @@ watch(
   <ConfirmDeleteModal
     :is-open="showDeleteModal"
     :is-deleting="isDeleting"
-    title="Delete Activity"
-    message="Are you sure you want to delete this activity? This action cannot be undone and will remove all associated data."
+    :title="t('activityDetail.deleteActivity.title')"
+    :message="t('activityDetail.deleteActivity.description')"
+    :confirm-label="t('activityDetail.deleteActivity.confirm')"
+    :confirming-label="t('activityDetail.deleteActivity.deleting')"
+    :cancel-label="t('activityDetail.cancel')"
     @close="showDeleteModal = false"
     @confirm="handleDeleteConfirm"
   />
@@ -405,11 +420,12 @@ watch(
   <ConfirmDeleteModal
     :is-open="showTrackExtensionConfirmModal"
     :is-deleting="isRemovingTrackExtension"
-    :title="`Remove ${selectedTrackExtensionLabel} data?`"
-    :message="`This permanently removes ${selectedTrackExtensionLabel.toLowerCase()} readings from this activity. This action cannot be undone.`"
-    :confirm-label="`Remove ${selectedTrackExtensionLabel} data`"
-    confirming-label="Removing..."
-    :error-message="trackExtensionError"
+    :title="t('activityDetail.sensor.removeTitle', { sensor: selectedTrackExtensionLabel })"
+    :message="t('activityDetail.sensor.removeDescription', { sensor: selectedTrackExtensionLabel })"
+    :confirm-label="t('activityDetail.sensor.removeConfirm', { sensor: selectedTrackExtensionLabel })"
+    :confirming-label="t('activityDetail.sensor.removing')"
+    :cancel-label="t('activityDetail.cancel')"
+    :error-message="trackExtensionError && (trackExtensionError.detail || t('activityDetail.sensor.removeError'))"
     @close="closeTrackExtensionConfirmation"
     @confirm="handleTrackExtensionRemoval"
   />

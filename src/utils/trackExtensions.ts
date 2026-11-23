@@ -1,11 +1,5 @@
 import type { SupportedTrackExtension, TrackPoint } from '@/services/api';
 
-export const trackExtensionLabels: Record<SupportedTrackExtension, string> = {
-  heartrate: 'Heart Rate',
-  power: 'Power',
-  cadence: 'Cadence',
-};
-
 const trackExtensionFields: Record<SupportedTrackExtension, keyof TrackPoint> = {
   heartrate: 'hr',
   power: 'power',

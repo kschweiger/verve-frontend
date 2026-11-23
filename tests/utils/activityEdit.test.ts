@@ -38,9 +38,16 @@ describe('activity editor updates', () => {
     ).toEqual({ timezone: 'Asia/Tokyo', name: 'Renamed hike', distance: 2, duration: 'PT15M' });
   });
 
-  test('rejects invalid timezone and changed zero duration', () => {
+  test.each([
+    [{ timezone: '' }, 'invalidTimezone'],
+    [{ durationSeconds: 0 }, 'invalidDuration'],
+  ])('returns a validation reason for %j', (change, reason) => {
     const baseline = edit.toActivityEditValues(original);
-    expect(() => edit.buildActivityUpdate(baseline, { ...baseline, timezone: '' })).toThrow();
-    expect(() => edit.buildActivityUpdate(baseline, { ...baseline, durationSeconds: 0 })).toThrow();
+    expect.assertions(1);
+    try {
+      edit.buildActivityUpdate(baseline, { ...baseline, ...change });
+    } catch (error) {
+      expect(error).toHaveProperty('reason', reason);
+    }
   });
 });

@@ -1,9 +1,21 @@
 import type { Activity } from '@/stores/activity';
+import { formatDuration } from './datetime';
+
+export type ActivitySummaryMetricKey =
+  | 'distance'
+  | 'activeTime'
+  | 'elevationGain'
+  | 'averageSpeed'
+  | 'maximumSpeed'
+  | 'averageHeartRate'
+  | 'maximumHeartRate'
+  | 'averagePower'
+  | 'maximumPower';
 
 export interface ActivitySummaryMetric {
-  label: string;
+  key: ActivitySummaryMetricKey;
   value: string;
-  secondary?: string;
+  totalDuration?: string;
 }
 
 export const activitySummaryMetricListClasses = 'flex flex-wrap justify-center gap-6 text-center';
@@ -11,41 +23,48 @@ export const activitySummaryMetricListClasses = 'flex flex-wrap justify-center g
 export const activitySummaryMetricCardClasses =
   'basis-[calc((100%_-_1.5rem)/2)] md:basis-[calc((100%_-_3rem)/3)] lg:basis-[calc((100%_-_6rem)/5)] p-4 bg-verve-light/20 rounded-lg';
 
-const rounded = (value: number, digits: number): string => value.toFixed(digits);
-
-const roundedInteger = (value: number): string => value.toFixed(0);
+function fixedPrecision(locale: string, digits: number) {
+  const formatter = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  // Keep the summary's existing rounding while localizing separators.
+  return (value: number) => formatter.format(Number(value.toFixed(digits)));
+}
 
 const metric = (
-  label: string,
+  key: ActivitySummaryMetricKey,
   value: number | null,
   formatter: (value: number) => string
 ): ActivitySummaryMetric | null => {
   if (value === null) return null;
   return {
-    label,
+    key,
     value: formatter(value),
   };
 };
 
-export function buildActivitySummaryMetrics(activity: Activity): ActivitySummaryMetric[] {
+export function buildActivitySummaryMetrics(activity: Activity, locale: string): ActivitySummaryMetric[] {
+  const formatInteger = fixedPrecision(locale, 0);
+  const formatSpeed = fixedPrecision(locale, 1);
   const durationMetric: ActivitySummaryMetric = {
-    label: 'Active Time',
-    value: activity.effectiveDuration,
+    key: 'activeTime',
+    value: formatDuration(activity.effectiveDurationSeconds, locale),
   };
 
   if (activity.durationSeconds !== activity.effectiveDurationSeconds) {
-    durationMetric.secondary = `${activity.duration} total`;
+    durationMetric.totalDuration = formatDuration(activity.durationSeconds, locale);
   }
 
   return [
-    metric('km', activity.distance, (value) => rounded(value, 2)),
+    metric('distance', activity.distance, fixedPrecision(locale, 2)),
     durationMetric,
-    metric('m Gain', activity.elevationGain, roundedInteger),
-    metric('Avg Speed', activity.avg_speed, (value) => rounded(value, 1)),
-    metric('Max Speed', activity.max_speed, (value) => rounded(value, 1)),
-    metric('Avg HR', activity.avg_heartrate, roundedInteger),
-    metric('Max HR', activity.max_heartrate, roundedInteger),
-    metric('Avg Power', activity.avg_power, roundedInteger),
-    metric('Max Power', activity.max_power, roundedInteger),
+    metric('elevationGain', activity.elevationGain, formatInteger),
+    metric('averageSpeed', activity.avg_speed, formatSpeed),
+    metric('maximumSpeed', activity.max_speed, formatSpeed),
+    metric('averageHeartRate', activity.avg_heartrate, formatInteger),
+    metric('maximumHeartRate', activity.max_heartrate, formatInteger),
+    metric('averagePower', activity.avg_power, formatInteger),
+    metric('maximumPower', activity.max_power, formatInteger),
   ].filter((item): item is ActivitySummaryMetric => item !== null);
 }

@@ -19,29 +19,43 @@ import {
   type SegmentStats,
   type TrackPoint,
 } from '../services/api';
+import { ApiResponseError } from '../services/authHeaders';
 import { elapsedSecondsBetweenInstants } from '../utils/datetime';
 import { useAccountSession } from './useAccountSession';
 import { useLatestRequest } from './useLatestRequest';
 import { formatCadence, type CadenceUnit } from './useCadence';
 
+type SegmentErrorKey = 'loadSets' | 'loadStats' | 'create' | 'update' | 'delete';
+
+interface SegmentError {
+  key: SegmentErrorKey;
+  detail?: string;
+}
+
+function segmentError(key: SegmentErrorKey, error: unknown): SegmentError {
+  const detail = error instanceof ApiResponseError ? error.detail : undefined;
+  return detail === undefined ? { key } : { key, detail };
+}
+
 export function useActivitySegments(
   activityId: MaybeRefOrGetter<string>,
   trackData: Readonly<Ref<TrackPoint[]>>,
   hoveredPointIndex: Readonly<Ref<number | null>>,
-  cadenceUnit: MaybeRefOrGetter<CadenceUnit> = 'counts/min'
+  cadenceUnit: MaybeRefOrGetter<CadenceUnit> = 'counts/min',
+  locale?: MaybeRefOrGetter<string>
 ) {
   const segmentSetIds = ref<string[]>([]);
   const segmentStatisticsById = ref<Record<string, SegmentStatistics>>({});
   const selectedSegmentSetId = ref<string | null>(null);
   const isLoadingSegmentSets = ref(false);
-  const segmentSetError = ref<string | null>(null);
+  const segmentSetError = ref<SegmentError | null>(null);
   const showSegmentStats = ref(false);
   const isEditingSegmentCuts = ref(false);
   const editableSegmentCuts = ref<number[]>([]);
   const isCreatingSegmentSet = ref(false);
   const draftSegmentSetName = ref('');
   const isSavingSegmentSet = ref(false);
-  const segmentMutationError = ref<string | null>(null);
+  const segmentMutationError = ref<SegmentError | null>(null);
   const expandedSegmentIndices = ref<number[]>([]);
 
   let active = true;
@@ -74,6 +88,7 @@ export function useActivitySegments(
     segmentSetError.value = null;
     resetSegmentData();
 
+    let errorKey: SegmentErrorKey = 'loadSets';
     try {
       const ids = await fetchActivitySegmentSetIds(toValue(activityId));
       if (!isCurrent()) return;
@@ -81,6 +96,7 @@ export function useActivitySegments(
 
       if (ids.length === 0) return;
 
+      errorKey = 'loadStats';
       const segmentStatistics = await Promise.all(ids.map((id) => fetchSegmentStatistics(id)));
       if (!isCurrent()) return;
       segmentStatisticsById.value = Object.fromEntries(
@@ -89,7 +105,7 @@ export function useActivitySegments(
       selectedSegmentSetId.value = segmentStatistics[0]?.segmentSetId ?? ids[0] ?? null;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      segmentSetError.value = e instanceof Error ? e.message : String(e);
+      segmentSetError.value = segmentError(errorKey, e);
     } finally {
       if (isCurrent()) {
         isLoadingSegmentSets.value = false;
@@ -212,12 +228,12 @@ export function useActivitySegments(
     cancelSegmentCutEdit();
   }
 
-  function startNewSegmentSet() {
+  function startNewSegmentSet(name: string) {
     if (!canStartNewSegmentSet.value) return;
     segmentMutationError.value = null;
     selectedSegmentSetId.value = null;
     isCreatingSegmentSet.value = true;
-    draftSegmentSetName.value = `Segments ${segmentSetIds.value.length + 1}`;
+    draftSegmentSetName.value = name;
     editableSegmentCuts.value = [];
     insertEditableCutInGap(0);
     isEditingSegmentCuts.value = true;
@@ -322,13 +338,6 @@ export function useActivitySegments(
 
   function canInsertCutInGap(gapIndex: number) {
     return minInsertTrackIndexForGap(gapIndex) <= maxInsertTrackIndexForGap(gapIndex);
-  }
-
-  function gapLabel(gapIndex: number) {
-    const startLabel = gapIndex === 0 ? 'Start' : `Cut ${gapIndex}`;
-    const endLabel =
-      gapIndex === editableSegmentCuts.value.length ? 'Finish' : `Cut ${gapIndex + 1}`;
-    return `${startLabel} -> ${endLabel}`;
   }
 
   function gapDuration(gapIndex: number) {
@@ -479,13 +488,6 @@ export function useActivitySegments(
     return formatSeconds(elapsedSecondsForTrackIndex(index));
   }
 
-  function trackLabelForIndex(index: number) {
-    const point = trackData.value[index];
-    if (!point) return 'Unknown point';
-
-    return `${formatElapsedTrackTime(index)} · ${formatDistanceMeters(point.dist)} · Point ${point.id}`;
-  }
-
   function updateEditableCut(cutPosition: number, event: Event) {
     const target = event.target;
     if (!(target instanceof HTMLInputElement)) return;
@@ -521,6 +523,7 @@ export function useActivitySegments(
     isSavingSegmentSet.value = true;
     segmentMutationError.value = null;
 
+    let errorKey: SegmentErrorKey = isCreatingSegmentSet.value ? 'create' : 'update';
     try {
       if (isCreatingSegmentSet.value) {
         const created = await createSegmentSet({
@@ -537,6 +540,7 @@ export function useActivitySegments(
           cuts: sortedEditableSegmentCuts.value,
         });
         if (!isCurrent()) return;
+        errorKey = 'loadStats';
         const updatedStatistics = await fetchSegmentStatistics(selectedSegmentSetId.value);
         if (!isCurrent()) return;
         segmentStatisticsById.value = {
@@ -549,7 +553,7 @@ export function useActivitySegments(
       showSegmentStats.value = true;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      segmentMutationError.value = e instanceof Error ? e.message : String(e);
+      segmentMutationError.value = segmentError(errorKey, e);
     } finally {
       if (isCurrent()) {
         isSavingSegmentSet.value = false;
@@ -572,7 +576,7 @@ export function useActivitySegments(
       if (!isCurrent()) return;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      segmentMutationError.value = e instanceof Error ? e.message : String(e);
+      segmentMutationError.value = segmentError('delete', e);
     } finally {
       if (isCurrent()) {
         isSavingSegmentSet.value = false;
@@ -580,13 +584,25 @@ export function useActivitySegments(
     }
   }
 
-  function formatDistanceMeters(meters: number | null) {
-    if (meters === null) return '-';
-    if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
-    return `${meters.toFixed(0)} m`;
+  function formatFixed(value: number, digits = 0) {
+    const fixed = value.toFixed(digits);
+    const currentLocale = toValue(locale);
+    return currentLocale
+      ? Number(fixed).toLocaleString(currentLocale, {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        })
+      : fixed;
   }
 
-  function formatSeconds(seconds: number) {
+  function formatDistanceMeters(meters: number | null) {
+    if (meters === null) return '-';
+    if (meters >= 1000) return `${formatFixed(meters / 1000, 2)} km`;
+    return `${formatFixed(meters)} m`;
+  }
+
+  function formatSeconds(seconds: number | null) {
+    if (seconds === null) return '-';
     const wholeSeconds = Math.round(seconds);
     const hours = Math.floor(wholeSeconds / 3600);
     const minutes = Math.floor((wholeSeconds % 3600) / 60);
@@ -602,21 +618,21 @@ export function useActivitySegments(
   function formatSpeedMetersPerSecond(speed: number | null, unit = 'km/h') {
     if (speed === null) return '-';
 
-    if (unit === 'm/s') return `${speed.toFixed(1)} m/s`;
-    if (unit === 'miles/h') return `${(speed * 2.236936).toFixed(1)} mph`;
-    return `${(speed * 3.6).toFixed(1)} km/h`;
+    if (unit === 'm/s') return `${formatFixed(speed, 1)} m/s`;
+    if (unit === 'miles/h') return `${formatFixed(speed * 2.236936, 1)} mph`;
+    return `${formatFixed(speed * 3.6, 1)} km/h`;
   }
 
   function formatNullableMetric(value: number | null, unit: string) {
     if (value === null) return '-';
-    return `${value.toFixed(0)} ${unit}`;
+    return `${formatFixed(value)} ${unit}`;
   }
 
   function formatSegmentElevation(gain: number | null, loss: number | null) {
     if (gain === null && loss === null) return '-';
 
-    const gainLabel = gain === null ? '-' : `+${gain.toFixed(0)}`;
-    const lossLabel = loss === null ? '-' : `-${loss.toFixed(0)}`;
+    const gainLabel = gain === null ? '-' : `+${formatFixed(gain)}`;
+    const lossLabel = loss === null ? '-' : `-${formatFixed(loss)}`;
     return `${gainLabel} / ${lossLabel} m`;
   }
 
@@ -624,26 +640,14 @@ export function useActivitySegments(
     if (secondsPerKm === null) return '-';
 
     const unit = selectedSegmentStatistics.value?.displayMetadata.paceUnit ?? 'min/km';
-    if (unit === 's/km') return `${secondsPerKm.toFixed(0)} s/km`;
-    if (unit === 's/mile') return `${(secondsPerKm * 1.609344).toFixed(0)} s/mi`;
+    if (unit === 's/km') return `${formatFixed(secondsPerKm)} s/km`;
+    if (unit === 's/mile') return `${formatFixed(secondsPerKm * 1.609344)} s/mi`;
     if (unit === 'min/mile') return `${formatSeconds(secondsPerKm * 1.609344)}/mi`;
     return `${formatSeconds(secondsPerKm)}/km`;
   }
 
   function segmentMetricValue(segment: SegmentStats, metric: SegmentMetric): SegmentMetrics | null {
     return segment[metric];
-  }
-
-  function metricLabel(metric: SegmentMetric) {
-    const labels: Record<SegmentMetric, string> = {
-      pace: 'Pace',
-      speed: 'Speed',
-      heartrate: 'HR',
-      power: 'Power',
-      cadence: 'Cadence',
-    };
-
-    return labels[metric];
   }
 
   function formatSegmentMetric(metric: SegmentMetric, value: number | null) {
@@ -658,7 +662,7 @@ export function useActivitySegments(
     }
     if (metric === 'heartrate') return formatNullableMetric(value, 'bpm');
     if (metric === 'power') return formatNullableMetric(value, 'W');
-    return formatCadence(value, toValue(cadenceUnit));
+    return formatCadence(value, toValue(cadenceUnit), toValue(locale));
   }
 
   function formatSegmentMetricAverage(segment: SegmentStats, metric: SegmentMetric) {
@@ -712,7 +716,6 @@ export function useActivitySegments(
     durationBeforeCut,
     finalEditableSegmentDuration,
     canInsertCutInGap,
-    gapLabel,
     gapDuration,
     gapDistance,
     minTrackIndexForCutPosition,
@@ -720,7 +723,6 @@ export function useActivitySegments(
     nudgeEditableCutByPoints,
     nudgeEditableCutBySeconds,
     formatElapsedTrackTime,
-    trackLabelForIndex,
     updateEditableCut,
     insertEditableCutInGap,
     removeEditableCut,
@@ -729,7 +731,6 @@ export function useActivitySegments(
     formatSeconds,
     formatSegmentElevation,
     segmentMetricValue,
-    metricLabel,
     formatSegmentMetric,
     formatSegmentMetricAverage,
     loadSegmentSets,

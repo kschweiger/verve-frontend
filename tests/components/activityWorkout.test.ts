@@ -1,8 +1,9 @@
 import { useClientRendering } from '../helpers/vueComponents';
 import { stubFetch } from '../helpers/fetch';
 import { afterEach, expect, test } from 'bun:test';
-import { createRenderer, h, nextTick, ref } from 'vue';
+import { createRenderer, defineComponent, h, nextTick, ref } from 'vue';
 import { createPinia } from 'pinia';
+import { createAppI18n } from '../../src/i18n';
 import { useUserStore } from '../../src/stores/auth';
 useClientRendering(import.meta.dir + '/../../src/components/ActivityWorkout.vue');
 useClientRendering(import.meta.dir + '/../../src/components/WorkoutExerciseFields.vue');
@@ -74,7 +75,7 @@ async function flush() {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await nextTick();
 }
-function mount() {
+function mount(locale: 'en' | 'de' = 'en') {
   globals.Document = class {};
   globals.ShadowRoot = class {};
   globalThis.localStorage = {
@@ -86,10 +87,20 @@ function mount() {
     length: 0,
   };
   const pinia = createPinia();
+  const i18n = createAppI18n(locale);
   const id = ref('one');
   const app = renderer.createApp({ render: () => h(ActivityWorkout, { activityId: id.value }) });
   app.use(pinia);
-  app.component('router-link', { render: () => h('a', 'Planning') });
+  app.use(i18n);
+  app.component(
+    'router-link',
+    defineComponent({
+      props: ['to'],
+      setup(props, { slots }) {
+        return () => h('a', { to: props.to }, slots.default?.());
+      },
+    })
+  );
   useUserStore(pinia).token = 'token';
   const root = new Element('root');
   app.mount(root);
@@ -99,7 +110,7 @@ function mount() {
     all(root)
       .map((el) => el.text)
       .join(' ');
-  return { id, root, all, content, pinia };
+  return { id, root, all, content, pinia, locale: i18n.global.locale };
 }
 
 function muscleGroup(code: string, name: string, exerciseId: string) {
@@ -112,6 +123,57 @@ function muscleGroup(code: string, name: string, exerciseId: string) {
     exercise_ids: [exerciseId],
   };
 }
+
+test('workout summary localizes targets and delete controls while preserving exercise names', async () => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) => {
+    const path = new URL(String(input), 'https://example.test').pathname;
+    if (path.endsWith('/muscle_groups')) return Response.json({ data: [] });
+    if (path.endsWith('/exercises')) {
+      return Response.json({
+        data: [{ id: 'exercise', code: 'squat', name: 'Air Squat', is_active: false, muscles: [] }],
+      });
+    }
+    return Response.json({
+      id: 'snapshot',
+      activity_id: 'one',
+      entries: [{ id: 33, exercise_id: 'exercise', sets: 1, repetitions: 12, weight: 20.25 }],
+    });
+  });
+  const ui = mount('de');
+  await flush();
+  expect(ui.content()).toContain('Training bearbeiten');
+  expect(ui.content()).toContain('1 Satz');
+  expect(ui.content()).toContain('12 Wdh.');
+  expect(ui.content()).toContain('20,25 kg');
+  expect(ui.content()).toContain('(inaktiv)');
+  expect(
+    ui.all(ui.root).find((el) => el.props['aria-label'] === 'Air Squat löschen, Zeile 1')
+  ).toBeDefined();
+
+  ui.locale.value = 'en';
+  await flush();
+  expect(ui.content()).toContain('1 set');
+  expect(ui.content()).toContain('20.25 kg');
+});
+
+test('workout load failures use localized copy and preserve backend details', async () => {
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
+    String(input).endsWith('/one')
+      ? new Response(null, { status: 500 })
+      : Response.json({ detail: 'Eintrag #ABC' }, { status: 500 })
+  );
+  const ui = mount('de');
+  await flush();
+  expect(ui.content()).toContain('Das Training konnte nicht geladen werden.');
+  expect(ui.content()).toContain('Training erneut laden');
+  ui.id.value = 'two';
+  await flush();
+  expect(ui.content()).toContain('Eintrag #ABC');
+  ui.locale.value = 'en';
+  await nextTick();
+  expect(ui.content()).toContain('Failed to load workout.');
+  expect(ui.content()).toContain('Eintrag #ABC');
+});
 
 test('saved empty snapshot does not offer template application', async () => {
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
@@ -173,21 +235,41 @@ test('a failed muscle lookup leaves saved exercises available and can be retried
   expect(content).not.toContain('Retry muscle groups');
   expect(requests).toHaveLength(2);
 });
-test('missing snapshot offers planning while other errors offer local retry', async () => {
-  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
-    String(input).endsWith('/exercise_plans')
-      ? Response.json({ data: [] })
-      : new Response('', { status: 404 })
-  );
-  const ui = mount();
-  await flush();
-  expect(ui.content()).toContain('No workout plans available.');
-  globalThis.fetch = stubFetch(async () => new Response('', { status: 500 }));
-  ui.id.value = 'two';
-  await flush();
-  expect(ui.content()).toContain('Retry workout');
-  expect(ui.content()).not.toContain('No workout plans available.');
-});
+test.each([
+  {
+    locale: 'en' as const,
+    empty: 'No workout plans available.',
+    planning: 'Planning',
+    retry: 'Retry workout',
+  },
+  {
+    locale: 'de' as const,
+    empty: 'Es sind keine Trainingspläne verfügbar.',
+    planning: 'Planung',
+    retry: 'Training erneut laden',
+  },
+])(
+  'missing snapshot offers planning while other errors offer local retry ($locale)',
+  async ({ locale, empty, planning, retry }) => {
+    globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>
+      String(input).endsWith('/exercise_plans')
+        ? Response.json({ data: [] })
+        : new Response('', { status: 404 })
+    );
+    const ui = mount(locale);
+    await flush();
+    expect(ui.content()).toContain(empty);
+    const link = ui.all(ui.root).find((el) => el.tag === 'a');
+    expect(link?.children[0]?.text).toBe(planning);
+    expect(link?.props.to).toEqual({ name: 'workout-plans' });
+
+    globalThis.fetch = stubFetch(async () => new Response('', { status: 500 }));
+    ui.id.value = 'two';
+    await flush();
+    expect(ui.content()).toContain(retry);
+    expect(ui.content()).not.toContain(empty);
+  }
+);
 test('a stale snapshot cannot replace the next activity', async () => {
   let finish: ((response: Response) => void) | undefined;
   globalThis.fetch = stubFetch(async (input: RequestInfo | URL) =>

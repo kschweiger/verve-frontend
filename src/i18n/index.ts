@@ -6,6 +6,13 @@ import * as settings from './settings';
 import * as activities from './activities';
 import * as calendar from './calendar';
 import * as dashboard from './dashboard';
+import * as activityHighlights from './activityHighlights';
+import * as activityActions from './activityActions';
+import * as activityCharts from './activityCharts';
+import * as activityDetail from './activityDetail';
+import * as workoutFields from './workoutFields';
+import * as workout from './workout';
+import * as segments from './segments';
 
 export function createAppI18n(initialLocale: SupportedLocale = 'en') {
   return createI18n({
@@ -20,6 +27,13 @@ export function createAppI18n(initialLocale: SupportedLocale = 'en') {
         activities: activities.en,
         calendar: calendar.en,
         dashboard: dashboard.en,
+        activityHighlights: activityHighlights.en,
+        activityActions: activityActions.en,
+        activityCharts: activityCharts.en,
+        activityDetail: activityDetail.en,
+        workoutFields: workoutFields.en,
+        workout: workout.en,
+        segments: segments.en,
         language: {
           en: 'English',
           de: 'German',
@@ -32,6 +46,13 @@ export function createAppI18n(initialLocale: SupportedLocale = 'en') {
         activities: activities.de,
         calendar: calendar.de,
         dashboard: dashboard.de,
+        activityHighlights: activityHighlights.de,
+        activityActions: activityActions.de,
+        activityCharts: activityCharts.de,
+        activityDetail: activityDetail.de,
+        workoutFields: workoutFields.de,
+        workout: workout.de,
+        segments: segments.de,
         language: {
           en: 'Englisch',
           de: 'Deutsch',

@@ -1,23 +1,25 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ActivityMuscleGroup } from '@/services/workoutPlans';
 
 const props = defineProps<{ groups: readonly ActivityMuscleGroup[] }>();
+const { t, locale } = useI18n();
 const titleId = useId();
+const collator = computed(() => new Intl.Collator(locale.value));
 const roles = computed(() => new Map(props.groups.map(({ code, role }) => [code, role])));
 const legend = computed(() =>
   [
-    { role: 'primary', label: 'Primary muscles', swatch: 'bg-verve-dark' },
+    { role: 'primary', swatch: 'bg-verve-dark' },
     {
       role: 'secondary',
-      label: 'Secondary muscles',
       swatch: 'bg-verve-medium ring-1 ring-verve-dark/80 ring-inset',
     },
   ].map((item) => ({
     ...item,
     groups: props.groups
       .filter((group) => group.role === item.role)
-      .sort((a, b) => a.name.localeCompare(b.name)),
+      .sort((a, b) => collator.value.compare(a.name, b.name)),
   }))
 );
 const regionColors = {
@@ -58,9 +60,9 @@ const outline = `M80 9
   C92 48 96 40 96 29 C97 17 91 9 80 9 Z`;
 
 // Region keys match the muscle group codes in the backend exercise catalog.
-const views: { name: string; contours: string; regions: Record<string, string> }[] = [
+const views: { name: 'front' | 'back'; contours: string; regions: Record<string, string> }[] = [
   {
-    name: 'Front',
+    name: 'front',
     contours: `M71 52 Q80 61 89 52 M70 63 Q75 67 80 65 Q85 67 90 63
       M34 171 Q32 173 32 177 M126 171 Q128 173 128 177
       M61 248 Q64 253 68 249 M92 249 Q96 253 99 248
@@ -88,7 +90,7 @@ const views: { name: string; contours: string; regions: Record<string, string> }
     },
   },
   {
-    name: 'Back',
+    name: 'back',
     contours: `M72 54 Q80 57 88 54 M80 59 L80 142
       M33 170 Q32 173 31 176 M127 170 Q128 173 129 176
       M61 248 Q64 251 68 248 M92 248 Q96 251 99 248
@@ -122,7 +124,7 @@ const views: { name: string; contours: string; regions: Record<string, string> }
 
 <template>
   <section :aria-labelledby="titleId">
-    <h3 :id="titleId" class="font-semibold">Muscle map</h3>
+    <h3 :id="titleId" class="font-semibold">{{ t('workoutFields.muscleMap.title') }}</h3>
     <div class="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-verve-light/60 p-3">
       <figure v-for="view in views" :key="view.name" class="text-center">
         <svg viewBox="11 4 138 350" class="h-auto w-full" aria-hidden="true" focusable="false">
@@ -151,20 +153,22 @@ const views: { name: string; contours: string; regions: Record<string, string> }
             stroke-linecap="round"
           />
         </svg>
-        <figcaption class="mt-1 text-xs font-medium">{{ view.name }}</figcaption>
+        <figcaption class="mt-1 text-xs font-medium">
+          {{ t(`workoutFields.muscleMap.${view.name}`) }}
+        </figcaption>
       </figure>
     </div>
     <details class="mt-2 border-t border-verve-medium/60">
       <summary
         class="cursor-pointer rounded-sm py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-verve-orange"
       >
-        Muscle groups
+        {{ t('workoutFields.muscleMap.groups') }}
       </summary>
       <dl class="space-y-3 pt-1 pb-2 text-sm">
         <div v-for="item in legend" v-show="item.groups.length" :key="item.role">
           <dt class="flex items-center gap-2 font-semibold">
             <span class="size-3 rounded-sm" :class="item.swatch" aria-hidden="true"></span>
-            {{ item.label }}
+            {{ t(`workoutFields.muscleMap.${item.role}`) }}
           </dt>
           <dd class="mt-1.5 pl-5 text-verve-brown/85">
             <ul class="flex flex-wrap gap-x-3 gap-y-1">
