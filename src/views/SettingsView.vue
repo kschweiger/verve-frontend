@@ -14,7 +14,6 @@ import HeatmapSettingsForm from '@/components/forms/HeatmapSettingsForm.vue';
 import RecordsSettingsForm from '@/components/forms/RecordsSettingsForm.vue';
 import TimezoneSettingsForm from '@/components/forms/TimezoneSettingsForm.vue';
 import type { SupportedLocale } from '@/types/api';
-import LanguageSelector from '@/components/forms/LanguageSelector.vue';
 
 const { t } = useI18n();
 
@@ -128,8 +127,6 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
   <div class="p-4 sm:p-6 lg:p-8 bg-verve-medium min-h-[calc(100vh-64px)]">
     <div class="max-w-4xl mx-auto space-y-8">
       <h1 class="text-3xl font-bold text-verve-brown">{{ t('settings.settings') }}</h1>
-
-      <LanguageSelector />
 
       <!-- Loading State -->
       <div

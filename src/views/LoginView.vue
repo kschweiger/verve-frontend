@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import LoginForm from '@/components/LoginForm.vue';
-import LanguageSelector from '@/components/forms/LanguageSelector.vue';
 import logo from '@/assets/logo.svg';
 import { useI18n } from 'vue-i18n';
 
@@ -18,7 +17,6 @@ const { t } = useI18n();
         <p class="mt-2 text-verve-brown/60 text-sm font-medium">{{ t('auth.loginTagline') }}</p>
       </div>
 
-      <LanguageSelector />
       <LoginForm />
 
       <div class="text-center text-sm text-verve-brown/70">

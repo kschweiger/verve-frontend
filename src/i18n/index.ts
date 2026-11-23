@@ -15,8 +15,6 @@ export function createAppI18n(initialLocale: SupportedLocale = 'en') {
         auth: auth.en,
         settings: settings.en,
         language: {
-          label: 'Language on this device',
-          auto: 'Automatic',
           en: 'English',
           de: 'German',
         },
@@ -26,8 +24,6 @@ export function createAppI18n(initialLocale: SupportedLocale = 'en') {
         auth: auth.de,
         settings: settings.de,
         language: {
-          label: 'Sprache auf diesem Gerät',
-          auto: 'Automatisch',
           en: 'Englisch',
           de: 'Deutsch',
         },
