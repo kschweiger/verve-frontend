@@ -289,3 +289,28 @@ describe('settings store records settings', () => {
     expect(settingsStore.userSettings?.records_settings?.default_activity_type).toBe(3);
   });
 });
+
+test('settings errors distinguish server diagnostics from transport failures', async () => {
+  useUserStore().setToken('token');
+  const store = useSettingsStore();
+  globalThis.fetch = stubFetch(
+    mock(async () => {
+      throw new TypeError('network failed');
+    })
+  );
+  await store.fetchAllSettings();
+  expect(store.error).toBeTruthy();
+  expect(store.errorDetail).toBeNull();
+  expect(await store.updateTimezone('UTC')).toBe(false);
+  expect(store.timezoneErrorDetail).toBeNull();
+  globalThis.fetch = stubFetch(
+    mock(async () => jsonResponse({ detail: 'Server diagnostic' }, { status: 400 }))
+  );
+  await store.fetchAllSettings();
+  expect(store.errorDetail).toBe('Server diagnostic');
+  await store.updateTimezone('UTC');
+  expect(store.timezoneErrorDetail).toBe('Server diagnostic');
+  expect((await store.updatePassword({ old_password: 'old', new_password: 'new' })).detail).toBe(
+    'Server diagnostic'
+  );
+});

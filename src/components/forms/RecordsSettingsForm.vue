@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import { computed, ref, watch } from 'vue';
 import type { RecordsSettings } from '@/stores/settings';
 import type { ActivityType } from '@/stores/types';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   initialSettings: RecordsSettings | null;
@@ -20,14 +23,11 @@ const selectedTypeId = ref<number | null>(
 
 const canSave = computed(() => selectedTypeId.value !== null);
 
-watch(
-  fallbackTypeId,
-  (nextFallbackTypeId) => {
-    if (selectedTypeId.value === null) {
-      selectedTypeId.value = nextFallbackTypeId;
-    }
+watch(fallbackTypeId, (nextFallbackTypeId) => {
+  if (selectedTypeId.value === null) {
+    selectedTypeId.value = nextFallbackTypeId;
   }
-);
+});
 
 function onSave() {
   if (selectedTypeId.value === null) return;
@@ -37,24 +37,26 @@ function onSave() {
 
 <template>
   <div class="space-y-4 pt-2">
-    <p class="text-sm text-verve-brown/60">
-      Choose which activity type opens first in the records trophy case.
-    </p>
+    <p class="text-sm text-verve-brown/60">{{ t('settings.recordsInstructions') }}</p>
 
     <div v-if="activityTypes.length === 0" class="text-verve-brown/40 text-sm">
-      Loading types...
+      {{ t('settings.loadingTypes') }}
     </div>
 
     <label v-else class="block">
       <span class="block text-xs font-bold text-verve-brown/60 uppercase mb-2">
-        Default records activity type
+        {{ t('settings.recordsType') }}
       </span>
       <select
         v-model.number="selectedTypeId"
         class="w-full"
-        aria-label="Default records activity type"
+        :aria-label="t('settings.recordsType')"
       >
-        <option v-for="activityType in activityTypes" :key="activityType.id" :value="activityType.id">
+        <option
+          v-for="activityType in activityTypes"
+          :key="activityType.id"
+          :value="activityType.id"
+        >
           {{ activityType.name }}
         </option>
       </select>
@@ -66,7 +68,7 @@ function onSave() {
         class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors"
         @click="$emit('cancel')"
       >
-        Cancel
+        {{ t('settings.cancel') }}
       </button>
       <button
         type="button"
@@ -74,7 +76,7 @@ function onSave() {
         :disabled="!canSave"
         @click="onSave"
       >
-        Save Changes
+        {{ t('settings.saveChanges') }}
       </button>
     </div>
   </div>

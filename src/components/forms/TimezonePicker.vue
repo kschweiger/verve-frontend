@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import { computed, nextTick, ref, watch } from 'vue';
 import { ChevronDown, Check, Search } from '@lucide/vue';
 import { timezoneLabel, useTimezonePicker } from '@/composables/useTimezonePicker';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -25,6 +28,7 @@ const picker = useTimezonePicker({
   disabled: () => props.disabled,
   allowEmpty: () => props.allowEmpty,
   suggestedTimezone: () => props.suggestedTimezone,
+  emptyLabel: () => t('settings.noOverride'),
   select: (value) => emit('update:modelValue', value),
 });
 const { isOpen, query, results, activeIndex } = picker;
@@ -32,8 +36,8 @@ const selectedLabel = computed(() =>
   props.modelValue
     ? timezoneLabel(props.modelValue)
     : props.allowEmpty
-      ? 'No override'
-      : 'Select timezone'
+      ? t('settings.noOverride')
+      : t('settings.selectTimezone')
 );
 const activeId = computed(() =>
   results.value[activeIndex.value] ? `${props.id}-option-${activeIndex.value}` : undefined
@@ -135,14 +139,14 @@ function handleFocusOut(event: FocusEvent) {
           v-model="query"
           type="search"
           role="combobox"
-          :aria-label="`Search ${label.toLowerCase()}`"
+          :aria-label="t('settings.searchLabel', { label })"
           aria-autocomplete="list"
           aria-expanded="true"
           :aria-controls="`${id}-list`"
           :aria-activedescendant="activeId"
           :aria-describedby="describedBy"
           autocomplete="off"
-          placeholder="Search city or timezone…"
+          :placeholder="t('settings.searchTimezone')"
           class="w-full rounded-lg border border-verve-medium bg-white py-2 pl-9 pr-3 text-sm text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-dark"
           @keydown="handleKey"
         />
@@ -169,7 +173,7 @@ function handleFocusOut(event: FocusEvent) {
             <span class="block font-medium"
               >{{ entry.label }}
               <span v-if="entry.suggested" class="text-xs font-normal text-verve-brown/60"
-                >· Your timezone</span
+                >· {{ t('settings.yourTimezone') }}</span
               ></span
             >
             <span v-if="entry.value" class="block break-all text-xs text-verve-brown/60">{{
@@ -180,7 +184,7 @@ function handleFocusOut(event: FocusEvent) {
         </li>
       </ul>
       <p v-if="!results.length" role="status" class="px-3 py-3 text-sm text-verve-brown/60">
-        No matching timezones
+        {{ t('settings.noMatchingTimezones') }}
       </p>
     </div>
   </div>

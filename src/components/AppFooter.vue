@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import logo from '@/assets/logo.svg';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -16,21 +19,21 @@ import logo from '@/assets/logo.svg';
         <!-- Links Columns -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-8 text-xs text-verve-dark w-full md:w-auto">
           <div class="flex flex-col space-y-2">
-            <span class="font-bold text-verve-brown mb-1">Help</span>
-            <router-link to="/help#start" class="hover:underline">Getting Started</router-link>
-            <router-link to="/help#faq" class="hover:underline">FAQ</router-link>
-            <router-link to="/help#formats" class="hover:underline">File Formats</router-link>
+            <span class="font-bold text-verve-brown mb-1">{{ t('navigation.footer.help') }}</span>
+            <router-link to="/help#start" class="hover:underline">{{ t('navigation.footer.gettingStarted') }}</router-link>
+            <router-link to="/help#faq" class="hover:underline">{{ t('navigation.footer.faq') }}</router-link>
+            <router-link to="/help#formats" class="hover:underline">{{ t('navigation.footer.fileFormats') }}</router-link>
           </div>
           <div class="flex flex-col space-y-2">
-            <span class="font-bold text-verve-brown mb-1">Contact</span>
-            <a href="#" class="hover:underline">Contact Form</a>
-            <a href="#" class="hover:underline">Contact Details</a>
+            <span class="font-bold text-verve-brown mb-1">{{ t('navigation.footer.contact') }}</span>
+            <a href="#" class="hover:underline">{{ t('navigation.footer.contactForm') }}</a>
+            <a href="#" class="hover:underline">{{ t('navigation.footer.contactDetails') }}</a>
           </div>
           <div class="flex flex-col space-y-2">
-            <span class="font-bold text-verve-brown mb-1">About Us</span>
-            <router-link to="/help#about" class="hover:underline">About Verve</router-link>
-            <a href="#" class="hover:underline">Imprint</a>
-            <a href="#" class="hover:underline">Privacy Policy</a>
+            <span class="font-bold text-verve-brown mb-1">{{ t('navigation.footer.aboutUs') }}</span>
+            <router-link to="/help#about" class="hover:underline">{{ t('navigation.footer.aboutVerve') }}</router-link>
+            <a href="#" class="hover:underline">{{ t('navigation.footer.imprint') }}</a>
+            <a href="#" class="hover:underline">{{ t('navigation.footer.privacyPolicy') }}</a>
           </div>
         </div>
       </div>

@@ -2,10 +2,12 @@
 import { onMounted, ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/stores/auth';
+import { useI18n } from 'vue-i18n';
 import { Menu, X } from '@lucide/vue';
 import logo from '@/assets/logo.svg';
 
 const userStore = useUserStore();
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 
@@ -93,7 +95,7 @@ const toggleMenu = (menu: string) => {
           <div class="flex items-center justify-start">
 
             <!-- Mobile Menu Toggle -->
-            <button type="button" aria-label="Main menu" aria-controls="mobile-menu" :aria-expanded="isMobileMenuOpen" @click="isMobileMenuOpen = !isMobileMenuOpen"
+            <button type="button" :aria-label="t('navigation.menu')" aria-controls="mobile-menu" :aria-expanded="isMobileMenuOpen" @click="isMobileMenuOpen = !isMobileMenuOpen"
               class="md:hidden p-2 -ml-2 text-verve-brown hover:bg-verve-light rounded-lg transition-colors">
               <component :is="isMobileMenuOpen ? X : Menu" class="size-6" />
             </button>
@@ -101,7 +103,7 @@ const toggleMenu = (menu: string) => {
             <!-- Desktop Navigation (Hidden on Mobile) -->
             <div class="hidden md:flex items-center gap-6 text-sm font-medium text-verve-dark">
               <router-link to="/dashboard" class="hover:text-verve-brown transition-colors">
-                Home
+                {{ t('navigation.home') }}
               </router-link>
 
               <!-- Training Dropdown -->
@@ -109,7 +111,7 @@ const toggleMenu = (menu: string) => {
                 @click="toggleMenu('training')">
                 <span class="cursor-pointer hover:text-verve-brown flex items-center py-2"
                   :class="{ 'text-verve-brown': activeMenu === 'training' }">
-                  Training
+                  {{ t('navigation.training') }}
                   <span class="ml-1 text-[10px] transition-transform duration-200"
                     :class="{ 'rotate-180': activeMenu === 'training' }">▼</span>
                 </span>
@@ -122,15 +124,15 @@ const toggleMenu = (menu: string) => {
                     class="absolute left-0 mt-0 w-40 bg-white shadow-xl rounded-xl py-2 z-50 border border-verve-medium/20">
                     <router-link to="/activities"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
-                      Activities
+                      {{ t('navigation.activities') }}
                     </router-link>
                     <router-link to="/collections"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
-                      Collections
+                      {{ t('navigation.collections') }}
                     </router-link>
                     <router-link to="/calendar"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
-                      Calendar
+                      {{ t('navigation.calendar') }}
                     </router-link>
                   </div>
                 </transition>
@@ -140,7 +142,7 @@ const toggleMenu = (menu: string) => {
               <div class="relative" @focusout="leavePlanning" @keydown.esc="closePlanning">
                 <button ref="planningButton" type="button" :aria-expanded="activeMenu === 'planning'" aria-controls="planning-menu" @click="toggleMenu('planning')" class="cursor-pointer hover:text-verve-brown flex items-center py-2 focus-visible:outline-2 focus-visible:outline-verve-orange"
                   :class="{ 'text-verve-brown': activeMenu === 'planning' }">
-                  Planning
+                  {{ t('navigation.planning') }}
                   <span class="ml-1 text-[10px] transition-transform duration-200"
                     :class="{ 'rotate-180': activeMenu === 'planning' }">▼</span>
                 </button>
@@ -153,15 +155,15 @@ const toggleMenu = (menu: string) => {
                     class="absolute left-0 mt-0 w-40 bg-white shadow-xl rounded-xl py-2 z-50 border border-verve-medium/20">
                     <router-link to="/workout-plans"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
-                      Workout Plans
+                      {{ t('navigation.workoutPlans') }}
                     </router-link>
                     <router-link to="/goals"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
-                      Goals
+                      {{ t('navigation.goals') }}
                     </router-link>
                     <router-link to="/locations"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
-                      Locations
+                      {{ t('navigation.locations') }}
                     </router-link>
                   </div>
                 </transition>
@@ -172,7 +174,7 @@ const toggleMenu = (menu: string) => {
                 @click="toggleMenu('statistics')">
                 <span class="cursor-pointer hover:text-verve-brown flex items-center py-2"
                   :class="{ 'text-verve-brown': activeMenu === 'statistics' }">
-                  Statistics
+                  {{ t('navigation.statistics') }}
                   <span class="ml-1 text-[10px] transition-transform duration-200"
                     :class="{ 'rotate-180': activeMenu === 'statistics' }">▼</span>
                 </span>
@@ -185,11 +187,11 @@ const toggleMenu = (menu: string) => {
                     class="absolute left-0 mt-0 w-40 bg-white shadow-xl rounded-xl py-2 z-50 border border-verve-medium/20">
                     <router-link to="/records"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
-                      Records
+                      {{ t('navigation.records') }}
                     </router-link>
                     <router-link to="/heatmap"
                       class="block px-4 py-2 hover:bg-verve-light text-verve-brown/80 hover:text-verve-brown">
-                      Heatmap
+                      {{ t('navigation.heatmap') }}
                     </router-link>
                   </div>
                 </transition>
@@ -208,7 +210,7 @@ const toggleMenu = (menu: string) => {
           <div class="flex items-center justify-end gap-2 md:gap-4">
             <!-- Search Bar (Desktop Only) -->
             <div class="hidden lg:flex items-center bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 w-48">
-              <input type="text" placeholder="Suche..."
+              <input type="text" :placeholder="t('navigation.searchPlaceholder')" :aria-label="t('navigation.searchPlaceholder')"
                 class="bg-transparent border-none focus:ring-0 text-xs w-full text-verve-brown placeholder-gray-400" />
               <svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-gray-400" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -219,7 +221,7 @@ const toggleMenu = (menu: string) => {
 
             <!-- User Menu Dropdown -->
             <div class="relative" @mouseenter="openMenu('user')" @mouseleave="closeMenu" @keydown.esc="closeAccountMenu">
-              <button ref="accountButton" type="button" aria-label="Account menu" aria-controls="account-menu"
+              <button ref="accountButton" type="button" :aria-label="t('navigation.accountMenu')" aria-controls="account-menu"
                 :aria-expanded="activeMenu === 'user'" @click="toggleMenu('user')"
                 class="flex items-center gap-2 text-verve-dark hover:text-verve-brown transition-colors focus-visible:outline-2 focus-visible:outline-verve-orange focus-visible:outline-offset-2 rounded-lg py-2">
                 <div class="flex flex-col items-center">
@@ -228,7 +230,7 @@ const toggleMenu = (menu: string) => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  <span class="text-[10px] font-medium hidden md:block">Profil</span>
+                  <span class="text-[10px] font-medium hidden md:block">{{ t('navigation.profile') }}</span>
                 </div>
               </button>
 
@@ -239,41 +241,41 @@ const toggleMenu = (menu: string) => {
                 <div id="account-menu" v-show="activeMenu === 'user'"
                   class="absolute right-0 mt-0 w-48 bg-white shadow-xl rounded-xl py-2 z-50 border border-verve-medium/20">
                   <div class="px-4 py-2 border-b border-verve-light mb-1">
-                    <p class="text-xs text-verve-brown/60">Signed in as</p>
+                    <p class="text-xs text-verve-brown/60">{{ t('navigation.signedInAs') }}</p>
                     <p class="text-sm font-bold text-verve-brown truncate">
                       {{ userStore.user_name }}
                     </p>
                   </div>
 
                   <div v-if="userStore.currentUserError" class="px-4 py-2 text-xs text-red-600" role="alert">
-                    {{ userStore.currentUserError }}
+                    {{ t('navigation.accountLoadFailed') }}
                     <button type="button" :disabled="userStore.isLoadingCurrentUser" @click="loadAccount"
                       class="block mt-1 underline focus-visible:outline-2 focus-visible:outline-verve-orange">
-                      Retry account loading
+                      {{ t('navigation.retryAccountLoading') }}
                     </button>
                   </div>
 
                   <router-link to="/settings"
                     class="block px-4 py-2 text-sm text-verve-brown/80 hover:bg-verve-light hover:text-verve-brown">
-                    Settings
+                    {{ t('navigation.settings') }}
                   </router-link>
                   <router-link to="/equipment"
                     class="block px-4 py-2 text-sm text-verve-brown/80 hover:bg-verve-light hover:text-verve-brown">
-                    My Gear
+                    {{ t('navigation.myGear') }}
                   </router-link>
                   <router-link to="/tags"
                     class="block px-4 py-2 text-sm text-verve-brown/80 hover:bg-verve-light hover:text-verve-brown">
-                    Tags & Categories
+                    {{ t('navigation.tagsCategories') }}
                   </router-link>
                   <router-link v-if="userStore.isAdmin" :to="{ name: 'admin' }"
                     class="block px-4 py-2 text-sm text-verve-brown/80 hover:bg-verve-light hover:text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-orange focus-visible:outline-offset-[-2px]">
-                    Admin
+                    {{ t('navigation.admin') }}
                   </router-link>
 
                   <div class="border-t border-verve-light my-1"></div>
 
                   <button @click="handleLogout" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                    Logout
+                    {{ t('navigation.logout') }}
                   </button>
                 </div>
               </transition>
@@ -291,30 +293,30 @@ const toggleMenu = (menu: string) => {
           <div class="px-4 pt-2 pb-4 space-y-1">
             <router-link to="/dashboard"
               class="block px-3 py-2 rounded-md text-base font-medium text-verve-brown hover:bg-verve-light hover:text-verve-orange">
-              Home
+              {{ t('navigation.home') }}
             </router-link>
 
-            <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">Training</div>
+            <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">{{ t('navigation.training') }}</div>
             <router-link to="/activities"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Activities</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">{{ t('navigation.activities') }}</router-link>
             <router-link to="/collections"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Collections</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">{{ t('navigation.collections') }}</router-link>
             <router-link to="/calendar"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Calendar</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">{{ t('navigation.calendar') }}</router-link>
 
-            <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">Planning</div>
+            <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">{{ t('navigation.planning') }}</div>
             <router-link to="/workout-plans" @click="isMobileMenuOpen = false"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Workout Plans</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">{{ t('navigation.workoutPlans') }}</router-link>
             <router-link to="/goals"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Goals</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">{{ t('navigation.goals') }}</router-link>
             <router-link to="/locations"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Locations</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">{{ t('navigation.locations') }}</router-link>
 
-            <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">Statistics</div>
+            <div class="px-3 py-2 text-xs font-bold text-verve-brown/40 uppercase tracking-wider mt-2">{{ t('navigation.statistics') }}</div>
             <router-link to="/records"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Records</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">{{ t('navigation.records') }}</router-link>
             <router-link to="/heatmap"
-              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">Heatmap</router-link>
+              class="block pl-6 pr-3 py-2 text-sm font-medium text-verve-brown hover:bg-verve-light">{{ t('navigation.heatmap') }}</router-link>
           </div>
         </div>
       </transition>

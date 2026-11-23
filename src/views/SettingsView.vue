@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import { onMounted, computed, ref } from 'vue';
-import { useSettingsStore, type UserProfilePayload, type PasswordUpdatePayload } from '@/stores/settings';
+import {
+  useSettingsStore,
+  type UserProfilePayload,
+  type PasswordUpdatePayload,
+} from '@/stores/settings';
 import { useTypeStore } from '@/stores/types';
 import ProfileEditForm from '@/components/forms/ProfileEditForm.vue';
 import PasswordChangeForm from '@/components/forms/PasswordChangeForm.vue';
@@ -9,6 +14,9 @@ import HeatmapSettingsForm from '@/components/forms/HeatmapSettingsForm.vue';
 import RecordsSettingsForm from '@/components/forms/RecordsSettingsForm.vue';
 import TimezoneSettingsForm from '@/components/forms/TimezoneSettingsForm.vue';
 import type { SupportedLocale } from '@/types/api';
+import LanguageSelector from '@/components/forms/LanguageSelector.vue';
+
+const { t } = useI18n();
 
 const appVersion = import.meta.env.VITE_APP_VERSION || 'Dev';
 
@@ -28,7 +36,7 @@ const selectedLocale = ref<SupportedLocale>('en');
 // --- Computed Helpers ---
 const defaultTypeName = computed(() => {
   const typeId = settingsStore.userSettings?.default_type_id;
-  if (!typeId) return 'Not Set';
+  if (!typeId) return t('settings.notSet');
   const foundType = typeStore.activityTypes.find((t) => t.id === typeId);
   return foundType?.name ?? `ID #${typeId}`;
 });
@@ -36,7 +44,7 @@ const defaultTypeName = computed(() => {
 const defaultSubTypeName = computed(() => {
   const typeId = settingsStore.userSettings?.default_type_id;
   const subTypeId = settingsStore.userSettings?.defautl_sub_type_id;
-  if (!typeId || !subTypeId) return 'Not Set';
+  if (!typeId || !subTypeId) return t('settings.notSet');
 
   const foundType = typeStore.activityTypes.find((t) => t.id === typeId);
   const foundSubType = foundType?.sub_types.find((st) => st.id === subTypeId);
@@ -45,7 +53,7 @@ const defaultSubTypeName = computed(() => {
 
 const recordsDefaultTypeName = computed(() => {
   const typeId = settingsStore.userSettings?.records_settings?.default_activity_type;
-  if (!typeId) return 'Not Set';
+  if (!typeId) return t('settings.notSet');
   const foundType = typeStore.activityTypes.find((t) => t.id === typeId);
   return foundType?.name ?? `ID #${typeId}`;
 });
@@ -64,7 +72,7 @@ async function handleProfileSave(payload: UserProfilePayload) {
 async function handlePasswordSave(payload: PasswordUpdatePayload) {
   const result = await settingsStore.updatePassword(payload);
   if (result.success) isPasswordEditing.value = false;
-  else alert(result.message);
+  else alert(result.detail ?? t(`settings.${result.reason ?? 'failed'}`));
 }
 
 async function handleAppSettingsSave(payload: { typeId: number | null; subTypeId: number | null }) {
@@ -88,6 +96,7 @@ async function handleTimezoneSave(timezone: string) {
 
 function editTimezone() {
   settingsStore.timezoneError = null;
+  settingsStore.timezoneErrorDetail = null;
   isTimezoneEditing.value = true;
 }
 
@@ -104,31 +113,43 @@ async function handleLocaleSave() {
 const getExcludedLabel = (tuple: [number, number | null]) => {
   const [tId, stId] = tuple;
   const mainType = typeStore.activityTypes.find((t) => t.id === tId);
-  if (!mainType) return `Unknown Type (${tId})`;
+  if (!mainType) return t('settings.unknownType', { id: tId });
 
   if (stId === null) {
-    return `${mainType.name} (All)`;
+    return `${mainType.name} (${t('settings.all')})`;
   }
 
   const subType = mainType.sub_types.find((s) => s.id === stId);
-  return `${mainType.name}: ${subType?.name || 'Unknown Subtype'}`;
+  return `${mainType.name}: ${subType?.name || t('settings.unknownSubtype')}`;
 };
 </script>
 
 <template>
   <div class="p-4 sm:p-6 lg:p-8 bg-verve-medium min-h-[calc(100vh-64px)]">
     <div class="max-w-4xl mx-auto space-y-8">
-      <h1 class="text-3xl font-bold text-verve-brown">Settings</h1>
+      <h1 class="text-3xl font-bold text-verve-brown">{{ t('settings.settings') }}</h1>
+
+      <LanguageSelector />
 
       <!-- Loading State -->
-      <div v-if="settingsStore.isLoading && !settingsStore.userProfile" class="text-center text-verve-brown/60 py-12">
-        <div class="animate-spin rounded-full size-8 border-b-2 border-verve-brown mx-auto mb-4"></div>
-        Loading settings...
+      <div
+        v-if="settingsStore.isLoading && !settingsStore.userProfile"
+        class="text-center text-verve-brown/60 py-12"
+      >
+        <div
+          class="animate-spin rounded-full size-8 border-b-2 border-verve-brown mx-auto mb-4"
+        ></div>
+        {{ t('settings.loading') }}
       </div>
 
       <!-- Error State -->
-      <div v-else-if="settingsStore.error" class="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100">
-        Error: {{ settingsStore.error }}
+      <div
+        v-else-if="settingsStore.error"
+        class="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100"
+      >
+        {{
+          t('settings.error', { message: settingsStore.errorDetail ?? t('settings.loadFailed') })
+        }}
       </div>
 
       <!-- Content -->
@@ -136,29 +157,42 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
         <!-- SECTION 1: User Profile -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
           <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
-            <h2 class="text-xl font-bold text-verve-brown">User Profile</h2>
-            <button v-if="!isProfileEditing" @click="isProfileEditing = true"
-              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors">
-              Edit Profile
+            <h2 class="text-xl font-bold text-verve-brown">{{ t('settings.profile') }}</h2>
+            <button
+              v-if="!isProfileEditing"
+              @click="isProfileEditing = true"
+              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors"
+            >
+              {{ t('settings.editProfile') }}
             </button>
           </div>
 
-          <ProfileEditForm v-if="isProfileEditing" :initial-profile="settingsStore.userProfile!"
-            @save="handleProfileSave" @cancel="isProfileEditing = false" />
+          <ProfileEditForm
+            v-if="isProfileEditing"
+            :initial-profile="settingsStore.userProfile!"
+            @save="handleProfileSave"
+            @cancel="isProfileEditing = false"
+          />
 
           <div v-else-if="settingsStore.userProfile" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">Username</p>
+              <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">
+                {{ t('settings.username') }}
+              </p>
               <p class="text-verve-brown font-medium">{{ settingsStore.userProfile.name }}</p>
             </div>
             <div>
-              <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">Full Name</p>
+              <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">
+                {{ t('settings.fullName') }}
+              </p>
               <p class="text-verve-brown font-medium">
-                {{ settingsStore.userProfile.full_name || 'Not Set' }}
+                {{ settingsStore.userProfile.full_name || t('settings.notSet') }}
               </p>
             </div>
             <div>
-              <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">Email</p>
+              <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">
+                {{ t('settings.email') }}
+              </p>
               <p class="text-verve-brown font-medium">{{ settingsStore.userProfile.email }}</p>
             </div>
           </div>
@@ -167,17 +201,26 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
         <!-- SECTION 2: Security -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
           <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
-            <h2 class="text-xl font-bold text-verve-brown">Security</h2>
-            <button v-if="!isPasswordEditing" @click="isPasswordEditing = true"
-              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors">
-              Change Password
+            <h2 class="text-xl font-bold text-verve-brown">{{ t('settings.security') }}</h2>
+            <button
+              v-if="!isPasswordEditing"
+              @click="isPasswordEditing = true"
+              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors"
+            >
+              {{ t('settings.changePassword') }}
             </button>
           </div>
 
-          <PasswordChangeForm v-if="isPasswordEditing" @save="handlePasswordSave" @cancel="isPasswordEditing = false" />
+          <PasswordChangeForm
+            v-if="isPasswordEditing"
+            @save="handlePasswordSave"
+            @cancel="isPasswordEditing = false"
+          />
 
           <div v-else>
-            <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">Password</p>
+            <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">
+              {{ t('settings.password') }}
+            </p>
             <p class="text-verve-brown font-mono mt-1">•••••••••••••</p>
           </div>
         </div>
@@ -185,122 +228,221 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
         <!-- SECTION 3: Application Settings -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
           <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
-            <h2 class="text-xl font-bold text-verve-brown">Application Defaults</h2>
-            <button v-if="!isAppSettingsEditing" @click="isAppSettingsEditing = true"
-              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors">
-              Edit Settings
+            <h2 class="text-xl font-bold text-verve-brown">
+              {{ t('settings.applicationDefaults') }}
+            </h2>
+            <button
+              v-if="!isAppSettingsEditing"
+              @click="isAppSettingsEditing = true"
+              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors"
+            >
+              {{ t('settings.editSettings') }}
             </button>
           </div>
 
-          <AppSettingsForm v-if="isAppSettingsEditing" :initial-settings="settingsStore.userSettings!"
-            @save="handleAppSettingsSave" @cancel="isAppSettingsEditing = false" />
+          <AppSettingsForm
+            v-if="isAppSettingsEditing"
+            :initial-settings="settingsStore.userSettings!"
+            @save="handleAppSettingsSave"
+            @cancel="isAppSettingsEditing = false"
+          />
 
           <div v-else-if="settingsStore.userSettings" class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">
-                Default Activity Type
+                {{ t('settings.defaultType') }}
               </p>
               <p class="text-verve-brown font-medium">{{ defaultTypeName }}</p>
             </div>
             <div>
               <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">
-                Default Sub-Type
+                {{ t('settings.defaultSubtype') }}
               </p>
               <p class="text-verve-brown font-medium">{{ defaultSubTypeName }}</p>
             </div>
           </div>
         </div>
 
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30" aria-labelledby="locale-heading">
+        <section
+          class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30"
+          aria-labelledby="locale-heading"
+        >
           <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
-            <h2 id="locale-heading" class="text-xl font-bold text-verve-brown">Locale</h2>
-            <button v-if="!isLocaleEditing" type="button" :disabled="!settingsStore.userSettings"
+            <h2 id="locale-heading" class="text-xl font-bold text-verve-brown">
+              {{ t('settings.accountLocale') }}
+            </h2>
+            <button
+              v-if="!isLocaleEditing"
+              type="button"
+              :disabled="!settingsStore.userSettings"
               class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50"
-              @click="editLocale">Edit Locale</button>
+              @click="editLocale"
+            >
+              {{ t('settings.editAccountLocale') }}
+            </button>
           </div>
           <form v-if="isLocaleEditing" class="space-y-4" @submit.prevent="handleLocaleSave">
             <div>
-              <label for="user-locale" class="block text-sm font-semibold text-verve-brown mb-2">Locale</label>
-              <select id="user-locale" v-model="selectedLocale" :disabled="settingsStore.isSavingLocale"
+              <label for="user-locale" class="block text-sm font-semibold text-verve-brown mb-2">{{
+                t('settings.accountLocale')
+              }}</label>
+              <select
+                id="user-locale"
+                v-model="selectedLocale"
+                :disabled="settingsStore.isSavingLocale"
                 aria-describedby="locale-error"
-                class="w-full rounded-xl border border-verve-medium/50 px-4 py-2 text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">
+                class="w-full rounded-xl border border-verve-medium/50 px-4 py-2 text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50"
+              >
                 <option value="en">English</option>
                 <option value="de">Deutsch</option>
               </select>
-              <p id="locale-error" role="alert" class="mt-2 text-sm text-red-600">{{ settingsStore.localeError }}</p>
+              <p id="locale-error" role="alert" class="mt-2 text-sm text-red-600">
+                {{
+                  settingsStore.localeError
+                    ? (settingsStore.localeError.detail ?? t('settings.accountLocaleSaveFailed'))
+                    : ''
+                }}
+              </p>
             </div>
             <div class="flex justify-end gap-3">
-              <button type="button" :disabled="settingsStore.isSavingLocale" @click="isLocaleEditing = false"
-                class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">Cancel</button>
-              <button type="submit" :disabled="settingsStore.isSavingLocale"
-                class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl hover:brightness-105 focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">{{ settingsStore.isSavingLocale ? 'Saving…' : 'Save Locale' }}</button>
+              <button
+                type="button"
+                :disabled="settingsStore.isSavingLocale"
+                @click="isLocaleEditing = false"
+                class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50"
+              >
+                {{ t('settings.cancel') }}
+              </button>
+              <button
+                type="submit"
+                :disabled="settingsStore.isSavingLocale"
+                class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl hover:brightness-105 focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50"
+              >
+                {{
+                  settingsStore.isSavingLocale
+                    ? t('settings.saving')
+                    : t('settings.saveAccountLocale')
+                }}
+              </button>
             </div>
           </form>
-          <p v-else class="text-verve-brown font-medium">{{ settingsStore.userSettings?.locale ?? 'Not loaded' }}</p>
+          <p v-else class="text-verve-brown font-medium">
+            {{
+              settingsStore.userSettings
+                ? t(`language.${settingsStore.userSettings.locale}`)
+                : t('settings.notLoaded')
+            }}
+          </p>
         </section>
 
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30" aria-labelledby="timezone-heading">
+        <section
+          class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30"
+          aria-labelledby="timezone-heading"
+        >
           <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
-            <h2 id="timezone-heading" class="text-xl font-bold text-verve-brown">Timezone</h2>
-            <button v-if="!isTimezoneEditing" type="button" :disabled="!settingsStore.timezone"
+            <h2 id="timezone-heading" class="text-xl font-bold text-verve-brown">
+              {{ t('settings.timezone') }}
+            </h2>
+            <button
+              v-if="!isTimezoneEditing"
+              type="button"
+              :disabled="!settingsStore.timezone"
               class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50"
-              @click="editTimezone">
-              Edit Timezone
+              @click="editTimezone"
+            >
+              {{ t('settings.editTimezone') }}
             </button>
           </div>
-          <TimezoneSettingsForm v-if="isTimezoneEditing && settingsStore.timezone"
-            :initial-timezone="settingsStore.timezone" :is-saving="settingsStore.isSavingTimezone"
-            :error="settingsStore.timezoneError" @save="handleTimezoneSave" @cancel="isTimezoneEditing = false" />
-          <p v-else class="text-verve-brown font-medium">{{ settingsStore.timezone ?? 'Not loaded' }}</p>
+          <TimezoneSettingsForm
+            v-if="isTimezoneEditing && settingsStore.timezone"
+            :initial-timezone="settingsStore.timezone"
+            :is-saving="settingsStore.isSavingTimezone"
+            :error="
+              settingsStore.timezoneError
+                ? (settingsStore.timezoneErrorDetail ?? t('settings.timezoneSaveFailed'))
+                : null
+            "
+            @save="handleTimezoneSave"
+            @cancel="isTimezoneEditing = false"
+          />
+          <p v-else class="text-verve-brown font-medium">
+            {{ settingsStore.timezone ?? t('settings.notLoaded') }}
+          </p>
         </section>
 
         <!-- SECTION 4: Heatmap Configuration -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
           <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
             <div>
-              <h2 class="text-xl font-bold text-verve-brown">Heatmap Configuration</h2>
-              <p class="text-sm text-verve-brown/60 mt-1">
-                Control which activities appear on your global heatmap.
-              </p>
+              <h2 class="text-xl font-bold text-verve-brown">{{ t('settings.heatmap') }}</h2>
+              <p class="text-sm text-verve-brown/60 mt-1">{{ t('settings.heatmapDescription') }}</p>
             </div>
 
-            <button v-if="!isHeatmapEditing" @click="isHeatmapEditing = true"
-              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors">
-              Edit Visibility
+            <button
+              v-if="!isHeatmapEditing"
+              @click="isHeatmapEditing = true"
+              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors"
+            >
+              {{ t('settings.editVisibility') }}
             </button>
           </div>
 
           <div v-if="isHeatmapEditing">
-            <HeatmapSettingsForm :initial-settings="settingsStore.userSettings?.heatmap_settings || { excluded_activity_types: [] }
-              " @save="handleHeatmapSave" @cancel="isHeatmapEditing = false" />
+            <HeatmapSettingsForm
+              :initial-settings="
+                settingsStore.userSettings?.heatmap_settings || { excluded_activity_types: [] }
+              "
+              @save="handleHeatmapSave"
+              @cancel="isHeatmapEditing = false"
+            />
           </div>
 
           <!-- Summary View (Read Only) -->
           <div v-else>
-            <div v-if="!settingsStore.userSettings?.heatmap_settings.excluded_activity_types.length">
+            <div
+              v-if="!settingsStore.userSettings?.heatmap_settings.excluded_activity_types.length"
+            >
               <p
-                class="text-verve-dark text-sm font-medium flex items-center bg-verve-light/50 p-3 rounded-xl border border-verve-dark/10">
-                <svg xmlns="http://www.w3.org/2000/svg" class="size-5 mr-2 text-verve-dark" viewBox="0 0 20 20"
-                  fill="currentColor">
-                  <path fill-rule="evenodd"
+                class="text-verve-dark text-sm font-medium flex items-center bg-verve-light/50 p-3 rounded-xl border border-verve-dark/10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="size-5 mr-2 text-verve-dark"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clip-rule="evenodd" />
-                </svg>
-                All activities are visible on the heatmap.
+                    clip-rule="evenodd"
+                  /></svg
+                >{{ t('settings.allVisible') }}
               </p>
             </div>
             <div v-else>
               <p class="text-xs font-bold text-verve-brown/60 uppercase mb-3">
-                Hidden Categories:
+                {{ t('settings.hiddenCategories') }}
               </p>
               <div class="flex flex-wrap gap-2">
-                <span v-for="(tuple, idx) in settingsStore.userSettings?.heatmap_settings
-                  .excluded_activity_types" :key="idx"
-                  class="px-3 py-1 bg-verve-light text-verve-brown rounded-lg text-xs font-bold border border-verve-medium/40 flex items-center shadow-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="size-3 mr-1.5 text-verve-brown/40" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                <span
+                  v-for="(tuple, idx) in settingsStore.userSettings?.heatmap_settings
+                    .excluded_activity_types"
+                  :key="idx"
+                  class="px-3 py-1 bg-verve-light text-verve-brown rounded-lg text-xs font-bold border border-verve-medium/40 flex items-center shadow-sm"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="size-3 mr-1.5 text-verve-brown/40"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
                   </svg>
                   {{ getExcludedLabel(tuple) }}
                 </span>
@@ -313,15 +455,16 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
         <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
           <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
             <div>
-              <h2 class="text-xl font-bold text-verve-brown">Records Configuration</h2>
-              <p class="text-sm text-verve-brown/60 mt-1">
-                Choose the activity type shown first in your trophy case.
-              </p>
+              <h2 class="text-xl font-bold text-verve-brown">{{ t('settings.records') }}</h2>
+              <p class="text-sm text-verve-brown/60 mt-1">{{ t('settings.recordsDescription') }}</p>
             </div>
 
-            <button v-if="!isRecordsEditing" @click="isRecordsEditing = true"
-              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors">
-              Edit Default
+            <button
+              v-if="!isRecordsEditing"
+              @click="isRecordsEditing = true"
+              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light transition-colors"
+            >
+              {{ t('settings.editDefault') }}
             </button>
           </div>
 
@@ -335,7 +478,7 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
 
           <div v-else>
             <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">
-              Default Records Activity Type
+              {{ t('settings.recordsType') }}
             </p>
             <p class="text-verve-brown font-medium">{{ recordsDefaultTypeName }}</p>
           </div>

@@ -7,6 +7,8 @@ import { renderToString } from '@vue/server-renderer';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { useUserStore } from '../../src/stores/auth';
 import { useAdminStore } from '../../src/stores/admin';
+import { createAppI18n } from '../../src/i18n';
+import type { SupportedLocale } from '../../src/types/api';
 
 const { default: AppNavbar } = await import('../../src/components/AppNavbar.vue');
 const { default: AdminView } = await import('../../src/views/AdminView.vue');
@@ -43,7 +45,7 @@ afterEach(() => {
   globalThis.localStorage = originalStorage;
 });
 
-async function render(component: typeof AppNavbar | typeof AdminView): Promise<string> {
+async function render(component: typeof AppNavbar | typeof AdminView, locale: SupportedLocale = 'en'): Promise<string> {
   const app = createSSRApp({ render: () => h(component) });
   const router = createRouter({
     history: createMemoryHistory(),
@@ -53,11 +55,23 @@ async function render(component: typeof AppNavbar | typeof AdminView): Promise<s
     ],
   });
   app.use(router);
+  app.use(createAppI18n(locale));
   await router.push('/dashboard');
   return renderToString(app);
 }
 
 describe('admin navigation and page', () => {
+  test('renders navigation labels in the selected locale', async () => {
+    const html = await render(AppNavbar);
+    expect(html).toContain('Main menu');
+    expect(html).toContain('Workout Plans');
+    expect(html).toContain('Search...');
+    const germanHtml = await render(AppNavbar, 'de');
+    expect(germanHtml).toContain('Hauptmenü');
+    expect(germanHtml).toContain('Trainingspläne');
+    expect(germanHtml).toContain('Suchen...');
+  });
+
   test('renders the admin account link only for an admin account', async () => {
     const auth = useUserStore();
     auth.setToken('token');

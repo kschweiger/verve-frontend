@@ -85,3 +85,19 @@ test('disabled and externally updated values close the picker', async () => {
   expect(value.value).toBe('UTC');
   stop();
 });
+
+test('searches the reactive localized empty option label', () => {
+  const label = ref('No override');
+  const picker = useTimezonePicker({
+    value: '',
+    disabled: false,
+    allowEmpty: true,
+    suggestedTimezone: undefined,
+    emptyLabel: label,
+    select: () => undefined,
+  });
+  picker.query.value = 'überschreibung';
+  expect(picker.results.value).toHaveLength(0);
+  label.value = 'Keine Überschreibung';
+  expect(picker.results.value.map((entry) => entry.label)).toEqual(['Keine Überschreibung']);
+});

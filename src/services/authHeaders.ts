@@ -13,7 +13,8 @@ export function getJsonAuthHeaders(): HeadersInit {
 export class ApiResponseError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    readonly detail?: string
   ) {
     super(message);
     this.name = 'ApiResponseError';
@@ -24,11 +25,11 @@ export async function responseError(
   response: Response,
   fallback: string
 ): Promise<ApiResponseError> {
-  let message = fallback;
+  let detail: string | undefined;
   try {
     const data: unknown = await response.json();
     if (typeof data === 'object' && data !== null && 'detail' in data) {
-      if (typeof data.detail === 'string') message = data.detail;
+      if (typeof data.detail === 'string') detail = data.detail;
       else if (Array.isArray(data.detail)) {
         const first: unknown = data.detail[0];
         if (
@@ -37,11 +38,11 @@ export async function responseError(
           'msg' in first &&
           typeof first.msg === 'string'
         )
-          message = first.msg;
+          detail = first.msg;
       }
     }
   } catch {
     // HTTP failures can have an empty or non-JSON body.
   }
-  return new ApiResponseError(message, response.status);
+  return new ApiResponseError(detail ?? fallback, response.status, detail);
 }
