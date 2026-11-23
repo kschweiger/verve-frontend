@@ -1,9 +1,15 @@
 # User Settings
 
-## Locale
+## Account language
 
-- Settings lets users choose English (`en`) or German (`de`) as their saved locale. This preference does not translate the frontend interface.
+- Settings lets users choose English (`en`) or German (`de`) as their saved account language. The interface follows this preference when the device language is set to Automatic.
 - Save through `PATCH /api/v1/users/me/locale` with the required `locale` query parameter and no body, then refresh shared settings. Keep the editor open and show an error if saving or refreshing fails; disable controls while saving.
+
+## Device language
+
+- The login and settings screens offer a device language selection: automatic, English, or German. Explicit selection is stored locally; automatic clears it. Storage failures leave the selection active for the current session.
+- The effective language uses the explicit device selection, then the loaded account locale, then the first supported browser language, then English. Account settings load in the background after authentication and are cleared on account changes.
+- Navigation, authentication, settings, and the shared timezone picker use the active language; backend diagnostics and user-entered values remain unchanged. The document language follows the active selection.
 
 ## Timezone
 
