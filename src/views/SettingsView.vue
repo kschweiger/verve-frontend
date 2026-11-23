@@ -8,6 +8,7 @@ import AppSettingsForm from '@/components/forms/AppSettingsForm.vue';
 import HeatmapSettingsForm from '@/components/forms/HeatmapSettingsForm.vue';
 import RecordsSettingsForm from '@/components/forms/RecordsSettingsForm.vue';
 import TimezoneSettingsForm from '@/components/forms/TimezoneSettingsForm.vue';
+import type { SupportedLocale } from '@/types/api';
 
 const appVersion = import.meta.env.VITE_APP_VERSION || 'Dev';
 
@@ -21,6 +22,8 @@ const isAppSettingsEditing = ref(false);
 const isHeatmapEditing = ref(false);
 const isRecordsEditing = ref(false);
 const isTimezoneEditing = ref(false);
+const isLocaleEditing = ref(false);
+const selectedLocale = ref<SupportedLocale>('en');
 
 // --- Computed Helpers ---
 const defaultTypeName = computed(() => {
@@ -86,6 +89,16 @@ async function handleTimezoneSave(timezone: string) {
 function editTimezone() {
   settingsStore.timezoneError = null;
   isTimezoneEditing.value = true;
+}
+
+function editLocale() {
+  selectedLocale.value = settingsStore.userSettings?.locale ?? 'en';
+  settingsStore.localeError = null;
+  isLocaleEditing.value = true;
+}
+
+async function handleLocaleSave() {
+  if (await settingsStore.updateLocale(selectedLocale.value)) isLocaleEditing.value = false;
 }
 
 const getExcludedLabel = (tuple: [number, number | null]) => {
@@ -195,12 +208,36 @@ const getExcludedLabel = (tuple: [number, number | null]) => {
               </p>
               <p class="text-verve-brown font-medium">{{ defaultSubTypeName }}</p>
             </div>
-            <div>
-              <p class="text-xs font-bold text-verve-brown/60 uppercase mb-1">Locale</p>
-              <p class="text-verve-brown font-medium">{{ settingsStore.userSettings.locale }}</p>
-            </div>
           </div>
         </div>
+
+        <section class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30" aria-labelledby="locale-heading">
+          <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">
+            <h2 id="locale-heading" class="text-xl font-bold text-verve-brown">Locale</h2>
+            <button v-if="!isLocaleEditing" type="button" :disabled="!settingsStore.userSettings"
+              class="px-4 py-2 border border-verve-medium/50 rounded-xl text-sm font-semibold text-verve-brown hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50"
+              @click="editLocale">Edit Locale</button>
+          </div>
+          <form v-if="isLocaleEditing" class="space-y-4" @submit.prevent="handleLocaleSave">
+            <div>
+              <label for="user-locale" class="block text-sm font-semibold text-verve-brown mb-2">Locale</label>
+              <select id="user-locale" v-model="selectedLocale" :disabled="settingsStore.isSavingLocale"
+                aria-describedby="locale-error"
+                class="w-full rounded-xl border border-verve-medium/50 px-4 py-2 text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+              </select>
+              <p id="locale-error" role="alert" class="mt-2 text-sm text-red-600">{{ settingsStore.localeError }}</p>
+            </div>
+            <div class="flex justify-end gap-3">
+              <button type="button" :disabled="settingsStore.isSavingLocale" @click="isLocaleEditing = false"
+                class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">Cancel</button>
+              <button type="submit" :disabled="settingsStore.isSavingLocale"
+                class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl hover:brightness-105 focus-visible:outline-2 focus-visible:outline-verve-dark disabled:opacity-50">{{ settingsStore.isSavingLocale ? 'Saving…' : 'Save Locale' }}</button>
+            </div>
+          </form>
+          <p v-else class="text-verve-brown font-medium">{{ settingsStore.userSettings?.locale ?? 'Not loaded' }}</p>
+        </section>
 
         <section class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30" aria-labelledby="timezone-heading">
           <div class="flex justify-between items-center border-b border-verve-medium/30 pb-4 mb-4">

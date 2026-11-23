@@ -1,5 +1,10 @@
 # User Settings
 
+## Locale
+
+- Settings lets users choose English (`en`) or German (`de`) as their saved locale. This preference does not translate the frontend interface.
+- Save through `PATCH /api/v1/users/me/locale` with the required `locale` query parameter and no body, then refresh shared settings. Keep the editor open and show an error if saving or refreshing fails; disable controls while saving.
+
 ## Timezone
 
 - All timezone fields share a searchable picker. Search readable city names or exact IANA identifiers, ignoring case and treating spaces, underscores, and slashes alike. Results retain the canonical backend values and aliases. An empty search pins the saved user timezone without duplicates; file uploads additionally offer No override.

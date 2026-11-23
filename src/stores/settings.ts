@@ -1,9 +1,9 @@
 import { responseError, getAuthHeaders, getJsonAuthHeaders } from '../services/authHeaders';
-import type { UserPublic } from '../types/api';
+import type { SupportedLocale, UserPublic } from '../types/api';
 import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
-import { fetchUserSettings, mapUserProfile, saveUserTimezone } from '../services/settings';
+import { fetchUserSettings, mapUserProfile, saveUserLocale, saveUserTimezone } from '../services/settings';
 
 // --- INTERFACES ---
 export interface UserProfile {
@@ -24,7 +24,7 @@ export interface RecordsSettings {
 export interface UserSettings {
   default_type_id: number;
   defautl_sub_type_id: number | null; // API typo 'defautl' kept for compatibility
-  locale: string;
+  locale: SupportedLocale;
   timezone: string;
   heatmap_settings: HeatmapSettings;
   records_settings: RecordsSettings | null;
@@ -50,6 +50,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const timezone = computed(() => userSettings.value?.timezone ?? null);
   const isSavingTimezone = ref(false);
   const timezoneError = ref<string | null>(null);
+  const isSavingLocale = ref(false);
+  const localeError = ref<string | null>(null);
   const userStore = useUserStore();
   let session = 0;
   let settingsRequest: Promise<UserSettings> | null = null;
@@ -65,6 +67,8 @@ export const useSettingsStore = defineStore('settings', () => {
       isSavingTimezone.value = false;
       error.value = null;
       timezoneError.value = null;
+      isSavingLocale.value = false;
+      localeError.value = null;
     },
     { flush: 'sync' }
   );
@@ -107,6 +111,28 @@ export const useSettingsStore = defineStore('settings', () => {
       return false;
     } finally {
       if (currentSession === session) isSavingTimezone.value = false;
+    }
+  }
+
+  async function updateLocale(value: SupportedLocale): Promise<boolean> {
+    if (isSavingLocale.value) return false;
+    const currentSession = session;
+    isSavingLocale.value = true;
+    localeError.value = null;
+    try {
+      await saveUserLocale(value);
+      if (currentSession !== session) return false;
+      if (settingsRequest) await settingsRequest.catch(() => undefined);
+      if (currentSession !== session) return false;
+      await ensureSettings(true);
+      return currentSession === session;
+    } catch (e: unknown) {
+      if (currentSession === session) {
+        localeError.value = e instanceof Error ? e.message : 'Failed to save locale.';
+      }
+      return false;
+    } finally {
+      if (currentSession === session) isSavingLocale.value = false;
     }
   }
 
@@ -328,8 +354,11 @@ export const useSettingsStore = defineStore('settings', () => {
     timezone,
     isSavingTimezone,
     timezoneError,
+    isSavingLocale,
+    localeError,
     ensureSettings,
     updateTimezone,
+    updateLocale,
     fetchAllSettings,
     updateUserProfile,
     updatePassword,

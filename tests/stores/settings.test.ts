@@ -182,6 +182,36 @@ describe('shared timezone settings', () => {
   });
 });
 
+describe('locale settings', () => {
+  beforeEach(() => useUserStore().setToken('token-123'));
+
+  test('saves the locale and refreshes the saved settings', async () => {
+    const requests: Array<{ url: string; init?: RequestInit }> = [];
+    globalThis.fetch = stubFetch(mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: input.toString(), init });
+      return init?.method === 'PATCH' ? jsonResponse({}) : jsonResponse({
+        settings: { ...settingsFixture().settings, locale: 'de' },
+      });
+    }));
+    const store = useSettingsStore();
+    expect(await store.updateLocale('de')).toBe(true);
+    expect(requests[0]?.url.endsWith('/users/me/locale?locale=de')).toBe(true);
+    expect(requests[0]?.init).toEqual({ method: 'PATCH', headers: { Authorization: 'Bearer token-123' } });
+    expect(store.userSettings?.locale).toBe('de');
+  });
+
+  test('keeps the saved locale and reports a failed save', async () => {
+    globalThis.fetch = stubFetch(mock(async () => jsonResponse(settingsFixture())));
+    const store = useSettingsStore();
+    await store.ensureSettings();
+    globalThis.fetch = stubFetch(mock(async () => jsonResponse({}, { status: 422 })));
+    expect(await store.updateLocale('de')).toBe(false);
+    expect(store.userSettings?.locale).toBe('en');
+    expect(store.localeError).toBeTruthy();
+    expect(store.isSavingLocale).toBe(false);
+  });
+});
+
 describe('settings store records settings', () => {
   test('loads records_settings from user settings', async () => {
     const userStore = useUserStore();

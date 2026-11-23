@@ -1,5 +1,5 @@
 import { responseError, getAuthHeaders } from './authHeaders';
-import type { UserPublic, UserSettingsCollection } from '../types/api';
+import type { SupportedLocale, UserPublic, UserSettingsCollection } from '../types/api';
 import type { UserProfile, UserSettings } from '../stores/settings';
 import { defaultTimezone, isSupportedTimezone } from './timezones';
 
@@ -44,4 +44,13 @@ export async function saveUserTimezone(timezone: string): Promise<void> {
   });
   if (!response.ok)
     throw await responseError(response, 'Failed to save timezone. Please try again.');
+}
+
+export async function saveUserLocale(locale: SupportedLocale): Promise<void> {
+  const query = new URLSearchParams({ locale });
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/locale?${query}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw await responseError(response, 'Failed to save locale. Please try again.');
 }
