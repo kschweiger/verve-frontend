@@ -48,7 +48,7 @@
     "eslint-plugin-vue": "~10.12.0",
     "jiti": "^2.7.0",
     "npm-run-all2": "^9.0.3",
-    "prettier": "3.9.10",
+    "prettier": "3.10.1",
     "prettier-plugin-vue": "^1.1.6",
     "stylelint": "^18.0.0",
     "stylelint-config-recommended-vue": "^2.0.0",
