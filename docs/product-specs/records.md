@@ -7,6 +7,7 @@
 - Default to the current year. Users can select another year or lifetime scope; lifetime requests omit `year`.
 - The overview comes from `GET /api/v1/highlights/`. The backend owns ranking and filtering; the frontend owns grouping, labels, formatting, and activity summary caching.
 - No pagination or load-more flow is needed for the saved top-three records.
+- Trophy case labels, counts, values and dates use the active app language. Language changes preserve the selected scope and activity type, and keep the existing date timezone.
 
 ## Activity Type Settings
 

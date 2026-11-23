@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 import { CalendarDays, ChevronLeft, ChevronRight, Filter, Medal, Trophy } from '@lucide/vue';
 import { useRecordsStore } from '@/stores/records';
 import { useSettingsStore } from '@/stores/settings';
@@ -9,7 +10,6 @@ import type { ActivityHighlight, HighlightMetric } from '@/services/records';
 import {
   formatRecordActivityDate,
   formatRecordValue,
-  getRecordMetricDefinition,
   recordMetricDefinitions,
   type RecordMetricGroupId,
 } from '@/utils/records';
@@ -17,6 +17,7 @@ import {
 const recordsStore = useRecordsStore();
 const settingsStore = useSettingsStore();
 const typeStore = useTypeStore();
+const { locale, t } = useI18n();
 
 const {
   scope,
@@ -32,25 +33,16 @@ const {
 } = storeToRefs(recordsStore);
 const { activityTypes } = storeToRefs(typeStore);
 
-interface MetricSection {
-  id: RecordMetricGroupId;
-  label: string;
-}
-
-const metricSections: MetricSection[] = [
-  { id: 'endurance', label: 'Endurance' },
-  { id: 'speed', label: 'Speed' },
-  { id: 'power', label: 'Power' },
-];
+const metricSections: RecordMetricGroupId[] = ['endurance', 'speed', 'power'];
 
 const groupsByMetric = computed(() => new Map(groups.value.map((group) => [group.metric, group])));
 
 const visibleMetricSections = computed(() =>
   metricSections
-    .map((section) => ({
-      ...section,
+    .map((id) => ({
+      id,
       metrics: recordMetricDefinitions
-        .filter((definition) => definition.group === section.id)
+        .filter((definition) => definition.group === id)
         .map((definition) => ({
           definition,
           group: groupsByMetric.value.get(definition.metric),
@@ -60,8 +52,11 @@ const visibleMetricSections = computed(() =>
     .filter((section) => section.metrics.length > 0)
 );
 
-const selectedMetricDefinition = computed(() =>
-  selectedMetric.value ? getRecordMetricDefinition(selectedMetric.value) : null
+const wholeNumber = computed(() => new Intl.NumberFormat(locale.value, { useGrouping: false }));
+const errorMessage = computed(() =>
+  error.value?.detail
+    ? t('records.errors.loadDetail', { detail: error.value.detail })
+    : error.value && t(`records.errors.${error.value.reason}`)
 );
 
 function selectMetric(metric: HighlightMetric) {
@@ -107,13 +102,17 @@ function resolveInitialRecordsTypeId(): number | null {
 
 function activityTitle(record: ActivityHighlight): string {
   const activity = activitySummaries.value[record.activity_id];
-  return activity?.name || formatRecordActivityDate(activity, record.activity_id);
+  return activity?.name || formatRecordActivityDate(activity, record.activity_id, locale.value);
 }
 
 function activitySubtitle(record: ActivityHighlight): string {
   const activity = activitySummaries.value[record.activity_id];
-  if (!activity?.name) return `Rank #${record.rank}`;
-  return formatRecordActivityDate(activity, record.activity_id);
+  if (!activity?.name) return rankLabel(record.rank);
+  return formatRecordActivityDate(activity, record.activity_id, locale.value);
+}
+
+function rankLabel(rank: number): string {
+  return t('records.rank', { rank: wholeNumber.value.format(rank) });
 }
 
 function rankClasses(rank: number): string {
@@ -146,28 +145,34 @@ onMounted(async () => {
             <Trophy class="size-6 text-verve-orange" aria-hidden="true" />
           </div>
           <div>
-            <h1 class="text-3xl font-bold text-verve-brown">Records</h1>
-            <p class="text-sm text-verve-brown/65">Trophy case</p>
+            <h1 class="text-3xl font-bold text-verve-brown">{{ t('navigation.records') }}</h1>
+            <p class="text-sm text-verve-brown/65">{{ t('records.trophyCase') }}</p>
           </div>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-3">
-          <div class="inline-flex rounded-lg border border-verve-brown/15 bg-white p-1" aria-label="Record scope">
+          <div
+            class="inline-flex rounded-lg border border-verve-brown/15 bg-white p-1"
+            role="group"
+            :aria-label="t('records.scope')"
+          >
             <button
               type="button"
               class="px-4 py-2 rounded-md text-sm font-semibold transition-colors"
               :class="scope === 'yearly' ? 'bg-verve-brown text-white' : 'text-verve-brown hover:bg-verve-light'"
+              :aria-pressed="scope === 'yearly'"
               @click="setScope('yearly')"
             >
-              Yearly
+              {{ t('records.yearly') }}
             </button>
             <button
               type="button"
               class="px-4 py-2 rounded-md text-sm font-semibold transition-colors"
               :class="scope === 'lifetime' ? 'bg-verve-brown text-white' : 'text-verve-brown hover:bg-verve-light'"
+              :aria-pressed="scope === 'lifetime'"
               @click="setScope('lifetime')"
             >
-              Lifetime
+              {{ t('records.lifetime') }}
             </button>
           </div>
 
@@ -179,7 +184,7 @@ onMounted(async () => {
             <button
               type="button"
               class="size-8 rounded-md hover:bg-verve-light text-verve-brown grid place-items-center"
-              aria-label="Previous year"
+              :aria-label="t('records.previousYear')"
               @click="stepYear(-1)"
             >
               <ChevronLeft class="size-4" aria-hidden="true" />
@@ -189,13 +194,13 @@ onMounted(async () => {
               type="number"
               min="1900"
               class="w-20 border-0 bg-transparent text-center text-sm font-bold text-verve-brown focus:ring-0"
-              aria-label="Records year"
+              :aria-label="t('records.year')"
               @change="setYearFromInput"
             />
             <button
               type="button"
               class="size-8 rounded-md hover:bg-verve-light text-verve-brown grid place-items-center"
-              aria-label="Next year"
+              :aria-label="t('records.nextYear')"
               @click="stepYear(1)"
             >
               <ChevronRight class="size-4" aria-hidden="true" />
@@ -207,7 +212,7 @@ onMounted(async () => {
             <select
               :value="typeId"
               class="min-w-44 border-0 bg-transparent p-0 text-sm font-semibold text-verve-brown focus:ring-0"
-              aria-label="Activity type"
+              :aria-label="t('records.activityType')"
               @change="setTypeFromSelect"
             >
               <option v-for="activityType in activityTypes" :key="activityType.id" :value="activityType.id">
@@ -219,9 +224,9 @@ onMounted(async () => {
       </header>
 
       <div class="grid gap-6 lg:grid-cols-[minmax(260px,360px)_1fr]">
-        <aside class="space-y-5">
+        <aside class="space-y-5" :aria-label="t('records.metricList')">
           <div v-if="isLoading" class="bg-white rounded-lg border border-verve-brown/10 p-5 text-sm text-verve-brown/60">
-            Loading records...
+            {{ t('records.loading') }}
           </div>
 
           <div
@@ -230,7 +235,9 @@ onMounted(async () => {
             :key="section.id"
             class="space-y-2"
           >
-            <h2 class="text-xs font-bold uppercase tracking-wider text-verve-brown/50">{{ section.label }}</h2>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-verve-brown/50">
+              {{ t(`records.groups.${section.id}`) }}
+            </h2>
             <button
               v-for="item in section.metrics"
               :key="item.definition.metric"
@@ -241,21 +248,24 @@ onMounted(async () => {
                   ? 'bg-verve-brown text-white border-verve-brown'
                   : 'bg-white text-verve-brown border-verve-brown/10 hover:bg-verve-light'
               "
+              :aria-pressed="selectedMetric === item.definition.metric"
               @click="selectMetric(item.definition.metric)"
             >
               <span class="flex items-center justify-between gap-4">
                 <span class="min-w-0">
-                  <span class="block text-sm font-bold truncate">{{ item.definition.label }}</span>
+                  <span class="block text-sm font-bold hyphens-auto wrap-anywhere">
+                    {{ t(`records.metrics.${item.definition.metric}`) }}
+                  </span>
                   <span
                     class="block text-xs mt-1"
                     :class="selectedMetric === item.definition.metric ? 'text-white/70' : 'text-verve-brown/55'"
                   >
-                    {{ item.group?.records.length ?? 0 }} of 3 saved
+                    {{ t('records.savedCount', { count: wholeNumber.format(item.group?.records.length ?? 0) }) }}
                   </span>
                 </span>
                 <span class="text-lg font-bold whitespace-nowrap">
                   <template v-if="item.group?.records[0]">
-                    {{ formatRecordValue(item.definition.metric, item.group.records[0].value) }}
+                    {{ formatRecordValue(item.definition.metric, item.group.records[0].value, locale) }}
                   </template>
                 </span>
               </span>
@@ -263,31 +273,33 @@ onMounted(async () => {
           </div>
 
           <div v-else class="bg-white rounded-lg border border-verve-brown/10 p-5 text-sm text-verve-brown/60">
-            No records found for this filter.
+            {{ t('records.emptyFilter') }}
           </div>
         </aside>
 
         <main class="min-w-0">
-          <div v-if="error" class="rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-700">
-            {{ error }}
+          <div v-if="errorMessage" class="rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-700" role="alert">
+            {{ errorMessage }}
           </div>
 
           <section v-else class="space-y-4">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p class="text-sm font-semibold text-verve-brown/55">
-                  {{ scope === 'yearly' ? year : 'Lifetime' }}
+                  {{ scope === 'yearly' ? wholeNumber.format(year) : t('records.lifetime') }}
                 </p>
                 <h2 class="text-2xl font-bold text-verve-brown">
-                  {{ selectedMetricDefinition?.label ?? 'Records' }}
+                  {{ selectedMetric ? t(`records.metrics.${selectedMetric}`) : t('navigation.records') }}
                 </h2>
               </div>
-              <p v-if="isLoadingSummaries" class="text-sm text-verve-brown/55">Loading activity details...</p>
+              <p v-if="isLoadingSummaries" class="text-sm text-verve-brown/55" role="status">
+                {{ t('records.loadingDetails') }}
+              </p>
             </div>
 
-            <div v-if="isLoading" class="rounded-lg bg-white border border-verve-brown/10 p-10 text-center">
+            <div v-if="isLoading" class="rounded-lg bg-white border border-verve-brown/10 p-10 text-center" role="status">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-verve-brown mx-auto mb-3"></div>
-              <p class="text-sm text-verve-brown/60">Loading trophy case...</p>
+              <p class="text-sm text-verve-brown/60">{{ t('records.loadingTrophies') }}</p>
             </div>
 
             <div
@@ -306,10 +318,11 @@ onMounted(async () => {
                     :class="rankClasses(record.rank)"
                   >
                     <Medal class="size-4" aria-hidden="true" />
-                    #{{ record.rank }}
+                    <span aria-hidden="true">{{ t('records.rankBadge', { rank: wholeNumber.format(record.rank) }) }}</span>
+                    <span v-if="activitySummaries[record.activity_id]?.name" class="sr-only">{{ rankLabel(record.rank) }}</span>
                   </div>
                   <p class="text-2xl font-bold text-verve-orange">
-                    {{ formatRecordValue(record.metric, record.value) }}
+                    {{ formatRecordValue(record.metric, record.value, locale) }}
                   </p>
                 </div>
                 <div class="mt-8">
@@ -321,8 +334,8 @@ onMounted(async () => {
 
             <div v-else class="rounded-lg bg-white border border-verve-brown/10 p-10 text-center">
               <Trophy class="size-10 text-verve-brown/25 mx-auto mb-3" aria-hidden="true" />
-              <p class="font-bold text-verve-brown">No records found</p>
-              <p class="text-sm text-verve-brown/60 mt-1">Try another year, scope, or activity type.</p>
+              <p class="font-bold text-verve-brown">{{ t('records.empty') }}</p>
+              <p class="text-sm text-verve-brown/60 mt-1">{{ t('records.tryAnotherFilter') }}</p>
             </div>
           </section>
         </main>

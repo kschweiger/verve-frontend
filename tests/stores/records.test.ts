@@ -57,6 +57,19 @@ describe('records store type filter', () => {
     await recordsStore.fetchOverview();
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(recordsStore.error).toBe('Choose an activity type to view records.');
+    expect(recordsStore.error).toEqual({ reason: 'chooseType' });
+  });
+
+  test('retains backend error detail behind a localizable failure reason', async () => {
+    useUserStore().setToken('token-123');
+    globalThis.fetch = stubFetch(mock(async () =>
+      jsonResponse({ detail: 'Highlights unavailable' }, { status: 503 })
+    ));
+
+    const recordsStore = useRecordsStore();
+    recordsStore.setInitialTypeId(2);
+    await recordsStore.fetchOverview();
+
+    expect(recordsStore.error).toEqual({ reason: 'load', detail: 'Highlights unavailable' });
   });
 });

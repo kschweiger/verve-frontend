@@ -13,6 +13,9 @@ import * as activityDetail from './activityDetail';
 import * as workoutFields from './workoutFields';
 import * as workout from './workout';
 import * as segments from './segments';
+import * as linkedActivities from './linkedActivities';
+import * as training from './training';
+import * as records from './records';
 
 export function createAppI18n(initialLocale: SupportedLocale = 'en') {
   return createI18n({
@@ -34,6 +37,9 @@ export function createAppI18n(initialLocale: SupportedLocale = 'en') {
         workoutFields: workoutFields.en,
         workout: workout.en,
         segments: segments.en,
+        linkedActivities: linkedActivities.en,
+        training: training.en,
+        records: records.en,
         language: {
           en: 'English',
           de: 'German',
@@ -53,6 +59,9 @@ export function createAppI18n(initialLocale: SupportedLocale = 'en') {
         workoutFields: workoutFields.de,
         workout: workout.de,
         segments: segments.de,
+        linkedActivities: linkedActivities.de,
+        training: training.de,
+        records: records.de,
         language: {
           en: 'Englisch',
           de: 'Deutsch',
