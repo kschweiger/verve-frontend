@@ -1,10 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import type { GridDay, GridWeek } from '../../src/stores/statistics';
 import {
-  formatActivityGridCellDetails,
+  formatActivityGridDate,
   formatActivityGridDuration,
-  formatLastActiveDay,
-  formatWeekActivityStreak,
+  getActivityGridDayOffset,
   getActivityGridIntensity,
   getRecentGridWeeks,
   getWeekdayLabels,
@@ -29,32 +28,16 @@ describe('activity grid helpers', () => {
   });
 
   test('formats compact durations', () => {
-    expect(formatActivityGridDuration(0)).toBe('0m');
-    expect(formatActivityGridDuration(1800)).toBe('30m');
-    expect(formatActivityGridDuration(5400)).toBe('1h 30m');
-    expect(formatActivityGridDuration(7200)).toBe('2h');
+    expect(formatActivityGridDuration(0, 'en')).toBe('0m');
+    expect(formatActivityGridDuration(1800, 'en')).toBe('30m');
+    expect(formatActivityGridDuration(5400, 'en')).toBe('1h 30m');
+    expect(formatActivityGridDuration(7200, 'en')).toBe('2h');
+    expect(formatActivityGridDuration(5400, 'de')).toBe('1h 30min');
   });
 
-  test('formats cell details with singular activity count', () => {
-    const day: GridDay = {
-      date: '2026-06-15',
-      activity_count: 1,
-      duration_seconds: 3600,
-      effective_duration_seconds: 2700,
-    };
-
-    expect(formatActivityGridCellDetails(day)).toBe('2026-06-15 · 1 activity · 45m active · 1h total');
-  });
-
-  test('formats cell details with plural activity count and matching effective and total duration', () => {
-    const day: GridDay = {
-      date: '2026-06-16',
-      activity_count: 3,
-      duration_seconds: 5400,
-      effective_duration_seconds: 5400,
-    };
-
-    expect(formatActivityGridCellDetails(day)).toBe('2026-06-16 · 3 activities · 1h 30m active');
+  test('formats a grid date without shifting the calendar day', () => {
+    expect(formatActivityGridDate('2026-06-15', 'en')).toBe('6/15/2026');
+    expect(formatActivityGridDate('2026-06-15', 'de')).toBe('15.6.2026');
   });
 
   test('only days with activities have cell details', () => {
@@ -76,35 +59,24 @@ describe('activity grid helpers', () => {
     expect(hasActivityGridCellDetails(null)).toBe(false);
   });
 
-  test('formats last active day relative to a pinned date', () => {
+  test('counts days back from browser-local today without treating the grid dates as instants', () => {
     const today = new Date(2026, 5, 15);
 
-    expect(formatLastActiveDay('2026-06-15', today)).toBe('Today');
-    expect(formatLastActiveDay('2026-06-14', today)).toBe('Yesterday');
-    expect(formatLastActiveDay('2026-06-12', today)).toBe('3 days ago');
-    expect(formatLastActiveDay(null, today)).toBe('No activity');
-  });
-
-  test('formats older last active days as compact dates', () => {
-    const today = new Date(2026, 5, 15);
-
-    expect(formatLastActiveDay('2026-05-01', today)).toBe('May 1');
-  });
-
-  test('formats week activity streaks', () => {
-    expect(formatWeekActivityStreak(0)).toBe('0 weeks');
-    expect(formatWeekActivityStreak(1)).toBe('1 week');
-    expect(formatWeekActivityStreak(4)).toBe('4 weeks');
+    expect(getActivityGridDayOffset('2026-06-15', today)).toBe(0);
+    expect(getActivityGridDayOffset('2026-06-14', today)).toBe(1);
+    expect(getActivityGridDayOffset('2026-06-12', today)).toBe(3);
   });
 
   test('returns Monday-first weekday labels', () => {
-    expect(getWeekdayLabels()).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+    expect(getWeekdayLabels('en')).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+    expect(getWeekdayLabels('de')).toEqual(['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']);
   });
 
   test('formats numeric month labels', () => {
-    expect(monthLabel(1)).toBe('Jan');
-    expect(monthLabel(6)).toBe('Jun');
-    expect(monthLabel(null)).toBe('');
+    expect(monthLabel(1, 'en')).toBe('Jan');
+    expect(monthLabel(6, 'en')).toBe('Jun');
+    expect(monthLabel(12, 'de')).toBe('Dez');
+    expect(monthLabel(null, 'de')).toBe('');
   });
 
   test('keeps the newest grid weeks in chronological order', () => {

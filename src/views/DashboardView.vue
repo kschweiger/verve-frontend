@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/auth';
 import AddActivityPanel from '@/components/dashboard/AddActivityPanel.vue';
 import DashboardOverviewStrip from '@/components/dashboard/DashboardOverviewStrip.vue';
@@ -8,6 +9,7 @@ import HighlightsWidget from '@/components/widgets/HighlightsWidget.vue';
 import GoalsWidget from '@/components/widgets/GoalsWidget.vue';
 
 const userStore = useUserStore();
+const { t } = useI18n();
 </script>
 
 <template>
@@ -16,9 +18,9 @@ const userStore = useUserStore();
       <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
         <div>
           <h1 class="text-3xl font-bold text-verve-brown">
-            Welcome back, {{ userStore.user_full_name ?? userStore.user_name }}!
+            {{ t('dashboard.welcome', { name: userStore.user_full_name ?? userStore.user_name }) }}
           </h1>
-          <p class="text-verve-brown/60 mt-1 font-medium">Activity overview</p>
+          <p class="text-verve-brown/60 mt-1 font-medium">{{ t('dashboard.overview') }}</p>
         </div>
 
         <AddActivityPanel />

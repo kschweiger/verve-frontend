@@ -1,4 +1,4 @@
-import { responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
+import { ApiResponseError, responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
 import type { GoalPublic } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
@@ -53,7 +53,7 @@ export const useGoalStore = defineStore('goal', () => {
   const error = ref<string | null>(null);
 
   const isLoadingPeriods = ref(false);
-  const periodsError = ref<string | null>(null);
+  const periodsError = ref<{ reason: 'loadFailed'; detail?: string } | null>(null);
   const isCreating = ref(false);
   const creationError = ref<string | null>(null);
   const updateError = ref<string | null>(null);
@@ -128,7 +128,10 @@ export const useGoalStore = defineStore('goal', () => {
       weeklyGoals.value = weekly.filter((g) => g.temporal_type === 'weekly');
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      periodsError.value = e instanceof Error ? e.message : String(e);
+      periodsError.value = {
+        reason: 'loadFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
     } finally {
       if (isCurrent()) {
         isLoadingPeriods.value = false;

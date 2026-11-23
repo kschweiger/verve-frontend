@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { Activity } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
 import { useActivityDateTime } from '@/composables/useActivityDateTime';
+import { formatDuration } from '@/utils/datetime';
 
 const props = defineProps<{
   activity: Activity;
@@ -10,7 +12,40 @@ const props = defineProps<{
 }>();
 
 const typeStore = useTypeStore();
-const activityDateTime = useActivityDateTime(() => props.activity);
+const { locale, t } = useI18n();
+const activityDateTime = useActivityDateTime(() => props.activity, locale);
+const localTimeUnavailable = computed(() =>
+  activityDateTime.value.isLocalTimeAvailable
+    ? null
+    : t('activities.row.localTimeUnavailable', {
+        timestamp: props.activity.start,
+        timezone: props.activity.timezone,
+      })
+);
+const timeLabel = computed(
+  () =>
+    localTimeUnavailable.value ??
+    t('activities.row.timeLabel', {
+      dateTime: activityDateTime.value.dateTime,
+      timezone: props.activity.timezone,
+    })
+);
+
+const distance = computed(() =>
+  props.activity.distance == null
+    ? '-'
+    : new Intl.NumberFormat(locale.value, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(props.activity.distance)
+);
+const elevationGain = computed(() =>
+  props.activity.elevationGain === null
+    ? '-'
+    : new Intl.NumberFormat(locale.value, { maximumFractionDigits: 0 }).format(
+        props.activity.elevationGain
+      )
+);
 
 const activityType = computed(() => {
   return typeStore.activityTypes.find((t) => t.id === props.activity.type_id);
@@ -26,7 +61,8 @@ const activitySubType = computed(() => {
 const hasDistinctTotalDuration = computed(() => {
   return props.activity.durationSeconds !== props.activity.effectiveDurationSeconds;
 });
-
+const effectiveDuration = computed(() => formatDuration(props.activity.effectiveDurationSeconds, locale.value));
+const totalDuration = computed(() => formatDuration(props.activity.durationSeconds, locale.value));
 </script>
 
 <template>
@@ -42,8 +78,8 @@ const hasDistinctTotalDuration = computed(() => {
         <div class="overflow-hidden">
           <p class="font-bold text-verve-brown text-sm truncate">{{ activity.name }}</p>
           <p class="text-xs text-verve-brown/60" :title="activity.timezone">
-            <time :datetime="activity.start" :aria-label="`${activityDateTime.dateTime} · ${activity.timezone}`">
-              {{ activityDateTime.shortDate }}<template v-if="activityDateTime.time"> &bull; {{ activityDateTime.time }}</template>
+            <time :datetime="activity.start" :aria-label="timeLabel">
+              {{ localTimeUnavailable ?? activityDateTime.shortDate }}<template v-if="activityDateTime.time"> &bull; {{ activityDateTime.time }}</template>
             </time>
           </p>
         </div>
@@ -55,21 +91,17 @@ const hasDistinctTotalDuration = computed(() => {
 
       <div class="grid grid-cols-3 gap-2 border-t border-verve-medium/20 pt-2 text-verve-brown/80">
         <div>
-          <span class="text-sm font-semibold">{{
-            activity.distance != null ? activity.distance.toFixed(2) : '-'
-            }}</span>
+          <span class="text-sm font-semibold">{{ distance }}</span>
           <span v-if="activity.distance != null" class="text-xs font-normal text-verve-brown/50 ml-0.5">km</span>
         </div>
         <div class="text-center">
-          <p class="text-sm font-semibold">{{ activity.effectiveDuration }}</p>
+          <p class="text-sm font-semibold">{{ effectiveDuration }}</p>
           <p v-if="hasDistinctTotalDuration" class="text-[10px] text-verve-brown/45">
-            {{ activity.duration }} total
+            {{ t('activities.row.totalDuration', { duration: totalDuration }) }}
           </p>
         </div>
         <div class="text-right">
-          <span class="text-sm font-semibold">{{
-            activity.elevationGain !== null ? activity.elevationGain.toFixed(0) : '-'
-            }}</span>
+          <span class="text-sm font-semibold">{{ elevationGain }}</span>
           <span class="text-xs font-normal text-verve-brown/50 ml-0.5">m</span>
         </div>
       </div>
@@ -84,35 +116,34 @@ const hasDistinctTotalDuration = computed(() => {
 
       <!-- Date and Time -->
       <div class="col-span-2 md:col-span-1">
-        <time :datetime="activity.start" :title="activity.timezone"
-          :aria-label="`${activityDateTime.dateTime} · ${activity.timezone}`">
-          <span class="block font-semibold text-verve-brown/80 text-sm">{{ activityDateTime.shortDate }}</span>
+        <time :datetime="activity.start" :title="activity.timezone" :aria-label="timeLabel">
+          <span class="block font-semibold text-verve-brown/80 text-sm">{{ localTimeUnavailable ?? activityDateTime.shortDate }}</span>
           <span v-if="activityDateTime.time" class="block text-xs text-verve-brown/50">{{ activityDateTime.time }}</span>
         </time>
       </div>
 
       <!-- Activity Type and Sub-Type -->
       <div class="hidden md:block">
-        <p class="text-verve-brown font-semibold text-sm">{{ activityType?.name ?? 'N/A' }}</p>
+        <p class="text-verve-brown font-semibold text-sm">{{ activityType?.name ?? t('activities.row.unknownType') }}</p>
         <p v-if="activitySubType" class="text-xs text-verve-brown/50">{{ activitySubType.name }}</p>
       </div>
 
       <!-- Duration -->
       <div>
-        <p class="font-bold text-verve-brown">{{ activity.effectiveDuration }}</p>
-        <p class="text-xs text-verve-brown/50 uppercase tracking-wide">Active Time</p>
+        <p class="font-bold text-verve-brown">{{ effectiveDuration }}</p>
+        <p class="text-xs text-verve-brown/50 uppercase tracking-wide">{{ t('activities.row.activeTime') }}</p>
         <p v-if="hasDistinctTotalDuration" class="text-xs text-verve-brown/45">
-          {{ activity.duration }} total
+          {{ t('activities.row.totalDuration', { duration: totalDuration }) }}
         </p>
       </div>
 
       <!-- Distance -->
       <div class="text-right">
         <p class="font-bold text-verve-brown">
-          {{ activity.distance != null ? activity.distance.toFixed(2) : '-' }}
+          {{ distance }}
           <span v-if="activity.distance" class="text-xs font-normal text-verve-brown/50">km</span>
         </p>
-        <p class="text-xs text-verve-brown/50 uppercase tracking-wide">Distance</p>
+        <p class="text-xs text-verve-brown/50 uppercase tracking-wide">{{ t('activities.row.distance') }}</p>
       </div>
     </div>
   </router-link>

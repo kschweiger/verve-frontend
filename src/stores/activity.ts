@@ -1,7 +1,12 @@
-import { responseError, getAuthHeaders, getJsonAuthHeaders } from '../services/authHeaders';
+import {
+  ApiResponseError,
+  responseError,
+  getAuthHeaders,
+  getJsonAuthHeaders,
+} from '../services/authHeaders';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 import { mapApiActivity } from '../services/api';
@@ -70,16 +75,28 @@ export interface ActivityImage {
   url: string;
 }
 
+type ActivityListFailure =
+  | { kind: 'unauthenticated'; message: string }
+  | { kind: 'load'; message: string; detail: string | null };
+
+export interface ActivityUploadFailure {
+  success: false;
+  message: string;
+  reason: 'notAuthenticated' | 'invalidTimezone' | 'accountChanged' | 'failed';
+  detail?: string;
+}
+
 const ACTIVITIES_PER_PAGE = 5;
 
 export const useActivityStore = defineStore('activity', () => {
   const recentActivities = ref<Activity[]>([]);
   const isRecentLoading = ref(false);
-  const recentError = ref<string | null>(null);
+  const recentError = ref<{ reason: 'notAuthenticated' | 'loadFailed'; detail?: string } | null>(null);
 
   const paginatedActivities = ref<Activity[]>([]);
   const isListLoading = ref(false);
-  const listError = ref<string | null>(null);
+  const listFailure = ref<ActivityListFailure | null>(null);
+  const listError = computed(() => listFailure.value?.message ?? null);
   const currentPage = ref(1);
   const canLoadMore = ref(true);
   const currentFilters = ref<ActivityFilters>({});
@@ -102,7 +119,7 @@ export const useActivityStore = defineStore('activity', () => {
     recentError.value = null;
     paginatedActivities.value = [];
     isListLoading.value = false;
-    listError.value = null;
+    listFailure.value = null;
     currentPage.value = 1;
     canLoadMore.value = true;
     currentFilters.value = {};
@@ -120,7 +137,7 @@ export const useActivityStore = defineStore('activity', () => {
     recentError.value = null;
 
     if (!userStore.token) {
-      recentError.value = 'Authentication token not found.';
+      recentError.value = { reason: 'notAuthenticated' };
       isRecentLoading.value = false;
       return;
     }
@@ -139,7 +156,10 @@ export const useActivityStore = defineStore('activity', () => {
       recentActivities.value = data.data.map(mapApiActivity);
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      recentError.value = e instanceof Error ? e.message : 'An unknown error occurred.';
+      recentError.value = {
+        reason: 'loadFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
     } finally {
       if (isCurrent()) {
         isRecentLoading.value = false;
@@ -151,7 +171,7 @@ export const useActivityStore = defineStore('activity', () => {
     if (loadMore && (isListLoading.value || !canLoadMore.value)) return;
     const isCurrent = beginListRequest();
     isListLoading.value = true;
-    listError.value = null;
+    listFailure.value = null;
 
     if (!loadMore) {
       paginatedActivities.value = [];
@@ -161,7 +181,7 @@ export const useActivityStore = defineStore('activity', () => {
     }
 
     if (!userStore.token) {
-      listError.value = 'Not authenticated.';
+      listFailure.value = { kind: 'unauthenticated', message: 'Not authenticated.' };
       isListLoading.value = false;
       return;
     }
@@ -209,7 +229,11 @@ export const useActivityStore = defineStore('activity', () => {
       currentPage.value++;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      listError.value = e instanceof Error ? e.message : String(e);
+      listFailure.value = {
+        kind: 'load',
+        message: e instanceof Error ? e.message : String(e),
+        detail: e instanceof ApiResponseError ? (e.detail ?? null) : null,
+      };
     } finally {
       if (isCurrent()) {
         isListLoading.value = false;
@@ -222,15 +246,21 @@ export const useActivityStore = defineStore('activity', () => {
     typeId: number | null,
     subTypeId: number | null,
     timezoneName?: string
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: true; message: string } | ActivityUploadFailure> {
     const isCurrent = captureSession();
     if (!userStore.token) {
-      return { success: false, message: 'Not authenticated.' };
+      return { success: false, reason: 'notAuthenticated', message: 'Not authenticated.' };
     }
 
     if (timezoneName !== undefined && !isSupportedTimezone(timezoneName)) {
-      return { success: false, message: 'Select a supported timezone.' };
+      return { success: false, reason: 'invalidTimezone', message: 'Select a supported timezone.' };
     }
+
+    const accountChanged = {
+      success: false,
+      reason: 'accountChanged',
+      message: 'Account changed while processing the request.',
+    } satisfies ActivityUploadFailure;
 
     const formData = new FormData();
     formData.append('file', file);
@@ -249,8 +279,7 @@ export const useActivityStore = defineStore('activity', () => {
         headers: getAuthHeaders(),
         body: formData,
       });
-      if (!isCurrent())
-        return { success: false, message: 'Account changed while processing the request.' };
+      if (!isCurrent()) return accountChanged;
 
       if (!response.ok) throw await responseError(response, 'Upload failed.');
 
@@ -258,9 +287,13 @@ export const useActivityStore = defineStore('activity', () => {
       notifyUpdate();
       return { success: true, message: 'Activity uploaded successfully!' };
     } catch (e: unknown) {
-      if (!isCurrent())
-        return { success: false, message: 'Account changed while processing the request.' };
-      return { success: false, message: e instanceof Error ? e.message : String(e) };
+      if (!isCurrent()) return accountChanged;
+      return {
+        success: false,
+        reason: 'failed',
+        message: e instanceof Error ? e.message : String(e),
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
     }
   }
 
@@ -486,6 +519,7 @@ export const useActivityStore = defineStore('activity', () => {
     paginatedActivities,
     isListLoading,
     listError,
+    listFailure,
     canLoadMore,
     currentFilters,
     fetchActivities,

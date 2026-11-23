@@ -1,5 +1,10 @@
 # Dashboard and Calendar
 
+## Language and formatting
+
+- The dashboard, activity list, and calendar display English or German according to the active app language. Dates and numbers in these views follow the same language.
+- Localization preserves the selected period, the meaning of totals, and the calendar's date boundaries. User-entered names and labels returned by the backend are displayed as supplied.
+
 ## Dashboard
 
 - Activity history, summary metrics, recent activities, goals, and curated records form the activity overview. A header Add action opens upload and manual creation.

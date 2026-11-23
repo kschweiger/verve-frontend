@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { createSSRApp } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { createPinia } from 'pinia';
+import { createAppI18n } from '../../src/i18n';
 import { useGoalStore, type Goal } from '../../src/stores/goals';
 const { default: GoalCreateForm } = await import('../../src/components/forms/GoalCreateForm.vue');
 const { default: GoalCard } = await import('../../src/components/GoalCard.vue');
@@ -41,7 +42,25 @@ test('dashboard goal widget displays active day units', async () => {
   useGoalStore(pinia).monthlyGoals = [goal];
   const app = createSSRApp(GoalsWidget);
   app.use(pinia);
+  app.use(createAppI18n());
   const html = await renderToString(app);
   expect(html).toContain('Stay active');
   expect(html).toMatch(/3 \/\s*10 days/);
+});
+
+test('dashboard goal widget localizes progress and keeps the original goal names', async () => {
+  const pinia = createPinia();
+  useGoalStore(pinia).monthlyGoals = [
+    { ...goal, target: 1 },
+    { ...goal, id: 'goal-2', aggregation: 'duration', current: 5400, target: 7200 },
+  ];
+  const app = createSSRApp(GoalsWidget);
+  app.use(pinia);
+  app.use(createAppI18n('de'));
+
+  const html = await renderToString(app);
+  expect(html).toContain('Meine Ziele');
+  expect(html).toContain('Stay active');
+  expect(html).toMatch(/3 \/\s*1 Tag/);
+  expect(html).toMatch(/1,5 \/\s*2,0 h/);
 });

@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, watch, onMounted, computed, useId } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useTypeStore } from '@/stores/types';
 import { useTagsStore } from '@/stores/tags';
 import type { ActivityFilters } from '@/stores/activity';
 
 const typeStore = useTypeStore();
 const tagsStore = useTagsStore();
+const { locale, t } = useI18n();
+const filterId = useId();
 
 const props = defineProps<{
   initialFilters?: ActivityFilters;
@@ -34,6 +37,10 @@ const availableTags = computed(() => {
 });
 
 const availableYears = Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - i);
+const yearFormatter = computed(() => new Intl.NumberFormat(locale.value, { useGrouping: false }));
+const monthFormatter = computed(() =>
+  new Intl.DateTimeFormat(locale.value, { month: 'short', timeZone: 'UTC' })
+);
 
 watch(year, (newYear) => {
   if (newYear === null) month.value = null;
@@ -79,62 +86,74 @@ function clearFilters() {
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
       <!-- Year Filter -->
       <div class="xl:col-span-1">
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Year</label>
-        <select v-model="year"
+        <label :for="`${filterId}-year`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          {{ t('activities.filter.year') }}
+        </label>
+        <select :id="`${filterId}-year`" v-model="year"
           class="block w-full text-sm border-verve-medium rounded-lg focus:ring-verve-dark bg-verve-light/20">
-          <option :value="null">All</option>
-          <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
+          <option :value="null">{{ t('activities.filter.all') }}</option>
+          <option v-for="y in availableYears" :key="y" :value="y">{{ yearFormatter.format(y) }}</option>
         </select>
       </div>
 
       <!-- Month Filter -->
       <div class="xl:col-span-1">
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Month</label>
-        <select v-model="month" :disabled="!year"
+        <label :for="`${filterId}-month`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          {{ t('activities.filter.month') }}
+        </label>
+        <select :id="`${filterId}-month`" v-model="month" :disabled="!year"
           class="block w-full text-sm border-verve-medium rounded-lg focus:ring-verve-dark bg-verve-light/20 disabled:opacity-50">
-          <option :value="null">All</option>
+          <option :value="null">{{ t('activities.filter.all') }}</option>
           <option v-for="m in 12" :key="m" :value="m">
-            {{ new Date(0, m - 1).toLocaleString('default', { month: 'short' }) }}
+            {{ monthFormatter.format(Date.UTC(2000, m - 1)) }}
           </option>
         </select>
       </div>
 
       <!-- Type Filter -->
       <div class="xl:col-span-1">
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Type</label>
-        <select v-model="typeId"
+        <label :for="`${filterId}-type`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          {{ t('activities.filter.type') }}
+        </label>
+        <select :id="`${filterId}-type`" v-model="typeId"
           class="block w-full text-sm border-verve-medium rounded-lg focus:ring-verve-dark bg-verve-light/20">
-          <option :value="null">All</option>
+          <option :value="null">{{ t('activities.filter.all') }}</option>
           <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
         </select>
       </div>
 
       <!-- Sub-Type Filter -->
       <div class="xl:col-span-1">
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Sub-Type</label>
-        <select v-model="subTypeId" :disabled="availableSubTypes.length === 0"
+        <label :for="`${filterId}-sub-type`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          {{ t('activities.filter.subType') }}
+        </label>
+        <select :id="`${filterId}-sub-type`" v-model="subTypeId" :disabled="availableSubTypes.length === 0"
           class="block w-full text-sm border-verve-medium rounded-lg focus:ring-verve-dark bg-verve-light/20 disabled:opacity-50">
-          <option :value="null">All</option>
+          <option :value="null">{{ t('activities.filter.all') }}</option>
           <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
         </select>
       </div>
 
       <!-- Tag Category Filter -->
       <div class="xl:col-span-1">
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Category</label>
-        <select v-model="categoryId"
+        <label :for="`${filterId}-category`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          {{ t('activities.filter.category') }}
+        </label>
+        <select :id="`${filterId}-category`" v-model="categoryId"
           class="block w-full text-sm border-verve-medium rounded-lg focus:ring-verve-dark bg-verve-light/20">
-          <option :value="null">All</option>
+          <option :value="null">{{ t('activities.filter.all') }}</option>
           <option v-for="cat in tagsStore.categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
         </select>
       </div>
 
       <!-- Tag Filter -->
       <div class="xl:col-span-1">
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Tag</label>
-        <select v-model="tagId" :disabled="availableTags.length === 0"
+        <label :for="`${filterId}-tag`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          {{ t('activities.filter.tag') }}
+        </label>
+        <select :id="`${filterId}-tag`" v-model="tagId" :disabled="availableTags.length === 0"
           class="block w-full text-sm border-verve-medium rounded-lg focus:ring-verve-dark bg-verve-light/20 disabled:opacity-50">
-          <option :value="null">All</option>
+          <option :value="null">{{ t('activities.filter.all') }}</option>
           <option v-for="tag in availableTags" :key="tag.id" :value="tag.id">{{ tag.name }}</option>
         </select>
       </div>
@@ -143,11 +162,11 @@ function clearFilters() {
       <div class="xl:col-span-2 flex items-end gap-3">
         <button @click="applyFilters"
           class="flex-1 py-2 px-4 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 transition-all border border-verve-dark/5">
-          Search
+          {{ t('activities.filter.search') }}
         </button>
         <button @click="clearFilters"
           class="flex-1 py-2 px-4 bg-white border border-verve-medium text-verve-brown font-semibold rounded-xl hover:bg-verve-light transition-all">
-          Clear
+          {{ t('activities.filter.clear') }}
         </button>
       </div>
     </div>

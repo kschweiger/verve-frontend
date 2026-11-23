@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, useId } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useTypeStore } from '@/stores/types';
-import { useActivityStore } from '@/stores/activity';
+import { useActivityStore, type ActivityUploadFailure } from '@/stores/activity';
 import ActivityCreateForm from '@/components/forms/ActivityCreateForm.vue';
 import TimezonePicker from '@/components/forms/TimezonePicker.vue';
 import { useSettingsStore } from '@/stores/settings';
@@ -10,6 +11,8 @@ import { FileText, CheckCircle, XCircle, Loader2, RefreshCw, HelpCircle } from '
 const typeStore = useTypeStore();
 const activityStore = useActivityStore();
 const settingsStore = useSettingsStore();
+const { t, n } = useI18n();
+const controlId = useId();
 
 defineProps<{
   embedded?: boolean;
@@ -22,7 +25,7 @@ interface QueueItem {
   id: string; // Unique ID for v-for
   file: File;
   status: 'pending' | 'uploading' | 'success' | 'error';
-  message?: string;
+  failure?: ActivityUploadFailure;
 }
 
 // --- State ---
@@ -89,19 +92,21 @@ async function handleBatchUpload() {
 
     if (result.success) {
       item.status = 'success';
-      item.message = 'Uploaded';
     } else {
+      item.failure = result;
       item.status = 'error';
-      item.message = result.message;
     }
   }
 
   isProcessing.value = false;
   hasFinished.value = true;
+}
 
-  // Clear the input so selecting the same files works again if needed
-  const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-  if (fileInput) fileInput.value = '';
+function uploadStatus(item: QueueItem): string {
+  if (item.status === 'error') {
+    return item.failure?.detail || t(`activities.upload.${item.failure?.reason ?? 'failed'}`);
+  }
+  return t(`activities.upload.${item.status}`);
 }
 
 function resetForm() {
@@ -119,21 +124,21 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
 <template>
   <div :class="embedded ? 'h-full flex flex-col' : 'bg-white rounded-lg shadow-md p-6 h-full flex flex-col'">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xl font-bold text-gray-800">Add Activity</h3>
+      <h3 class="text-xl font-bold text-gray-800">{{ t('activities.upload.title') }}</h3>
 
       <!-- Tabs -->
       <div class="flex bg-verve-light p-1 rounded-xl">
-        <button @click="activeTab = 'auto'" :class="activeTab === 'auto'
+        <button type="button" @click="activeTab = 'auto'" :aria-pressed="activeTab === 'auto'" :class="activeTab === 'auto'
           ? 'bg-white shadow-sm text-verve-brown'
           : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50'
           " class="flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all" :disabled="isProcessing">
-          Auto Upload
+          {{ t('activities.upload.auto') }}
         </button>
-        <button @click="activeTab = 'manual'" :class="activeTab === 'manual'
+        <button type="button" @click="activeTab = 'manual'" :aria-pressed="activeTab === 'manual'" :class="activeTab === 'manual'
           ? 'bg-white shadow-sm text-verve-brown'
           : 'text-verve-brown/60 hover:text-verve-brown hover:bg-white/50'
           " class="flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-all" :disabled="isProcessing">
-          Manual
+          {{ t('activities.upload.manual') }}
         </button>
       </div>
     </div>
@@ -143,9 +148,9 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
 
       <!-- MODE A: Processing / Result List -->
       <div v-if="isProcessing || hasFinished" class="flex-1 flex flex-col min-h-0">
-        <div class="mb-2 text-sm font-bold text-verve-brown flex justify-between">
-          <span>Progress</span>
-          <span v-if="hasFinished">{{ successCount }} / {{ uploadQueue.length }} Success</span>
+        <div role="status" class="mb-2 text-sm font-bold text-verve-brown flex justify-between">
+          <span>{{ t('activities.upload.progress') }}</span>
+          <span v-if="hasFinished">{{ t('activities.upload.successCount', { successful: n(successCount), total: n(uploadQueue.length) }) }}</span>
         </div>
 
         <div class="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
@@ -161,17 +166,17 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
               <span class="truncate text-verve-brown font-medium" :title="item.file.name">{{ item.file.name }}</span>
             </div>
 
-            <div class="shrink-0">
-              <span v-if="item.status === 'pending'" class="text-xs text-gray-400">Waiting...</span>
-              <Loader2 v-else-if="item.status === 'uploading'" class="size-4 animate-spin text-blue-500" />
+            <div class="shrink-0" :title="item.status === 'pending' ? undefined : uploadStatus(item)">
+              <span :class="item.status === 'pending' ? 'text-xs text-gray-400' : 'sr-only'">{{ uploadStatus(item) }}</span>
+              <Loader2 v-if="item.status === 'uploading'" class="size-4 animate-spin text-blue-500" />
               <CheckCircle v-else-if="item.status === 'success'" class="size-4 text-green-600" />
-              <XCircle v-else-if="item.status === 'error'" class="size-4 text-red-500" :title="item.message" />
+              <XCircle v-else-if="item.status === 'error'" class="size-4 text-red-500" />
             </div>
           </div>
         </div>
 
-        <button v-if="hasFinished" @click="resetForm" class="btn-primary w-full mt-4 flex items-center justify-center">
-          <RefreshCw class="size-4 mr-2" /> Upload More
+        <button v-if="hasFinished" type="button" @click="resetForm" class="btn-primary w-full mt-4 flex items-center justify-center">
+          <RefreshCw class="size-4 mr-2" /> {{ t('activities.upload.more') }}
         </button>
       </div>
 
@@ -179,38 +184,38 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
       <form v-else @submit.prevent="handleBatchUpload" class="space-y-4 flex flex-col h-full">
         <div>
           <div class="flex justify-between items-center mb-1">
-            <label class="block text-sm font-medium text-gray-700">
-              GPX/FIT/GeoJSON Files
+            <label :for="`${controlId}-file`" class="block text-sm font-medium text-gray-700">
+              {{ t('activities.upload.files') }}
             </label>
             <router-link to="/help#formats" class="text-verve-brown/40 hover:text-verve-orange transition-colors"
-              title="View supported formats">
+              :aria-label="t('activities.upload.formats')" :title="t('activities.upload.formats')">
               <HelpCircle class="size-4" />
             </router-link>
           </div>
           <div class="relative">
-            <input id="file-upload" type="file" @change="handleFileChange" multiple required
+            <input :id="`${controlId}-file`" type="file" @change="handleFileChange" multiple required
               class="file-input w-full" />
           </div>
           <p v-if="uploadQueue.length > 0" class="mt-1 text-xs font-bold text-verve-orange">
-            {{ uploadQueue.length }} file{{ uploadQueue.length !== 1 ? 's' : '' }} selected
+            {{ t('activities.upload.fileCount', { value: n(uploadQueue.length) }, uploadQueue.length) }}
           </p>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-medium text-gray-700">Type (Optional)</label>
-            <select v-model="selectedTypeId" class="mt-1 block w-full border-gray-300 text-sm rounded-md bg-white">
-              <option :value="null">Auto-detect</option>
+            <label :for="`${controlId}-type`" class="block text-xs font-medium text-gray-700">{{ t('activities.upload.type') }}</label>
+            <select :id="`${controlId}-type`" v-model="selectedTypeId" class="mt-1 block w-full border-gray-300 text-sm rounded-md bg-white">
+              <option :value="null">{{ t('activities.upload.detect') }}</option>
               <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">
                 {{ t.name }}
               </option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-700">Sub-Type (Optional)</label>
-            <select v-model="selectedSubTypeId" :disabled="!selectedTypeId"
+            <label :for="`${controlId}-sub-type`" class="block text-xs font-medium text-gray-700">{{ t('activities.upload.subType') }}</label>
+            <select :id="`${controlId}-sub-type`" v-model="selectedSubTypeId" :disabled="!selectedTypeId"
               class="mt-1 block w-full border-gray-300 text-sm rounded-md bg-white disabled:bg-gray-100">
-              <option :value="null">Auto-detect</option>
+              <option :value="null">{{ t('activities.upload.detect') }}</option>
               <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
                 {{ st.name }}
               </option>
@@ -219,19 +224,20 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
         </div>
 
         <div>
-          <TimezonePicker id="upload-timezone" v-model="selectedTimezone" label="Timezone (optional)" allow-empty
-            :disabled="isProcessing" :suggested-timezone="settingsStore.timezone ?? undefined" described-by="upload-timezone-help" />
-          <p id="upload-timezone-help" class="mt-1 text-xs text-verve-brown/60">Applies to all selected files. Leave blank to let the backend choose.</p>
+          <TimezonePicker :id="`${controlId}-timezone`" v-model="selectedTimezone" :label="t('activities.upload.timezone')" allow-empty
+            :disabled="isProcessing" :suggested-timezone="settingsStore.timezone ?? undefined" :described-by="`${controlId}-timezone-help`" />
+          <p :id="`${controlId}-timezone-help`" class="mt-1 text-xs text-verve-brown/60">{{ t('activities.upload.timezoneHelp') }}</p>
         </div>
 
         <p class="text-xs text-verve-brown/60 italic">
-          Selected types apply to all files unless overridden by file metadata (e.g. Verve JSON).
+          {{ t('activities.upload.typeHelp') }}
         </p>
 
         <div class="mt-auto">
           <button type="submit" class="btn-primary w-full">
-            <span v-if="uploadQueue.length > 1">Upload {{ uploadQueue.length }} Activities</span>
-            <span v-else>Upload</span>
+            {{ uploadQueue.length > 1
+              ? t('activities.upload.submitMultiple', { value: n(uploadQueue.length) })
+              : t('activities.upload.submit') }}
           </button>
         </div>
       </form>
@@ -240,10 +246,9 @@ const successCount = computed(() => uploadQueue.value.filter(i => i.status === '
     <!-- TAB 2: Manual Entry Entry Point -->
     <div v-else class="flex flex-col items-center justify-center h-48 space-y-4">
       <div class="text-center text-gray-500 text-sm">
-        <p>Log a gym session, yoga class,</p>
-        <p>or an activity without GPS data.</p>
+        <p>{{ t('activities.upload.manualDescription') }}</p>
       </div>
-      <button @click="showManualModal = true" class="btn-outline">Open Manual Entry Form</button>
+      <button type="button" @click="showManualModal = true" class="btn-outline">{{ t('activities.upload.openManual') }}</button>
     </div>
 
     <!-- Manual Modal -->

@@ -2,7 +2,7 @@
 
 ## Display
 
-- Activity detail and shared activity rows display dates and times in the activity's assigned IANA timezone. The browser locale controls formatting, not the timezone.
+- Activity detail and shared activity rows display dates and times in the activity's assigned IANA timezone. Shared activity rows format timestamps using the active app language. Activity detail uses the browser locale.
 - Detail always shows the timestamp and full timezone identifier, including for unnamed activities. Its fallback title uses the activity-local date. Standard and compact rows include a short timezone label; their accessible time description and tooltip provide the full identifier.
 - API timestamps remain instants with `Z` or an explicit numeric offset. Formatting uses `Intl.DateTimeFormat` with `timeZone`; it does not rewrite timestamps or apply offsets manually.
 - If the browser cannot format a contract-valid zone, show Local time unavailable together with the original timestamp and zone. Never substitute the browser or user's timezone.

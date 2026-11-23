@@ -342,9 +342,35 @@ test('an outdated filter failure cannot finish the current request or show its e
   await oldRequest;
   expect(store.isListLoading).toBe(true);
   expect(store.listError).toBeNull();
+  expect(store.listFailure).toBeNull();
   pending[1]!(Response.json(page(2)));
   await latestRequest;
   expect(store.isListLoading).toBe(false);
+});
+
+test('activity list failures retain API diagnostics for display', async () => {
+  globalThis.fetch = stubFetch(async () =>
+    Response.json({ detail: 'Activities are temporarily unavailable.' }, { status: 503 })
+  );
+  const store = useActivityStore();
+
+  await store.fetchActivities({});
+
+  expect(store.listError).toBe('Activities are temporarily unavailable.');
+  expect(store.listFailure).toMatchObject({
+    kind: 'load',
+    detail: 'Activities are temporarily unavailable.',
+  });
+});
+
+test('activity list failures without API diagnostics can use a localized fallback', async () => {
+  globalThis.fetch = stubFetch(async () => Response.json({}, { status: 503 }));
+  const store = useActivityStore();
+
+  await store.fetchActivities({});
+
+  expect(store.listError).toBe('Failed to fetch paginated activities.');
+  expect(store.listFailure).toMatchObject({ kind: 'load', detail: null });
 });
 
 test('duplicate load-more actions request and append a page only once', async () => {
