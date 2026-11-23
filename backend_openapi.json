@@ -256,6 +256,52 @@
         ]
       }
     },
+    "/api/v1/users/me/locale": {
+      "patch": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Replace Locale",
+        "operationId": "user-replace_locale",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SupportedLocale"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response User-Replace Locale"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me/heatmap_settings": {
       "patch": {
         "tags": [
@@ -10459,6 +10505,73 @@
       }
     },
     "/api/v1/strength_training/activity_exercise_plans/{activity_id}/entry": {
+      "patch": {
+        "tags": [
+          "strength_training"
+        ],
+        "summary": "Update an entry in an activity plan",
+        "description": "Update weight, sets or repetitions and return the entry with its original ID. Omitted fields keep their values. Send `null` to clear a value.",
+        "operationId": "strength_training-update_entry_in_activity_plan",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Activity Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityExercisePlanEntryUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityExercisePlanEntryPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity, plan or entry not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "strength_training"
@@ -12038,6 +12151,57 @@
           "id"
         ],
         "title": "ActivityExercisePlanEntryPublic"
+      },
+      "ActivityExercisePlanEntryUpdate": {
+        "properties": {
+          "entry_id": {
+            "type": "integer",
+            "title": "Entry Id"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          },
+          "sets": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sets"
+          },
+          "repetitions": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repetitions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entry_id"
+        ],
+        "title": "ActivityExercisePlanEntryUpdate"
       },
       "ActivityExercisePlanPublic": {
         "properties": {
