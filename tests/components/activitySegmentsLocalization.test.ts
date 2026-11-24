@@ -1,4 +1,4 @@
-import { useClientRendering } from '../helpers/vueComponents';
+import '../helpers/vueComponents';
 import { stubFetch } from '../helpers/fetch';
 import { afterEach, expect, test } from 'bun:test';
 import { createPinia } from 'pinia';
@@ -7,7 +7,6 @@ import { createAppI18n } from '../../src/i18n';
 import { useUserStore } from '../../src/stores/auth';
 import type { SegmentStatisticsResponse } from '../../src/types/api';
 
-useClientRendering(import.meta.dir + '/../../src/components/ActivitySegmentsPanel.vue');
 const { default: ActivitySegmentsPanel } =
   await import('../../src/components/ActivitySegmentsPanel.vue');
 

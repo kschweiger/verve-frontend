@@ -1,3 +1,4 @@
+import { germanTimeUnit } from '../helpers/intl';
 import { describe, expect, test } from 'bun:test';
 import {
   activitySummaryMetricCardClasses,
@@ -81,7 +82,11 @@ describe('activity summary metrics', () => {
 
     expect(metrics).toEqual([
       { key: 'distance', value: '18,43' },
-      { key: 'activeTime', value: '1h 10min', totalDuration: '27h 50min' },
+      {
+        key: 'activeTime',
+        value: `1h ${germanTimeUnit(10, 'minute')}`,
+        totalDuration: `27h ${germanTimeUnit(50, 'minute')}`,
+      },
       { key: 'elevationGain', value: '1.425' },
       { key: 'averageSpeed', value: '0,0' },
     ]);

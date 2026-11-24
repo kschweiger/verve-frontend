@@ -1,4 +1,4 @@
-import { useClientRendering } from '../helpers/vueComponents';
+import '../helpers/vueComponents';
 import { afterEach, expect, test } from 'bun:test';
 import { createPinia } from 'pinia';
 import { createRenderer, h, nextTick } from 'vue';
@@ -7,10 +7,6 @@ import { createAppI18n } from '../../src/i18n';
 import { useUserStore } from '../../src/stores/auth';
 import { stubFetch } from '../helpers/fetch';
 
-useClientRendering(import.meta.dir + '/../../src/views/WorkoutPlanListView.vue');
-useClientRendering(import.meta.dir + '/../../src/views/WorkoutPlanView.vue');
-useClientRendering(import.meta.dir + '/../../src/components/WorkoutPlanActivities.vue');
-useClientRendering(import.meta.dir + '/../../src/components/WorkoutExerciseFields.vue');
 const { default: WorkoutPlanListView } = await import('../../src/views/WorkoutPlanListView.vue');
 const { default: WorkoutPlanView } = await import('../../src/views/WorkoutPlanView.vue');
 

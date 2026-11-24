@@ -1,4 +1,5 @@
 import '../helpers/vueComponents';
+import { germanTimeUnit } from '../helpers/intl';
 import { expect, test } from 'bun:test';
 import { renderToString } from '@vue/server-renderer';
 import { createPinia } from 'pinia';
@@ -42,8 +43,8 @@ test.each([false, true])('activity row localizes active and total duration with 
 
   const html = await renderGerman(() => h(ActivityListItem, { activity, compact }));
 
-  expect(html).toContain('1h 10min');
-  expect(html).toContain('1h 30min gesamt');
+  expect(html).toContain(`1h ${germanTimeUnit(10, 'minute')}`);
+  expect(html).toContain(`1h ${germanTimeUnit(30, 'minute')} gesamt`);
 });
 
 test('activity upload renders German options and an accessible file selection label', async () => {

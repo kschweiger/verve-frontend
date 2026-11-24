@@ -1,11 +1,10 @@
-import { useClientRendering } from '../helpers/vueComponents';
+import '../helpers/vueComponents';
 import { afterEach, expect, test } from 'bun:test';
 import { createRenderer, h, nextTick, ref } from 'vue';
 import { createPinia } from 'pinia';
 import { stubFetch } from '../helpers/fetch';
 import { createAppI18n } from '../../src/i18n';
 import { useUserStore } from '../../src/stores/auth';
-useClientRendering(import.meta.dir + '/../../src/components/ActivityExportButton.vue');
 const { default: ExportButton } = await import('../../src/components/ActivityExportButton.vue');
 
 class Element {

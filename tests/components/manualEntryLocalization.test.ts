@@ -1,4 +1,5 @@
 import '../helpers/vueComponents';
+import { germanTimeUnit } from '../helpers/intl';
 import { afterEach, expect, test } from 'bun:test';
 import { createSSRApp } from 'vue';
 import { renderToString } from '@vue/server-renderer';
@@ -70,5 +71,5 @@ test('swim metadata renders the translated style and locale-formatted SWOLF valu
   const html = await renderToString(app);
   expect(html).toContain('Freistil');
   expect(html).toContain('85,9');
-  expect(html).toContain('1min 05s');
+  expect(html).toContain(`${germanTimeUnit(1, 'minute')} ${germanTimeUnit(5, 'second', 2)}`);
 });

@@ -1,4 +1,5 @@
 import '../helpers/vueComponents';
+import { germanTimeUnit } from '../helpers/intl';
 import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from '@vue/server-renderer';
@@ -109,13 +110,19 @@ test('calendar renders localized activity metrics and preserves calendar dates i
   i18n.global.locale.value = 'de';
   const german = await render();
   expect(german).toContain('1.250,5 km');
-  expect(german).toContain('1h 30min');
+  expect(german).toContain(`1h ${germanTimeUnit(30, 'minute')}`);
   expect(german).toContain('1 Aktivität');
   expect(german).toContain('aria-label="Vorheriger Monat"');
   expect(german).toContain('aria-label="Heute, zum aktuellen Monat wechseln"');
   expect(german).toContain('title="My long ride"');
   expect(german).toContain('Februar');
-  expect(german).toContain('Mo. 1. Feb.');
+  const germanAgendaDate = new Intl.DateTimeFormat('de', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date('2027-02-01T00:00:00Z'));
+  expect(german).toContain(germanAgendaDate);
   expect(german).toContain('Ruhetag');
   expect(german).toContain('Ruhewoche');
   expect(german).toMatch(/<time [^>]*datetime="2027-02-01"[^>]*>1<\/time>/);

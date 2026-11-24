@@ -1,5 +1,4 @@
-import { useClientRendering } from '../helpers/vueComponents';
-import { resolve } from 'node:path';
+import '../helpers/vueComponents';
 import { expect, mock, test } from 'bun:test';
 import { createSSRApp, createRenderer, defineComponent, h, nextTick, ref } from 'vue';
 import { renderToString } from '@vue/server-renderer';
@@ -27,7 +26,6 @@ mock.module('vue-chartjs', () => ({
     { props: ['data', 'options', 'ariaLabel'] }
   ),
 }));
-useClientRendering(resolve(import.meta.dir, '../../src/components/CombinedMetricsChart.vue'));
 const { default: CombinedMetricsChart } =
   await import('../../src/components/CombinedMetricsChart.vue');
 const { default: ElevationChart } = await import('../../src/components/ElevationChart.vue');

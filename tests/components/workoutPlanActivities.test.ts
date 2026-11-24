@@ -1,4 +1,4 @@
-import { useClientRendering } from '../helpers/vueComponents';
+import '../helpers/vueComponents';
 import { afterEach, expect, test } from 'bun:test';
 import { createRenderer, defineComponent, h, nextTick, ref } from 'vue';
 import { createPinia } from 'pinia';
@@ -6,7 +6,6 @@ import { useUserStore } from '../../src/stores/auth';
 import { createAppI18n } from '../../src/i18n';
 import type { ActivityPublic } from '../../src/types/api';
 import { stubFetch } from '../helpers/fetch';
-useClientRendering(import.meta.dir + '/../../src/components/WorkoutPlanActivities.vue');
 const { default: Panel } = await import('../../src/components/WorkoutPlanActivities.vue');
 class Element {
   children: Element[] = [];

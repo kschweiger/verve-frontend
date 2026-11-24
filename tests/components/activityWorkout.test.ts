@@ -1,13 +1,10 @@
-import { useClientRendering } from '../helpers/vueComponents';
+import '../helpers/vueComponents';
 import { stubFetch } from '../helpers/fetch';
 import { afterEach, expect, test } from 'bun:test';
 import { createRenderer, defineComponent, h, nextTick, ref } from 'vue';
 import { createPinia } from 'pinia';
 import { createAppI18n } from '../../src/i18n';
 import { useUserStore } from '../../src/stores/auth';
-useClientRendering(import.meta.dir + '/../../src/components/ActivityWorkout.vue');
-useClientRendering(import.meta.dir + '/../../src/components/WorkoutExerciseFields.vue');
-useClientRendering(import.meta.dir + '/../../src/components/WorkoutMuscleMap.vue');
 const { default: ActivityWorkout } = await import('../../src/components/ActivityWorkout.vue');
 class Element {
   children: Element[] = [];

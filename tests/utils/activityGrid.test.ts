@@ -1,3 +1,4 @@
+import { germanTimeUnit } from '../helpers/intl';
 import { describe, expect, test } from 'bun:test';
 import type { GridDay, GridWeek } from '../../src/stores/statistics';
 import {
@@ -32,7 +33,7 @@ describe('activity grid helpers', () => {
     expect(formatActivityGridDuration(1800, 'en')).toBe('30m');
     expect(formatActivityGridDuration(5400, 'en')).toBe('1h 30m');
     expect(formatActivityGridDuration(7200, 'en')).toBe('2h');
-    expect(formatActivityGridDuration(5400, 'de')).toBe('1h 30min');
+    expect(formatActivityGridDuration(5400, 'de')).toBe(`1h ${germanTimeUnit(30, 'minute')}`);
   });
 
   test('formats a grid date without shifting the calendar day', () => {

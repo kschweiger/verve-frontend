@@ -1,4 +1,5 @@
 import '../helpers/vueComponents';
+import { germanTimeUnit } from '../helpers/intl';
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { createSSRApp } from 'vue';
 import { renderToString } from '@vue/server-renderer';
@@ -42,8 +43,8 @@ test('history cell names its original calendar day and localizes the activity co
   expect(html).toContain('Aktivitätsverlauf');
   expect(html).toContain('>Mo<');
   expect(html).toContain('>Dez<');
-  expect(html).toContain('aria-label="30.12.2024 · 1 Aktivität · 45min aktiv · 1h gesamt"');
-  expect(html).toContain('aria-label="31.12.2024 · 2.345 Aktivitäten · 30min aktiv"');
+  expect(html).toContain(`aria-label="30.12.2024 · 1 Aktivität · ${germanTimeUnit(45, 'minute')} aktiv · 1h gesamt"`);
+  expect(html).toContain(`aria-label="31.12.2024 · 2.345 Aktivitäten · ${germanTimeUnit(30, 'minute')} aktiv"`);
 });
 
 test('dashboard summary localizes numbers and plurals from backend totals and summary', async () => {
@@ -55,7 +56,7 @@ test('dashboard summary localizes numbers and plurals from backend totals and su
 
   const html = await renderToString(app);
   expect(html).toContain('Aktive Zeit');
-  expect(html).toContain('1.234h 30min');
+  expect(html).toContain(`1.234h ${germanTimeUnit(30, 'minute')}`);
   expect(html).toContain('Diesen Monat');
   expect(html).toContain('>1.234<');
   expect(html).toContain('Keine Aktivität');

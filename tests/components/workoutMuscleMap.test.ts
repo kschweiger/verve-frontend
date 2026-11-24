@@ -1,10 +1,9 @@
-import { useClientRendering } from '../helpers/vueComponents';
+import '../helpers/vueComponents';
 import { expect, test } from 'bun:test';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { createAppI18n } from '../../src/i18n';
 
-useClientRendering(import.meta.dir + '/../../src/components/WorkoutMuscleMap.vue');
 
 test('highlights the backend catalog groups on the applicable body views', async () => {
   const { default: WorkoutMuscleMap } = await import('../../src/components/WorkoutMuscleMap.vue');

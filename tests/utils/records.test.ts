@@ -1,3 +1,4 @@
+import { germanTimeUnit } from '../helpers/intl';
 import { describe, expect, test } from 'bun:test';
 import type { RecordsMetricGroup } from '../../src/services/records';
 import {
@@ -64,7 +65,7 @@ describe('records utilities', () => {
     expect(formatRecordValue('distance', 1234.5, 'de')).toBe('1.234,50 km');
     expect(formatRecordValue('avg_speed', 11.26, 'de')).toBe('11,3 km/h');
     expect(formatRecordValue('elevation_change_up', 1234.4, 'de')).toBe('1.234 m');
-    expect(formatRecordValue('duration', 'P1DT1H30M15S', 'de')).toBe('25h 30min');
+    expect(formatRecordValue('duration', 'P1DT1H30M15S', 'de')).toBe(`25h ${germanTimeUnit(30, 'minute')}`);
   });
 
   test('preserves record rounding when localizing the result', () => {
