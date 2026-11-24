@@ -26,6 +26,8 @@ const typeStore = useTypeStore();
 const settingsStore = useSettingsStore();
 const selectedTimezone = ref('');
 const isTimezoneLoading = ref(true);
+const isEnglishCatalogLoading = ref(true);
+const englishCatalogError = ref(false);
 
 const isLoading = ref(false);
 const error = ref<{
@@ -68,7 +70,7 @@ const swimmingSegments = ref<LapDataUI[]>([]);
 const availableSubTypes = useSubTypes(() => typeStore.activityTypes, typeId, subTypeId);
 
 const distanceMode = computed(() => {
-  const type = typeStore.activityTypes.find((activityType) => activityType.id === typeId.value);
+  const type = typeStore.englishActivityTypes.find((activityType) => activityType.id === typeId.value);
   const subType = type?.sub_types.find((activitySubType) => activitySubType.id === subTypeId.value);
 
   return (
@@ -79,7 +81,7 @@ const distanceMode = computed(() => {
 });
 
 const isSwimming = computed(() => {
-  const t = typeStore.activityTypes.find((x) => x.id === typeId.value);
+  const t = typeStore.englishActivityTypes.find((x) => x.id === typeId.value);
   return t?.name === 'Swimming';
 });
 
@@ -91,6 +93,7 @@ watch(isSwimming, (newVal) => {
 
 onMounted(async () => {
   typeStore.fetchActivityTypes();
+  void loadEnglishActivityTypes();
   try {
     const settings = await settingsStore.ensureSettings();
     selectedTimezone.value = settings.timezone;
@@ -101,6 +104,14 @@ onMounted(async () => {
     isTimezoneLoading.value = false;
   }
 });
+
+async function loadEnglishActivityTypes() {
+  isEnglishCatalogLoading.value = true;
+  englishCatalogError.value = false;
+  const catalog = await typeStore.fetchEnglishActivityTypes();
+  englishCatalogError.value = catalog === undefined;
+  isEnglishCatalogLoading.value = false;
+}
 
 // --- Methods ---
 function describeTimeError(cause: unknown, fallback: 'timezone' | 'dateTime') {
@@ -144,6 +155,7 @@ function removeSwimSegment(index: number) {
 
 async function handleSubmit() {
   if (isLoading.value || isTimezoneLoading.value) return;
+  if (isEnglishCatalogLoading.value || englishCatalogError.value) return;
   if (!typeId.value) {
     error.value = { key: 'type' };
     return;
@@ -566,6 +578,19 @@ async function handleSubmit() {
       </div>
 
       <!-- Buttons -->
+      <p v-if="englishCatalogError" role="status" class="text-sm text-red-700">
+        {{ t('manualEntry.errors.typeCatalog') }}
+        <button
+          type="button"
+          class="underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2"
+          @click="loadEnglishActivityTypes"
+        >
+          {{ t('manualEntry.retryTypeCatalog') }}
+        </button>
+      </p>
+      <p v-else-if="isEnglishCatalogLoading" role="status" class="text-sm text-verve-brown/60">
+        {{ t('manualEntry.loadingTypes') }}
+      </p>
       <div class="flex justify-end space-x-3 pt-2">
         <button
           type="button"
@@ -576,7 +601,7 @@ async function handleSubmit() {
         </button>
         <button
           type="submit"
-          :disabled="isLoading || isTimezoneLoading"
+          :disabled="isLoading || isTimezoneLoading || isEnglishCatalogLoading || englishCatalogError"
           class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-verve-dark/5"
         >
           {{ t(isLoading ? 'manualEntry.saving' : 'manualEntry.save') }}

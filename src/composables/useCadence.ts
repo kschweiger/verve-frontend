@@ -7,11 +7,11 @@ type ActivityClassification = Pick<Activity, 'type_id' | 'sub_type_id'>;
 
 export function useCadence(activity: MaybeRefOrGetter<ActivityClassification | null>) {
   const typeStore = useTypeStore();
-  void typeStore.fetchActivityTypes();
+  if (typeStore.englishActivityTypes.length === 0) void typeStore.fetchEnglishActivityTypes();
 
   return computed<CadenceUnit>(() => {
     const classification = toValue(activity);
-    const type = typeStore.activityTypes.find((item) => item.id === classification?.type_id);
+    const type = typeStore.englishActivityTypes.find((item) => item.id === classification?.type_id);
     if (type?.name === 'Cycling') return 'RPM';
     if (type?.name === 'Foot Sports') {
       const subType = type.sub_types.find((item) => item.id === classification?.sub_type_id);

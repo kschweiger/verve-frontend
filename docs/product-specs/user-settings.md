@@ -6,6 +6,7 @@
 - Settings lets users choose English (`en`) or German (`de`) as their saved account language. Account settings load in the background after authentication and are cleared on account changes.
 - Save through `PATCH /api/v1/users/me/locale` with the required `locale` query parameter and no body, then refresh shared settings. Keep the editor open and show an error if saving or refreshing fails; disable controls while saving.
 - Navigation, authentication, settings, and the shared timezone picker use the active language; backend diagnostics and user-entered values remain unchanged. The document language follows the active selection.
+- Activity and location type labels, including subtypes, come from the corresponding resolver with the active `locale`. Filters and forms retain their selected IDs during language changes. The English activity catalog supplies the type IDs for Quick Add, swimming and strength-training controls, activity icons, and cadence units.
 
 ## Timezone
 

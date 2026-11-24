@@ -30,6 +30,7 @@ export const en = {
   save: 'Save Activity',
   quickAdd: 'Quick Add',
   loadingTypes: 'Loading types...',
+  retryTypeCatalog: 'Retry',
   presets: {
     elliptical: 'Elliptical',
     weightTraining: 'Weight Training',
@@ -45,6 +46,7 @@ export const en = {
     invalidTimezone: 'Select a supported timezone.',
     accountChanged: 'The account changed while the activity was being saved.',
     failed: 'Could not save the activity.',
+    typeCatalog: 'Activity classifications could not be loaded.',
   },
   map: {
     title: 'Activity route map',
@@ -86,6 +88,7 @@ export const de = {
   save: 'Aktivität speichern',
   quickAdd: 'Schnellerfassung',
   loadingTypes: 'Aktivitätstypen werden geladen …',
+  retryTypeCatalog: 'Erneut versuchen',
   presets: {
     elliptical: 'Crosstrainer',
     weightTraining: 'Krafttraining',
@@ -101,6 +104,7 @@ export const de = {
     invalidTimezone: 'Wähle eine unterstützte Zeitzone aus.',
     accountChanged: 'Das Konto wurde beim Speichern der Aktivität gewechselt.',
     failed: 'Die Aktivität konnte nicht gespeichert werden.',
+    typeCatalog: 'Aktivitätseinstufungen konnten nicht geladen werden.',
   },
   map: {
     title: 'Karte der Aktivitätsstrecke',

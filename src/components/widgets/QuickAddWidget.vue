@@ -14,29 +14,23 @@ interface ResolvedQuickAdd extends QuickAddDefinition {
 }
 
 const activeConfigs = computed<ResolvedQuickAdd[]>(() => {
-  if (typeStore.activityTypes.length === 0) return [];
-
   return quickAddDefinitions
     .map((def) => {
-      const type = typeStore.activityTypes.find((t) => t.name === def.typeName);
-      if (!type) return null;
-
-      const sub = type.sub_types.find((st) => st.name === def.subTypeName);
-
-      if (type && sub) {
-        return {
-          ...def,
-          resolvedTypeId: type.id,
-          resolvedSubTypeId: sub.id,
-        };
-      }
-      return null;
+      const type = typeStore.englishActivityTypes.find((t) => t.name === def.typeName);
+      const subType = type?.sub_types.find((sub) => sub.name === def.subTypeName);
+      if (!type || !subType) return null;
+      return {
+        ...def,
+        resolvedTypeId: type.id,
+        resolvedSubTypeId: subType.id,
+      };
     })
     .filter((c): c is ResolvedQuickAdd => c !== null);
 });
 
 onMounted(() => {
-  typeStore.fetchActivityTypes();
+  void typeStore.fetchActivityTypes();
+  void typeStore.fetchEnglishActivityTypes();
 });
 </script>
 

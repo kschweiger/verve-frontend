@@ -9,6 +9,7 @@ import { createAppI18n } from './i18n';
 import { resolveLocale } from './i18n/locale';
 import { useUserStore } from './stores/auth';
 import { useSettingsStore } from './stores/settings';
+import { useTypeStore } from './stores/types';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -21,6 +22,7 @@ pinia.use(({ store }) => {
 app.use(pinia);
 const userStore = useUserStore(pinia);
 const settingsStore = useSettingsStore(pinia);
+const typeStore = useTypeStore(pinia);
 const i18n = createAppI18n();
 app.use(i18n);
 watch(
@@ -35,6 +37,7 @@ watch(
   (locale) => {
     i18n.global.locale.value = locale;
     document.documentElement.lang = locale;
+    typeStore.setLocale(locale);
   },
   { immediate: true, flush: 'sync' }
 );

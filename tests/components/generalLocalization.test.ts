@@ -7,10 +7,13 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import { createAppI18n } from '../../src/i18n';
 import { useStatisticsStore } from '../../src/stores/statistics';
 import { useTagsStore } from '../../src/stores/tags';
+import { useTypeStore } from '../../src/stores/types';
+import { stubFetch } from '../helpers/fetch';
 
 const { default: HelpView } = await import('../../src/views/HelpView.vue');
 const { default: TagsView } = await import('../../src/views/TagsView.vue');
 const { default: CalendarWidget } = await import('../../src/components/widgets/CalendarWidget.vue');
+const { default: ActivityFilter } = await import('../../src/components/ActivityFilter.vue');
 const originalStorage = globalThis.localStorage;
 
 beforeEach(() => {
@@ -67,6 +70,45 @@ test('tag management keeps custom names and localizes the associated controls', 
   expect(html).toContain('aria-label="Tag Sunshine in the Alps löschen"');
   expect(html).toContain('aria-label="Tag Favorite outing löschen"');
   expect(html).toContain('Tags ohne Kategorie');
+});
+
+test('activity filters show localized catalog labels with the saved filter IDs selected', async () => {
+  const pinia = createPinia();
+  const store = useTypeStore(pinia);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = stubFetch(async (input: RequestInfo | URL) => {
+    const url = new URL(String(input), 'http://localhost');
+    const german = url.searchParams.get('locale') === 'de';
+    return Response.json({
+      data: [{
+        id: 47,
+        name: german ? 'Schwimmen' : 'Swimming',
+        sub_types: [{ id: 81, name: german ? 'Freibad' : 'Outdoor Pool' }],
+      }],
+    });
+  });
+
+  try {
+    async function renderFilter(locale: 'de' | 'en') {
+      const app = createSSRApp({
+        render: () => h(ActivityFilter, { initialFilters: { type_id: 47, sub_type_id: 81 } }),
+      });
+      app.use(pinia);
+      app.use(createAppI18n(locale));
+      return renderToString(app);
+    }
+
+    await store.fetchActivityTypes();
+    expect(await renderFilter('en')).toMatch(/<option[^>]*value="81"[^>]*selected[^>]*>Outdoor Pool<\/option>/);
+
+    store.setLocale('de');
+    await store.fetchActivityTypes();
+    const german = await renderFilter('de');
+    expect(german).toMatch(/<option[^>]*value="47"[^>]*selected[^>]*>Schwimmen<\/option>/);
+    expect(german).toMatch(/<option[^>]*value="81"[^>]*selected[^>]*>Freibad<\/option>/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test('calendar widget localizes navigation and formats distance using the account language', async () => {

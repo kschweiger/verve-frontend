@@ -45,9 +45,9 @@ const activityStore = useActivityStore();
 
 const locationStore = useLocationStore();
 const typeStore = useTypeStore();
-void typeStore.fetchActivityTypes();
+void typeStore.fetchEnglishActivityTypes();
 const isStrengthTraining = computed(() =>
-  typeStore.activityTypes.some(
+  typeStore.englishActivityTypes.some(
     (type) => type.id === activity.value?.type_id && type.name === 'Strength Training'
   )
 );
