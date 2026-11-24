@@ -1,5 +1,10 @@
 # Dashboard and Calendar
 
+## Language and formatting
+
+- The dashboard, activity list, and calendar display English or German according to the active app language. Dates and numbers in these views follow the same language.
+- Localization preserves the selected period, the meaning of totals, and the calendar's date boundaries. User-entered names and labels returned by the backend are displayed as supplied.
+
 ## Dashboard
 
 - Activity history, summary metrics, recent activities, goals, and curated records form the activity overview. A header Add action opens upload and manual creation.
@@ -15,6 +20,7 @@
 - Goal editing keeps the modal open with edits and an inline error when a field fails to save. Disable duplicate saves while pending. Save changed fields sequentially through the documented per-attribute endpoint and synchronize all matching goal caches from each response. On retry, submit only fields that have not already been saved; close after every changed field succeeds.
 
 - Activity and location goal creation share timeframe controls, period serialization, validation, and submission state. Pending saves disable duplicate submissions and form controls. Failed saves preserve the form and show an inline error. Changing an activity parent type clears the previous subtype in goal filters, activity creation, and equipment defaults.
+- Goal and location views use the active app language for interface text and display formatting. Goal period values and saved names retain their existing formats.
 
 ## Calendar
 

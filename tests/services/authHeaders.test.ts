@@ -32,19 +32,21 @@ test('authenticated headers share the missing-token guard and keep JSON optional
   });
 });
 test.each([
-  [Response.json({ detail: 'Cannot save.' }, { status: 409 }), 'Cannot save.', 409],
+  [Response.json({ detail: 'Cannot save.' }, { status: 409 }), 'Cannot save.', 409, 'Cannot save.'],
   [
     Response.json({ detail: [{ msg: 'Target is required.' }] }, { status: 422 }),
     'Target is required.',
     422,
+    'Target is required.',
   ],
-  [new Response('upstream unavailable', { status: 503 }), 'Fallback', 503],
+  [new Response('upstream unavailable', { status: 503 }), 'Fallback', 503, undefined],
 ] as const)(
   'HTTP errors retain status and actionable details (%#)',
-  async (response, message, status) => {
+  async (response, message, status, detail) => {
     const error = await responseError(response, 'Fallback');
     expect(error).toBeInstanceOf(ApiResponseError);
     expect(error.message).toBe(message);
     expect(error.status).toBe(status);
+    expect(error.detail).toBe(detail);
   }
 );

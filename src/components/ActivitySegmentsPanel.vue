@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { reactive, toRef, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Trash2 } from '@lucide/vue';
-import type { TrackPoint } from '@/services/api';
+import type { SegmentMetric, TrackPoint } from '@/services/api';
 import type { CadenceUnit } from '@/composables/useCadence';
 import { useActivitySegments } from '@/composables/useActivitySegments';
 const props = defineProps<{
@@ -11,12 +12,14 @@ const props = defineProps<{
   hoveredIndex: number | null;
 }>();
 const emit = defineEmits<{ (event: 'cuts-change', cuts: number[]): void }>();
+const { t, n, locale } = useI18n();
 const segments = reactive(
   useActivitySegments(
     () => props.activityId,
     toRef(props, 'trackData'),
     toRef(props, 'hoveredIndex'),
-    toRef(props, 'cadenceUnit')
+    toRef(props, 'cadenceUnit'),
+    locale
   )
 );
 watch(
@@ -25,8 +28,40 @@ watch(
   { immediate: true }
 );
 function confirmDeleteSegmentSet() {
-  if (window.confirm('Delete this segment set? This cannot be undone.'))
-    void segments.deleteSelectedSegmentSet();
+  if (window.confirm(t('segments.confirmDelete'))) void segments.deleteSelectedSegmentSet();
+}
+
+function startNewSegmentSet() {
+  segments.startNewSegmentSet(
+    t('segments.editor.defaultName', {
+      number: n(segments.segmentSetIds.length + 1),
+    })
+  );
+}
+
+function gapLabel(gapIndex: number) {
+  const start =
+    gapIndex === 0 ? t('segments.editor.start') : t('segments.editor.cut', { number: n(gapIndex) });
+  const end =
+    gapIndex === segments.editableSegmentCuts.length
+      ? t('segments.editor.finish')
+      : t('segments.editor.cut', { number: n(gapIndex + 1) });
+  return t('segments.editor.gap', { start, end });
+}
+
+function trackLabelForIndex(index: number) {
+  const point = props.trackData[index];
+  if (!point) return t('segments.editor.unknownPoint');
+
+  return t('segments.editor.trackPoint', {
+    time: segments.formatElapsedTrackTime(index),
+    distance: segments.formatDistanceMeters(point.dist),
+    id: point.id,
+  });
+}
+
+function metricLabel(metric: SegmentMetric) {
+  return t(`segments.stats.metric.${metric}`);
 }
 </script>
 <template>
@@ -36,14 +71,14 @@ function confirmDeleteSegmentSet() {
   >
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
-        <h2 class="text-xl font-bold text-verve-brown">Segments</h2>
-        <p class="text-sm text-verve-brown/60 mt-1">Interval statistics for saved segment sets.</p>
+        <h2 class="text-xl font-bold text-verve-brown">{{ t('segments.title') }}</h2>
+        <p class="text-sm text-verve-brown/60 mt-1">{{ t('segments.description') }}</p>
       </div>
 
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
         <select
-          aria-label="Segment set"
           v-if="segments.segmentSetIds.length > 0"
+          :aria-label="t('segments.set')"
           :value="segments.selectedSegmentSetId ?? ''"
           :disabled="segments.isLoadingSegmentSets"
           class="px-3 py-2 border border-verve-medium rounded-xl text-sm text-verve-brown bg-white focus:outline-none focus:ring-2 focus:ring-verve-orange/30"
@@ -54,13 +89,14 @@ function confirmDeleteSegmentSet() {
             :key="segmentSetId"
             :value="segmentSetId"
           >
-            {{ segments.segmentStatisticsById[segmentSetId]?.name ?? 'Segment set' }}
+            {{ segments.segmentStatisticsById[segmentSetId]?.name ?? t('segments.set') }}
           </option>
         </select>
 
         <button
           v-if="segments.selectedSegmentStatistics"
           type="button"
+          :aria-expanded="segments.showSegmentStats"
           @click="segments.showSegmentStats = !segments.showSegmentStats"
           class="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
           :class="
@@ -69,7 +105,7 @@ function confirmDeleteSegmentSet() {
               : 'bg-verve-light text-verve-brown hover:bg-verve-medium/40'
           "
         >
-          {{ segments.showSegmentStats ? 'Hide stats' : 'Show stats' }}
+          {{ t(segments.showSegmentStats ? 'segments.hideStats' : 'segments.showStats') }}
         </button>
 
         <button
@@ -88,16 +124,16 @@ function confirmDeleteSegmentSet() {
               : 'border-verve-medium text-verve-brown bg-white hover:bg-verve-light/50'
           "
         >
-          {{ segments.isEditingSegmentCuts ? 'Cancel edit' : 'Edit cuts' }}
+          {{ t(segments.isEditingSegmentCuts ? 'segments.cancelEdit' : 'segments.editCuts') }}
         </button>
 
         <button
           type="button"
           :disabled="!segments.canStartNewSegmentSet"
-          @click="segments.startNewSegmentSet"
+          @click="startNewSegmentSet"
           class="px-4 py-2 rounded-xl text-sm font-semibold bg-verve-orange text-white hover:bg-verve-orange/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          New set
+          {{ t('segments.newSet') }}
         </button>
 
         <button
@@ -107,39 +143,42 @@ function confirmDeleteSegmentSet() {
           @click="confirmDeleteSegmentSet"
           class="px-4 py-2 rounded-xl text-sm font-semibold border border-red-200 text-red-600 bg-white hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Delete
+          {{ t('segments.delete') }}
         </button>
       </div>
     </div>
 
     <div v-if="segments.isLoadingSegmentSets" class="mt-4 text-sm text-verve-brown/60">
-      Loading segment sets...
+      {{ t('segments.loading') }}
     </div>
     <div
       v-else-if="segments.segmentSetError"
       class="mt-4 p-3 bg-red-50 text-red-600 rounded-xl border border-red-100 text-sm"
     >
-      {{ segments.segmentSetError }}
+      {{ segments.segmentSetError.detail || t(`segments.errors.${segments.segmentSetError.key}`) }}
       <button
         type="button"
         @click="segments.loadSegmentSets"
         class="mt-2 block rounded px-2 py-1 font-bold underline focus-visible:outline-2 focus-visible:outline-offset-2"
       >
-        Retry segment sets
+        {{ t('segments.retry') }}
       </button>
     </div>
     <div
       v-else-if="segments.segmentSetIds.length === 0"
       class="mt-4 text-sm text-verve-brown/60 italic"
     >
-      No segment sets saved for this activity.
+      {{ t('segments.empty') }}
     </div>
 
     <div
       v-if="segments.segmentMutationError"
       class="mt-4 p-3 bg-red-50 text-red-600 rounded-xl border border-red-100 text-sm"
     >
-      {{ segments.segmentMutationError }}
+      {{
+        segments.segmentMutationError.detail ||
+        t(`segments.errors.${segments.segmentMutationError.key}`)
+      }}
     </div>
 
     <div
@@ -149,10 +188,16 @@ function confirmDeleteSegmentSet() {
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 class="font-bold text-verve-brown">
-            {{ segments.isCreatingSegmentSet ? 'Create segment set' : 'Edit cut points' }}
+            {{
+              t(
+                segments.isCreatingSegmentSet
+                  ? 'segments.editor.createTitle'
+                  : 'segments.editor.editTitle'
+              )
+            }}
           </h3>
           <p class="text-sm text-verve-brown/60 mt-1">
-            Insert cuts between existing boundaries, then fine-tune each cut.
+            {{ t('segments.editor.instructions') }}
           </p>
         </div>
       </div>
@@ -161,12 +206,12 @@ function confirmDeleteSegmentSet() {
         v-if="segments.isCreatingSegmentSet"
         class="block mt-4 text-sm font-semibold text-verve-brown"
       >
-        Name
+        {{ t('segments.editor.name') }}
         <input
           v-model="segments.draftSegmentSetName"
           type="text"
           class="mt-2 w-full px-3 py-2 border border-verve-medium rounded-xl text-sm text-verve-brown bg-white focus:outline-none focus:ring-2 focus:ring-verve-orange/30"
-          placeholder="Interval set"
+          :placeholder="t('segments.editor.placeholder')"
         />
       </label>
 
@@ -180,14 +225,10 @@ function confirmDeleteSegmentSet() {
           >
             <div>
               <p class="text-sm font-bold text-verve-brown">
-                {{ segments.gapLabel(gapIndex - 1) }}
+                {{ gapLabel(gapIndex - 1) }}
               </p>
               <p class="mt-1 text-xs text-verve-brown/60">
-                {{
-                  segments.gapDuration(gapIndex - 1) === null
-                    ? '-'
-                    : segments.formatSeconds(segments.gapDuration(gapIndex - 1)!)
-                }}
+                {{ segments.formatSeconds(segments.gapDuration(gapIndex - 1)) }}
                 <span v-if="segments.gapDistance(gapIndex - 1) !== null">
                   · {{ segments.formatDistanceMeters(segments.gapDistance(gapIndex - 1)) }}
                 </span>
@@ -200,7 +241,7 @@ function confirmDeleteSegmentSet() {
               class="inline-flex items-center justify-center gap-2 rounded-lg border border-verve-medium bg-white px-3 py-2 text-sm font-semibold text-verve-brown transition-colors hover:bg-verve-light/60 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus class="size-4" />
-              <span>Insert cut</span>
+              <span>{{ t('segments.editor.insertCut') }}</span>
             </button>
           </div>
 
@@ -211,7 +252,9 @@ function confirmDeleteSegmentSet() {
             <template v-if="segments.editableSegmentCuts[gapIndex - 1] !== undefined">
               <div class="flex items-start justify-between gap-3">
                 <div>
-                  <p class="text-sm font-bold text-verve-brown">Cut {{ gapIndex }}</p>
+                  <p class="text-sm font-bold text-verve-brown">
+                    {{ t('segments.editor.cut', { number: n(gapIndex) }) }}
+                  </p>
                   <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
                     <span
                       class="rounded-md bg-verve-brown px-2 py-1 font-mono font-bold text-white"
@@ -236,7 +279,11 @@ function confirmDeleteSegmentSet() {
                     <span
                       class="rounded-md bg-white px-2 py-1 font-semibold text-verve-brown/50 ring-1 ring-verve-medium/40"
                     >
-                      ID {{ segments.editableSegmentCuts[gapIndex - 1] }}
+                      {{
+                        t('segments.editor.cutId', {
+                          id: segments.editableSegmentCuts[gapIndex - 1],
+                        })
+                      }}
                     </span>
                   </div>
                 </div>
@@ -244,7 +291,7 @@ function confirmDeleteSegmentSet() {
                   type="button"
                   @click="segments.removeEditableCut(gapIndex - 1)"
                   class="inline-flex items-center justify-center rounded-md p-2 text-red-600 hover:bg-red-50 hover:text-red-700"
-                  :aria-label="`Remove cut ${gapIndex}`"
+                  :aria-label="t('segments.editor.removeCut', { number: n(gapIndex) })"
                 >
                   <Trash2 class="size-4" />
                 </button>
@@ -252,23 +299,23 @@ function confirmDeleteSegmentSet() {
 
               <p class="mt-3 text-xs text-verve-brown/55">
                 {{
-                  segments.trackLabelForIndex(
+                  trackLabelForIndex(
                     segments.trackIndexForCut(segments.editableSegmentCuts[gapIndex - 1]!)
                   )
                 }}
               </p>
 
               <p class="mt-2 text-xs font-semibold text-verve-brown/70">
-                Segment duration:
                 {{
-                  segments.durationBeforeCut(gapIndex - 1) === null
-                    ? '-'
-                    : segments.formatSeconds(segments.durationBeforeCut(gapIndex - 1)!)
+                  t('segments.editor.segmentDuration', {
+                    duration: segments.formatSeconds(segments.durationBeforeCut(gapIndex - 1)),
+                  })
                 }}
               </p>
 
               <input
                 type="range"
+                :aria-label="t('segments.editor.cutPosition', { number: n(gapIndex) })"
                 min="0"
                 :max="Math.max(trackData.length - 1, 0)"
                 step="1"
@@ -285,11 +332,11 @@ function confirmDeleteSegmentSet() {
                     segments.minTrackIndexForCutPosition(gapIndex - 1)
                   "
                   class="cut-nudge-button"
-                  :aria-label="`Move cut ${gapIndex} back one minute`"
+                  :aria-label="t('segments.editor.backMinute', { number: n(gapIndex) })"
                   @click="segments.nudgeEditableCutBySeconds(gapIndex - 1, -60)"
                 >
                   <ChevronsLeft class="size-4" />
-                  <span>-1m</span>
+                  <span>{{ t('segments.editor.minuteNudge', { number: n(-1) }) }}</span>
                 </button>
                 <button
                   type="button"
@@ -298,11 +345,11 @@ function confirmDeleteSegmentSet() {
                     segments.minTrackIndexForCutPosition(gapIndex - 1)
                   "
                   class="cut-nudge-button"
-                  :aria-label="`Move cut ${gapIndex} back one track point`"
+                  :aria-label="t('segments.editor.backPoint', { number: n(gapIndex) })"
                   @click="segments.nudgeEditableCutByPoints(gapIndex - 1, -1)"
                 >
                   <ChevronLeft class="size-4" />
-                  <span>-1</span>
+                  <span>{{ n(-1) }}</span>
                 </button>
                 <button
                   type="button"
@@ -311,10 +358,10 @@ function confirmDeleteSegmentSet() {
                     segments.maxTrackIndexForCutPosition(gapIndex - 1)
                   "
                   class="cut-nudge-button"
-                  :aria-label="`Move cut ${gapIndex} forward one track point`"
+                  :aria-label="t('segments.editor.forwardPoint', { number: n(gapIndex) })"
                   @click="segments.nudgeEditableCutByPoints(gapIndex - 1, 1)"
                 >
-                  <span>+1</span>
+                  <span>{{ n(1, { signDisplay: 'always' }) }}</span>
                   <ChevronRight class="size-4" />
                 </button>
                 <button
@@ -324,10 +371,12 @@ function confirmDeleteSegmentSet() {
                     segments.maxTrackIndexForCutPosition(gapIndex - 1)
                   "
                   class="cut-nudge-button"
-                  :aria-label="`Move cut ${gapIndex} forward one minute`"
+                  :aria-label="t('segments.editor.forwardMinute', { number: n(gapIndex) })"
                   @click="segments.nudgeEditableCutBySeconds(gapIndex - 1, 60)"
                 >
-                  <span>+1m</span>
+                  <span>{{
+                    t('segments.editor.minuteNudge', { number: n(1, { signDisplay: 'always' }) })
+                  }}</span>
                   <ChevronsRight class="size-4" />
                 </button>
               </div>
@@ -340,22 +389,33 @@ function confirmDeleteSegmentSet() {
         v-if="segments.finalEditableSegmentDuration !== null"
         class="mt-4 text-sm font-semibold text-verve-brown/70"
       >
-        Final segment duration: {{ segments.formatSeconds(segments.finalEditableSegmentDuration) }}
+        {{
+          t('segments.editor.finalDuration', {
+            duration: segments.formatSeconds(segments.finalEditableSegmentDuration),
+          })
+        }}
       </p>
 
       <div class="mt-4 flex flex-col gap-2 text-sm">
         <p v-if="segments.hasInvalidSegmentCuts" class="text-red-600">
-          One or more cuts no longer match a track point.
+          {{ t('segments.editor.invalidCuts') }}
         </p>
         <p v-if="segments.hasDuplicateSegmentCuts" class="text-red-600">
-          Two cuts point to the same track point.
+          {{ t('segments.editor.duplicateCuts') }}
         </p>
         <p v-if="!segments.hasValidSegmentSetName" class="text-red-600">
-          Segment set name is required.
+          {{ t('segments.editor.nameRequired') }}
         </p>
         <p v-if="segments.canApplySegmentCutChanges" class="text-verve-brown/70">
-          {{ segments.sortedEditableSegmentCuts.length }} valid cuts ready, ordered by track
-          position.
+          {{
+            t(
+              'segments.editor.validCuts',
+              {
+                count: n(segments.sortedEditableSegmentCuts.length),
+              },
+              segments.sortedEditableSegmentCuts.length
+            )
+          }}
         </p>
       </div>
 
@@ -365,7 +425,7 @@ function confirmDeleteSegmentSet() {
           @click="segments.cancelSegmentCutEdit"
           class="px-4 py-2 rounded-xl text-sm font-semibold border border-verve-medium text-verve-brown bg-white hover:bg-verve-light/50 transition-colors"
         >
-          Cancel
+          {{ t('segments.editor.cancel') }}
         </button>
         <button
           type="button"
@@ -373,7 +433,7 @@ function confirmDeleteSegmentSet() {
           @click="segments.saveSegmentCutChanges"
           class="px-4 py-2 rounded-xl text-sm font-semibold bg-verve-brown text-white hover:bg-verve-brown/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {{ segments.isSavingSegmentSet ? 'Saving...' : 'Save cuts' }}
+          {{ t(segments.isSavingSegmentSet ? 'segments.editor.saving' : 'segments.editor.save') }}
         </button>
       </div>
     </div>
@@ -388,20 +448,20 @@ function confirmDeleteSegmentSet() {
             class="text-left text-xs font-bold uppercase tracking-wider text-verve-brown/50 border-b border-verve-medium/30"
           >
             <th class="py-3 pr-4">#</th>
-            <th class="py-3 px-4">Duration</th>
-            <th v-if="segments.hasSegmentDistance" class="py-3 px-4">Distance</th>
+            <th class="py-3 px-4">{{ t('segments.stats.duration') }}</th>
+            <th v-if="segments.hasSegmentDistance" class="py-3 px-4">
+              {{ t('segments.stats.distance') }}
+            </th>
             <th class="py-3 px-4">
-              {{
-                segments.metricLabel(
-                  segments.selectedSegmentStatistics.displayMetadata.primaryMetric
-                )
-              }}
+              {{ metricLabel(segments.selectedSegmentStatistics.displayMetadata.primaryMetric) }}
             </th>
             <th v-for="metric in segments.supportingDisplayMetrics" :key="metric" class="py-3 px-4">
-              {{ segments.metricLabel(metric) }} avg
+              {{ t('segments.stats.averageMetric', { metric: metricLabel(metric) }) }}
             </th>
-            <th v-if="segments.hasSegmentElevation" class="py-3 pl-4">Elevation</th>
-            <th class="py-3 pl-4">Details</th>
+            <th v-if="segments.hasSegmentElevation" class="py-3 pl-4">
+              {{ t('segments.stats.elevation') }}
+            </th>
+            <th class="py-3 pl-4">{{ t('segments.stats.details') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-verve-medium/20">
@@ -410,7 +470,7 @@ function confirmDeleteSegmentSet() {
             :key="index"
           >
             <tr class="text-verve-brown">
-              <td class="py-3 pr-4 font-semibold">{{ index + 1 }}</td>
+              <td class="py-3 pr-4 font-semibold">{{ n(index + 1) }}</td>
               <td class="py-3 px-4">{{ segments.formatSeconds(segment.durationS) }}</td>
               <td v-if="segments.hasSegmentDistance" class="py-3 px-4">
                 {{ segments.formatDistanceMeters(segment.distanceM) }}
@@ -437,9 +497,24 @@ function confirmDeleteSegmentSet() {
                 <button
                   type="button"
                   class="text-xs font-bold text-verve-orange hover:text-verve-brown"
+                  :aria-expanded="segments.isSegmentDetailsExpanded(index)"
+                  :aria-label="
+                    t(
+                      segments.isSegmentDetailsExpanded(index)
+                        ? 'segments.stats.hideDetails'
+                        : 'segments.stats.showDetails',
+                      { number: n(index + 1) }
+                    )
+                  "
                   @click="segments.toggleSegmentDetails(index)"
                 >
-                  {{ segments.isSegmentDetailsExpanded(index) ? 'Hide' : 'Show' }}
+                  {{
+                    t(
+                      segments.isSegmentDetailsExpanded(index)
+                        ? 'segments.stats.hide'
+                        : 'segments.stats.show'
+                    )
+                  }}
                 </button>
               </td>
             </tr>
@@ -455,11 +530,11 @@ function confirmDeleteSegmentSet() {
                     class="rounded-xl border border-verve-medium/30 bg-white p-3"
                   >
                     <p class="text-xs font-bold uppercase tracking-wider text-verve-brown/50">
-                      {{ segments.metricLabel(metric) }}
+                      {{ metricLabel(metric) }}
                     </p>
                     <div class="mt-2 grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <p class="text-verve-brown/50">Min</p>
+                        <p class="text-verve-brown/50">{{ t('segments.stats.min') }}</p>
                         <p class="font-semibold">
                           {{
                             segments.formatSegmentMetric(
@@ -470,7 +545,7 @@ function confirmDeleteSegmentSet() {
                         </p>
                       </div>
                       <div>
-                        <p class="text-verve-brown/50">Avg</p>
+                        <p class="text-verve-brown/50">{{ t('segments.stats.avg') }}</p>
                         <p class="font-semibold">
                           {{
                             segments.formatSegmentMetric(
@@ -481,7 +556,7 @@ function confirmDeleteSegmentSet() {
                         </p>
                       </div>
                       <div>
-                        <p class="text-verve-brown/50">Max</p>
+                        <p class="text-verve-brown/50">{{ t('segments.stats.max') }}</p>
                         <p class="font-semibold">
                           {{
                             segments.formatSegmentMetric(

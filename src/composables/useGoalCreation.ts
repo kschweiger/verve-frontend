@@ -1,5 +1,5 @@
 import { onScopeDispose, ref, type Ref } from 'vue';
-import { useGoalStore, type Goal } from '../stores/goals';
+import { useGoalStore, type Goal, type GoalSaveError } from '../stores/goals';
 import { goalPeriodParams, type GoalTimeframe } from '../utils/goalTimeframe';
 import { useAccountSession } from './useAccountSession';
 
@@ -8,11 +8,18 @@ export interface GoalDraft extends GoalTimeframe {
   description: string;
   target: number;
 }
+
+type GoalDraftErrors = Partial<{
+  name: 'nameRequired';
+  target: 'invalidTarget';
+  week: 'invalidWeek';
+}>;
+
 export function useGoalCreation(form: Readonly<Ref<GoalDraft>>) {
   const store = useGoalStore();
   const isSaving = ref(false);
-  const error = ref<string | null>(null);
-  const errors = ref<Record<string, string>>({});
+  const error = ref<GoalSaveError | null>(null);
+  const errors = ref<GoalDraftErrors>({});
   let active = true;
   const captureSession = useAccountSession(() => {
     isSaving.value = false;
@@ -29,15 +36,15 @@ export function useGoalCreation(form: Readonly<Ref<GoalDraft>>) {
     if (isSaving.value || !active) return false;
     const value = form.value;
     errors.value = {};
-    if (!value.name.trim()) errors.value.name = 'Goal name is required.';
+    if (!value.name.trim()) errors.value.name = 'nameRequired';
     if (!Number.isFinite(value.target) || value.target <= 0)
-      errors.value.target = 'Target must be greater than 0.';
+      errors.value.target = 'invalidTarget';
     if (
       value.temporal_type === 'weekly' &&
       value.weekly_scope === 'specific_week' &&
       (!Number.isInteger(value.week) || value.week < 1 || value.week > 53)
     )
-      errors.value.week = 'Week must be between 1 and 53.';
+      errors.value.week = 'invalidWeek';
     if (Object.keys(errors.value).length) return false;
 
     const isCurrentSession = captureSession();
@@ -53,11 +60,10 @@ export function useGoalCreation(form: Readonly<Ref<GoalDraft>>) {
         ...options,
       });
       if (!isCurrent()) return false;
-      if (!success) error.value = store.creationError ?? 'Failed to create goal.';
+      if (!success) error.value = store.creationError ?? { reason: 'createFailed' };
       return success;
-    } catch (cause: unknown) {
-      if (isCurrent())
-        error.value = cause instanceof Error ? cause.message : 'Failed to create goal.';
+    } catch {
+      if (isCurrent()) error.value = { reason: 'createFailed' };
       return false;
     } finally {
       if (isCurrent()) isSaving.value = false;

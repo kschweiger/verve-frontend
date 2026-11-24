@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { Line } from 'vue-chartjs';
+import { useI18n } from 'vue-i18n';
 import {
   Chart as ChartJS,
   Title,
@@ -44,10 +45,13 @@ const emit = defineEmits<{
   (e: 'point-hover', index: number | null): void;
 }>();
 
+const { t, n, locale } = useI18n();
+
 // --- Configuration for Metrics ---
 interface MetricConfig {
   key: keyof TrackPoint;
   label: string;
+  unit: string;
   color: string;
   transform: (val: number) => number;
   fallbackValue: number | null;
@@ -56,28 +60,32 @@ interface MetricConfig {
 const metricDefinitions = computed<Record<string, MetricConfig>>(() => ({
   speed: {
     key: 'speed',
-    label: 'Speed (km/h)',
+    label: t('activityCharts.speed'),
+    unit: 'km/h',
     color: VERVE_COLORS.chartBlue,
     transform: (v) => v * 3.6,
     fallbackValue: 0,
   },
   hr: {
     key: 'hr',
-    label: 'Heart Rate (bpm)',
+    label: t('activityCharts.heartRate'),
+    unit: 'bpm',
     color: VERVE_COLORS.orange,
     transform: (v) => v,
     fallbackValue: null,
   },
   cad: {
     key: 'cad',
-    label: `Cadence (${props.cadenceUnit})`,
+    label: t('activityCharts.cadence'),
+    unit: props.cadenceUnit,
     color: VERVE_COLORS.brown,
     transform: (v) => v,
     fallbackValue: null,
   },
   power: {
     key: 'power',
-    label: 'Power (W)',
+    label: t('activityCharts.power'),
+    unit: 'W',
     color: VERVE_COLORS.orange,
     transform: (v) => v,
     fallbackValue: 0,
@@ -129,8 +137,12 @@ function analyzeData() {
 
 const yAxisLabel = computed(() => {
   const def = metricDefinitions.value[selectedMetricKey.value];
-  return def ? def.label : '';
+  return def ? t('activityCharts.series', { metric: def.label, unit: def.unit }) : '';
 });
+
+const elevationLabel = computed(() =>
+  t('activityCharts.series', { metric: t('activityCharts.elevation'), unit: 'm' })
+);
 
 const formatTimeLabel = (seconds: number) => {
   const h = Math.floor(seconds / 3600);
@@ -167,7 +179,7 @@ const chartData = computed(() => {
   });
 
   datasets.push({
-    label: metricConf.label,
+    label: yAxisLabel.value,
     data: metricData,
     borderColor: metricConf.color,
     backgroundColor: metricConf.color,
@@ -183,7 +195,7 @@ const chartData = computed(() => {
   if (hasElevation.value) {
     const elevationData = props.trackData.map((p) => p.ele ?? 0);
     datasets.push({
-      label: 'Elevation (m)',
+      label: elevationLabel.value,
       data: elevationData,
       borderColor: VERVE_COLORS.chartGray,
       backgroundColor: hexToRgba(VERVE_COLORS.chartGray, 0.2),
@@ -212,7 +224,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         borderDash: [],
         label: {
           display: true,
-          content: `Cut ${index + 1}`,
+          content: t('activityCharts.cut', { number: n(index + 1) }),
           position: 'start',
           backgroundColor: hexToRgba(VERVE_COLORS.dark, 0.9),
           color: '#ffffff',
@@ -228,6 +240,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
   );
 
   return {
+    locale: locale.value,
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
@@ -244,12 +257,20 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         callbacks: {
           label: (context: TooltipItem<'line'>) => {
             if (selectedMetricKey.value === 'cad' && context.dataset.yAxisID === 'yMetric') {
-              return `Cadence: ${formatCadence(context.parsed.y, props.cadenceUnit)}`;
+              return t('activityCharts.tooltip', {
+                metric: t('activityCharts.cadence'),
+                value: formatCadence(context.parsed.y, props.cadenceUnit, locale.value),
+              });
             }
-            let label = context.dataset.label || '';
-            if (label) label += ': ';
-            if (context.parsed.y !== null) label += context.parsed.y.toFixed(1);
-            return label;
+            const metric = context.dataset.label;
+            const value =
+              context.parsed.y === null
+                ? ''
+                : n(Number(context.parsed.y.toFixed(1)), {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  });
+            return metric ? t('activityCharts.tooltip', { metric, value }) : value;
           },
           title: (tooltipItems: TooltipItem<'line'>[]) => {
             return tooltipItems[0]?.label ?? '';
@@ -277,7 +298,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         grid: { display: false },
         title: {
           display: true,
-          text: 'Elapsed time',
+          text: t('activityCharts.elapsedTime'),
         },
       },
       yMetric: {
@@ -287,7 +308,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         title: { display: true, text: yAxisLabel.value },
         ticks:
           selectedMetricKey.value === 'cad'
-            ? { callback: (value) => formatCadenceValue(Number(value)) }
+            ? { callback: (value) => formatCadenceValue(Number(value), locale.value) }
             : {},
         grid: { color: '#e5e7eb' },
       },
@@ -295,7 +316,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         type: 'linear',
         display: hasElevation.value,
         position: 'right',
-        title: { display: true, text: 'Elevation (m)' },
+        title: { display: true, text: elevationLabel.value },
         grid: { display: false },
       },
     },
@@ -305,10 +326,12 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
 
 <template>
   <div v-if="availableMetrics.length > 0 && trackData.length > 0" class="flex flex-col h-full">
-    <div class="flex justify-end space-x-2 mb-2">
+    <div class="mb-2 flex flex-wrap justify-end gap-2">
       <button
         v-for="m in availableMetrics"
         :key="m"
+        type="button"
+        :aria-pressed="selectedMetricKey === m"
         @click="selectedMetricKey = m"
         class="px-3 py-1 text-xs font-semibold rounded-full border transition-colors"
         :class="
@@ -317,11 +340,15 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
             : `bg-white text-gray-600 border-gray-200 hover:border-gray-400`
         "
       >
-        {{ metricDefinitions[m]?.label.split(' ')[0] }}
+        {{ metricDefinitions[m]?.label }}
       </button>
     </div>
     <div class="grow min-h-[250px]">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line
+        :data="chartData"
+        :options="chartOptions"
+        :aria-label="t('activityCharts.metricsChart')"
+      />
     </div>
   </div>
 </template>

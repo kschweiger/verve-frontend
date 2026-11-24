@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { useLocationCoordinates } from '@/composables/useLocationCoordinates';
+import { useMapLabels } from '@/composables/useMapLabels';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useLocationStore, type Location } from '@/stores/location';
@@ -11,6 +14,9 @@ import { Trash2, Plus, Edit2, Check, X as IconX } from '@lucide/vue';
 import LocationCreateModal from '@/components/forms/LocationCreateModal.vue';
 import LocationGoalCreateForm from '@/components/forms/LocationGoalCreateForm.vue';
 
+const { t, n } = useI18n();
+const formatCoords = useLocationCoordinates();
+const localizeMap = useMapLabels();
 const route = useRoute();
 const locationStore = useLocationStore();
 const typeStore = useTypeStore();
@@ -82,9 +88,9 @@ onMounted(async () => {
     }
 
     map = L.map(mapContainer.value).setView(center, initialZoom);
+    localizeMap(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(map);
 
@@ -191,7 +197,7 @@ function closeSidebar() {
 
 async function handleDeleteLocation() {
   if (!locationStore.selectedLocation) return;
-  if (!confirm(`Delete location "${locationStore.selectedLocation.name}"?`)) return;
+  if (!confirm(t('locations.deleteConfirm', { name: locationStore.selectedLocation.name }))) return;
 
   const success = await locationStore.deleteLocation(locationStore.selectedLocation.id);
   if (success) closeSidebar();
@@ -208,9 +214,9 @@ function handleGoalSaved() {
 
 const currentLocationTypeName = computed(() => {
   const loc = locationStore.selectedLocation;
-  if (!loc || !loc.type_id) return 'Uncategorized';
+  if (!loc || !loc.type_id) return t('locations.uncategorized');
   const type = typeStore.locationTypes.find(t => t.id === loc.type_id);
-  if (!type) return 'Unknown Type';
+  if (!type) return t('locations.unknownType');
 
   let label = type.name;
   if (loc.sub_type_id) {
@@ -256,37 +262,37 @@ async function saveTypeChange() {
   <div class="relative h-[calc(100vh-64px)] w-full overflow-hidden">
 
     <!-- Map Container -->
-    <div ref="mapContainer" class="h-full w-full z-0"></div>
+    <div ref="mapContainer" role="region" :aria-label="t('locations.map')" class="h-full w-full z-0"></div>
 
     <!-- Filter Controls (Top Right) -->
     <div
       class="absolute top-4 right-4 z-[500] flex gap-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-xl shadow-md border border-verve-medium/30">
-      <select v-model="filterTypeId"
-        class="text-xs border-transparent bg-transparent font-bold text-verve-brown focus:ring-0 cursor-pointer hover:bg-verve-light/50 rounded-lg py-1 px-2 transition-colors">
-        <option :value="null">All Categories</option>
+      <select v-model="filterTypeId" :aria-label="t('locations.category')"
+        class="text-xs border-transparent bg-transparent font-bold text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-dark cursor-pointer hover:bg-verve-light/50 rounded-lg py-1 px-2 transition-colors">
+        <option :value="null">{{ t('locations.allCategories') }}</option>
         <option v-for="t in typeStore.locationTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
       </select>
 
       <div v-if="filterTypeId && filterAvailableSubTypes.length > 0" class="w-px bg-verve-medium/30 mx-1"></div>
 
-      <select v-if="filterTypeId && filterAvailableSubTypes.length > 0" v-model="filterSubTypeId"
-        class="text-xs border-transparent bg-transparent text-verve-brown focus:ring-0 cursor-pointer hover:bg-verve-light/50 rounded-lg py-1 px-2 transition-colors">
-        <option :value="null">All Sub-Categories</option>
+      <select v-if="filterTypeId && filterAvailableSubTypes.length > 0" v-model="filterSubTypeId" :aria-label="t('locations.subcategory')"
+        class="text-xs border-transparent bg-transparent text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-dark cursor-pointer hover:bg-verve-light/50 rounded-lg py-1 px-2 transition-colors">
+        <option :value="null">{{ t('locations.allSubcategories') }}</option>
         <option v-for="st in filterAvailableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
       </select>
     </div>
 
     <!-- Toolbar (Top-Left) -->
     <div class="absolute top-4 left-14 z-[500] flex flex-col space-y-2">
-      <button v-if="!isAddingLocation" @click="startAddMode"
+      <button type="button" v-if="!isAddingLocation" @click="startAddMode"
         class="bg-white p-2 rounded-xl shadow-md border-2 border-verve-medium/30 text-verve-brown hover:text-verve-orange hover:border-verve-medium transition-colors"
-        title="Add Location">
+        :title="t('locations.addLocation')">
         <Plus class="size-4" />
       </button>
 
-      <button v-else @click="cancelAddMode"
+      <button type="button" v-else @click="cancelAddMode"
         class="bg-white p-2 rounded-xl shadow-md border-2 border-verve-orange text-verve-orange hover:bg-verve-light transition-colors animate-pulse"
-        title="Cancel">
+        :title="t('locations.cancel')">
         <IconX class="size-6" />
       </button>
     </div>
@@ -298,7 +304,7 @@ async function saveTypeChange() {
       leave-to-class="-translate-y-20 opacity-0">
       <div v-if="isAddingLocation"
         class="absolute top-4 left-1/2 -translate-x-1/2 z-[500] bg-verve-brown text-white px-5 py-2.5 rounded-xl shadow-lg text-sm font-bold flex items-center pointer-events-none border border-verve-light/20">
-        <span>📍 Click map to place location</span>
+        <span>📍 {{ t('locations.placeLocation') }}</span>
       </div>
     </Transition>
 
@@ -313,7 +319,7 @@ async function saveTypeChange() {
         <div class="p-6 bg-white border-b border-verve-medium/30">
           <div class="flex justify-between items-start mb-2">
             <h2 class="text-2xl font-bold text-verve-brown leading-tight">{{ locationStore.selectedLocation.name }}</h2>
-            <button @click="closeSidebar"
+            <button type="button" :aria-label="t('locations.closeDetails')" @click="closeSidebar"
               class="text-verve-brown/40 hover:text-verve-brown p-1 hover:bg-verve-light rounded-lg transition-colors">
               <IconX class="size-6" />
             </button>
@@ -331,29 +337,29 @@ async function saveTypeChange() {
                 class="text-xs font-bold uppercase tracking-wider text-verve-brown/60 bg-verve-light/50 px-2 py-0.5 rounded">
                 {{ currentLocationTypeName }}
               </span>
-              <button @click="startEditingType"
-                class="text-verve-brown/30 hover:text-verve-brown opacity-0 group-hover:opacity-100 transition-all"
-                title="Edit Category">
+              <button type="button" @click="startEditingType"
+                class="text-verve-brown/30 hover:text-verve-brown opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all"
+                :title="t('locations.editCategory')">
                 <Edit2 class="size-3" />
               </button>
             </div>
 
             <div v-else class="flex flex-col gap-2 bg-verve-light/20 p-2 rounded-lg border border-verve-medium/20">
-              <select v-model="editTypeId"
+              <select v-model="editTypeId" :aria-label="t('locations.category')"
                 class="text-xs border-verve-medium rounded-md py-1 text-verve-brown bg-white">
-                <option :value="null">No Category</option>
+                <option :value="null">{{ t('locations.noCategory') }}</option>
                 <option v-for="t in typeStore.locationTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
               </select>
-              <select v-model="editSubTypeId" :disabled="!editTypeId || editAvailableSubTypes.length === 0"
+              <select v-model="editSubTypeId" :aria-label="t('locations.subcategory')" :disabled="!editTypeId || editAvailableSubTypes.length === 0"
                 class="text-xs border-verve-medium rounded-md py-1 text-verve-brown disabled:opacity-50 bg-white">
-                <option :value="null">No Sub-Category</option>
+                <option :value="null">{{ t('locations.noSubcategory') }}</option>
                 <option v-for="st in editAvailableSubTypes" :key="st.id" :value="st.id">{{ st.name }}</option>
               </select>
               <div class="flex gap-2 justify-end mt-1">
-                <button @click="isEditingType = false" class="p-1 text-red-500 hover:bg-red-50 rounded">
+                <button type="button" :aria-label="t('locations.cancel')" @click="isEditingType = false" class="p-1 text-red-500 hover:bg-red-50 rounded">
                   <IconX class="size-3" />
                 </button>
-                <button @click="saveTypeChange" class="p-1 text-green-600 hover:bg-green-50 rounded">
+                <button type="button" :aria-label="t('locations.saveCategory')" @click="saveTypeChange" class="p-1 text-green-600 hover:bg-green-50 rounded">
                   <Check class="size-3" />
                 </button>
               </div>
@@ -364,8 +370,7 @@ async function saveTypeChange() {
             {{ locationStore.selectedLocation.description }}
           </p>
           <div class="text-xs text-verve-brown/40 mt-2 font-mono">
-            {{ locationStore.selectedLocation.latitude.toFixed(4) }}, {{
-              locationStore.selectedLocation.longitude.toFixed(4) }}
+            {{ formatCoords(locationStore.selectedLocation.latitude, locationStore.selectedLocation.longitude) }}
           </div>
         </div>
 
@@ -373,25 +378,28 @@ async function saveTypeChange() {
         <div class="grow overflow-y-auto p-6 bg-verve-light/30">
 
           <div class="flex space-x-3 mb-8">
-            <button @click="handleCreateGoal"
+            <button type="button" @click="handleCreateGoal"
               class="flex-1 py-2.5 bg-verve-neon border border-verve-dark/5 text-verve-brown rounded-xl text-sm font-bold hover:brightness-105 shadow-sm flex items-center justify-center gap-2 transition-all">
-              <span>🎯</span> Create Goal
+              <span aria-hidden="true">🎯</span> {{ t('locations.createGoal') }}
             </button>
-            <button @click="handleDeleteLocation"
+            <button type="button" :aria-label="t('locations.deleteLocation')" @click="handleDeleteLocation"
               class="px-4 py-2.5 bg-white border border-red-200 text-red-500 rounded-xl hover:bg-red-50 shadow-sm transition-colors">
               <Trash2 class="size-4" />
             </button>
           </div>
 
           <div>
-            <h3 class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mb-3">Matched Activities ({{
-              locationStore.selectedLocationActivities.length }})</h3>
+            <h3 class="text-xs font-bold text-verve-brown/50 uppercase tracking-wider mb-3">
+              {{ t('locations.matchedActivities', { count: n(locationStore.selectedLocationActivities.length) }) }}
+            </h3>
 
             <div v-if="locationStore.isDetailLoading" class="flex justify-center py-4">
-              <span class="animate-pulse text-verve-brown/60 text-sm">Loading history...</span>
+              <span class="animate-pulse text-verve-brown/60 text-sm">{{ t('locations.loadingHistory') }}</span>
             </div>
 
-            <p v-else-if="locationStore.detailError" role="alert" class="py-4 text-sm text-red-700">{{ locationStore.detailError }}</p>
+            <p v-else-if="locationStore.detailError" role="alert" class="py-4 text-sm text-red-700">
+              {{ locationStore.detailError.detail ?? t(`locations.errors.${locationStore.detailError.reason}`) }}
+            </p>
 
             <div v-else-if="locationStore.selectedLocationActivities.length > 0" class="space-y-3">
               <div v-for="act in locationStore.selectedLocationActivities" :key="act.id"
@@ -402,7 +410,7 @@ async function saveTypeChange() {
 
             <div v-else
               class="text-center py-8 text-verve-brown/40 bg-white/50 rounded-xl border border-dashed border-verve-medium/30">
-              <p class="text-sm">No activities matched to this location yet.</p>
+              <p class="text-sm">{{ t('locations.noActivities') }}</p>
             </div>
           </div>
         </div>

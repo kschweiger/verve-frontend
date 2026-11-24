@@ -1,21 +1,8 @@
 import type { GridDay, GridWeek } from '@/stores/statistics';
+import { formatDurationUnit } from './datetime';
 
-const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-const MONTH_LABELS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const MONDAY_UTC = Date.UTC(2026, 0, 5);
 
 export function getActivityGridIntensity(value: number, scaleMax: number): number {
   if (scaleMax <= 0) return 0;
@@ -27,69 +14,39 @@ export function getRecentGridWeeks(weeks: readonly GridWeek[], limit: number): G
   return weeks.slice(-limit);
 }
 
-export function getWeekdayLabels(): string[] {
-  return [...WEEKDAY_LABELS];
+export function getWeekdayLabels(locale: string): string[] {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
+  return Array.from({ length: 7 }, (_, index) => formatter.format(MONDAY_UTC + index * MS_PER_DAY));
 }
 
-export function monthLabel(month: number | null): string {
-  if (month === null) return '';
-  return MONTH_LABELS[month - 1] ?? '';
+export function monthLabel(month: number | null, locale: string): string {
+  if (month === null || month < 1 || month > 12) return '';
+  return new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(
+    Date.UTC(2026, month - 1)
+  );
 }
 
-export function formatActivityGridDuration(totalSeconds: number): string {
-  if (totalSeconds <= 0) return '0m';
+export function formatActivityGridDuration(totalSeconds: number, locale: string): string {
+  const seconds = Math.max(0, totalSeconds);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.round((seconds % 3600) / 60);
 
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.round((totalSeconds % 3600) / 60);
-
-  if (hours === 0) return `${minutes}m`;
-  if (minutes === 0) return `${hours}h`;
-  return `${hours}h ${minutes}m`;
+  if (hours === 0) return formatDurationUnit(minutes, 'minute', locale);
+  const hourLabel = formatDurationUnit(hours, 'hour', locale);
+  return minutes === 0 ? hourLabel : `${hourLabel} ${formatDurationUnit(minutes, 'minute', locale)}`;
 }
 
-export function formatActivityGridCellDetails(day: GridDay): string {
-  const activityLabel = day.activity_count === 1 ? 'activity' : 'activities';
-  const activeDuration = formatActivityGridDuration(day.effective_duration_seconds);
-  const totalDuration = formatActivityGridDuration(day.duration_seconds);
-  const durationDetails =
-    day.effective_duration_seconds === day.duration_seconds
-      ? `${activeDuration} active`
-      : `${activeDuration} active · ${totalDuration} total`;
-
-  return `${day.date} · ${day.activity_count} ${activityLabel} · ${durationDetails}`;
+export function formatActivityGridDate(
+  date: string,
+  locale: string,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, { ...options, timeZone: 'UTC' });
 }
 
-function isoDateToUtcDay(value: string): number | null {
-  const [year, month, day] = value.split('-').map(Number);
-  if (!year || !month || !day) return null;
-  return Date.UTC(year, month - 1, day) / MS_PER_DAY;
-}
-
-function dateToUtcDay(value: Date): number {
-  return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()) / MS_PER_DAY;
-}
-
-export function formatLastActiveDay(lastActiveDay: string | null, today = new Date()): string {
-  if (lastActiveDay === null) return 'No activity';
-
-  const activeDay = isoDateToUtcDay(lastActiveDay);
-  if (activeDay === null) return lastActiveDay;
-
-  const dayDiff = dateToUtcDay(today) - activeDay;
-  if (dayDiff === 0) return 'Today';
-  if (dayDiff === 1) return 'Yesterday';
-  if (dayDiff > 1 && dayDiff < 30) return `${dayDiff} days ago`;
-
-  const [year, month, day] = lastActiveDay.split('-').map(Number);
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    year: year === today.getFullYear() ? undefined : 'numeric',
-  }).format(new Date(year, month - 1, day));
-}
-
-export function formatWeekActivityStreak(streak: number): string {
-  return `${streak} ${streak === 1 ? 'week' : 'weeks'}`;
+export function getActivityGridDayOffset(date: string, today: Date): number {
+  const currentDay = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  return (currentDay - Date.parse(`${date}T00:00:00Z`)) / MS_PER_DAY;
 }
 
 export function hasActivityGridCellDetails(day: GridDay | null): day is GridDay {

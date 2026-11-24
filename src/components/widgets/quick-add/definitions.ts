@@ -1,5 +1,5 @@
 export interface QuickAddDefinition {
-  name: string;
+  key: 'elliptical' | 'weightTraining' | 'yoga';
   typeName: string;
   subTypeName: string;
   distanceMode: 'REQUIRED' | 'OPTIONAL' | 'NOT_APPLICABLE';
@@ -7,19 +7,19 @@ export interface QuickAddDefinition {
 
 export const quickAddDefinitions: QuickAddDefinition[] = [
   {
-    name: 'Elliptical',
+    key: 'elliptical',
     typeName: 'Indoor Cardio',
     subTypeName: 'Elliptical',
     distanceMode: 'OPTIONAL',
   },
   {
-    name: 'Weight Training',
+    key: 'weightTraining',
     typeName: 'Strength Training',
     subTypeName: 'Weight Training',
     distanceMode: 'NOT_APPLICABLE',
   },
   {
-    name: 'Yoga',
+    key: 'yoga',
     typeName: 'Fitness & Flexibility',
     subTypeName: 'Yoga',
     distanceMode: 'NOT_APPLICABLE',

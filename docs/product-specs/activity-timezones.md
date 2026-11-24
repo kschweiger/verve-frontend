@@ -2,10 +2,10 @@
 
 ## Display
 
-- Activity detail and shared activity rows display dates and times in the activity's assigned IANA timezone. The browser locale controls formatting, not the timezone.
+- Activity detail and shared activity rows display dates and times in the activity's assigned IANA timezone and format them using the active app language.
 - Detail always shows the timestamp and full timezone identifier, including for unnamed activities. Its fallback title uses the activity-local date. Standard and compact rows include a short timezone label; their accessible time description and tooltip provide the full identifier.
 - API timestamps remain instants with `Z` or an explicit numeric offset. Formatting uses `Intl.DateTimeFormat` with `timeZone`; it does not rewrite timestamps or apply offsets manually.
-- If the browser cannot format a contract-valid zone, show Local time unavailable together with the original timestamp and zone. Never substitute the browser or user's timezone.
+- If the browser cannot format a contract-valid zone, show a localized fallback message together with the original timestamp and zone. Never substitute the browser or user's timezone.
 - Calendars, grouping, period filters, statistics, and goals use the user timezone. Their frontend adoption and separate Records date labels are later work; activity-local labels do not change grouping.
 
 ## Upload and Manual Entry
@@ -14,12 +14,14 @@
 
 - File upload offers an optional backend-supported IANA timezone selector. Its empty default omits `timezone_name`; an explicit selection is sent as a query parameter to the auto-upload endpoint for every file in the batch. Upload More clears the selection. Files and timestamps are unchanged by the frontend.
 - Manual entry loads and preselects the saved user timezone. Date & Time starts at the current local time in that zone; changing zones preserves the entered wall time and interprets it in the new zone. The selected zone is shown beside the field.
+- Manual-entry labels use the active app language. A blank activity name receives a localized default. The native date and number fields keep their input and storage formats.
 - Native `Intl.DateTimeFormat` converts the manual wall time to an aware UTC `start`, independent of browser timezone. Repeated clock times use the earlier occurrence; nonexistent times shift forward by the clock-change gap. Invalid input or an unavailable timezone produces an inline error and preserves the form.
 - Send manual `timezone_name` on creation and optional track attachment. Read the typed creation response and use its ID. Settings loading disables submission; a loading failure stays inline and permits an explicit timezone selection. No external date library is required.
 
 ## Correction
 
 - Edit Activity provides a timezone selector initialized from the saved activity. Options come from the OpenAPI timezone enum shared with user settings.
+- The edit form uses the active app language for labels and validation. Locale changes preserve the entered values and their parsing rules.
 - Send changed timezone as `timezone` in the JSON body of `PATCH /api/v1/activity/{id}`. Omit `timezone_name`, and do not send `start` or track timestamps. Unchanged fields are omitted; a timezone-only edit submits only timezone.
 - Compare edits against the initial displayed distance and duration precision so timezone changes do not round stored values accidentally.
 - Read the returned `ActivityPublic`, synchronize matching recent and paginated activities, and trigger the existing update notification before returning to detail.
@@ -31,6 +33,7 @@
 - `backend_openapi.json` is canonical. `ActivityPublic` and `ActivityCorePublic` require a supported, non-null timezone, aware start and creation timestamps, ID, duration, distance, type/subtype, name, and tags. Use shared contract-derived response types for detail, lists, collections, and updates.
 - Trust backend responses to conform to the contract, including aware activity/track timestamps and assigned timezones. Map optional metrics and tag categories to null for display; do not duplicate backend response validation.
 - Charts and segment cut editing calculate elapsed seconds from timestamp instants through the shared helper. A repeated DST hour does not reverse plot positions or change elapsed durations. Duration parsing supports whole days as well as hours/minutes/seconds.
+- Elevation and combined metrics charts format labels and tooltips in the active app language while preserving elapsed coordinates and unit conversions.
 
 ## Fixtures and Validation
 

@@ -3,6 +3,7 @@ import { useAccountSession } from '../composables/useAccountSession';
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { fetchActivitySummary } from '../services/api';
+import { ApiResponseError } from '../services/authHeaders';
 import type { Activity } from './activity';
 import {
   fetchRecordsOverview,
@@ -14,6 +15,11 @@ import { sortRecordGroups } from '../utils/records';
 
 const currentYear = new Date().getFullYear();
 
+interface RecordsError {
+  reason: 'chooseType' | 'load';
+  detail?: string;
+}
+
 export const useRecordsStore = defineStore('records', () => {
   const scope = ref<HighlightTimeScope>('yearly');
   const year = ref(currentYear);
@@ -23,7 +29,7 @@ export const useRecordsStore = defineStore('records', () => {
   const activitySummaries = ref<Record<string, Activity>>({});
   const isLoading = ref(false);
   const isLoadingSummaries = ref(false);
-  const error = ref<string | null>(null);
+  const error = ref<RecordsError | null>(null);
 
   const selectedGroup = computed(
     () => groups.value.find((group) => group.metric === selectedMetric.value) ?? null
@@ -102,7 +108,7 @@ export const useRecordsStore = defineStore('records', () => {
       isLoading.value = false;
       groups.value = [];
       selectedMetric.value = null;
-      error.value = 'Choose an activity type to view records.';
+      error.value = { reason: 'chooseType' };
       return;
     }
 
@@ -124,9 +130,12 @@ export const useRecordsStore = defineStore('records', () => {
       pruneActivitySummaryCache();
       await fetchSelectedActivitySummaries();
       if (!isCurrent()) return;
-    } catch (e: unknown) {
+    } catch (cause: unknown) {
       if (!isCurrent()) return;
-      error.value = e instanceof Error ? e.message : 'Failed to load records.';
+      error.value = {
+        reason: 'load',
+        detail: cause instanceof ApiResponseError ? cause.detail : undefined,
+      };
       groups.value = [];
       selectedMetric.value = null;
     } finally {

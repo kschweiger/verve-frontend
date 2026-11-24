@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import logo from '@/assets/logo.svg';
 import { requestPasswordReset } from '@/services/passwordReset';
+import { ApiResponseError } from '@/services/authHeaders';
+
+const { t } = useI18n();
 
 const email = ref('');
 const isSubmitting = ref(false);
 const errorMessage = ref<string | null>(null);
+const hasFallbackError = ref(false);
 const successMessage = ref<string | null>(null);
 const resetLink = ref<string | null>(null);
-
-const toErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : 'Failed to request password reset.';
 
 async function handleSubmit() {
   isSubmitting.value = true;
   errorMessage.value = null;
+  hasFallbackError.value = false;
   successMessage.value = null;
   resetLink.value = null;
 
@@ -24,7 +27,11 @@ async function handleSubmit() {
     successMessage.value = result.message;
     resetLink.value = result.resetLink;
   } catch (error) {
-    errorMessage.value = toErrorMessage(error);
+    if (error instanceof ApiResponseError && error.detail) {
+      errorMessage.value = error.detail;
+    } else {
+      hasFallbackError.value = true;
+    }
   } finally {
     isSubmitting.value = false;
   }
@@ -37,13 +44,13 @@ async function handleSubmit() {
       <div class="text-center flex flex-col items-center">
         <img :src="logo" alt="Verve Outdoors" class="h-20 w-auto mb-4" />
         <p class="mt-2 text-verve-brown/60 text-sm font-medium">
-          Enter your email address and we will send a password reset link.
+          {{ t('auth.forgotDescription') }}
         </p>
       </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-6">
-        <div v-if="errorMessage" class="p-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl">
-          {{ errorMessage }}
+        <div v-if="errorMessage || hasFallbackError" class="p-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl">
+          {{ errorMessage ?? t('auth.forgotFallbackError') }}
         </div>
 
         <div v-if="successMessage" class="p-4 text-sm text-verve-brown bg-verve-light/60 border border-verve-medium rounded-xl">
@@ -53,13 +60,13 @@ async function handleSubmit() {
             :href="resetLink"
             class="inline-block mt-3 font-bold text-verve-dark hover:text-verve-brown hover:underline transition-colors"
           >
-            Open reset link
+            {{ t('auth.openResetLink') }}
           </a>
         </div>
 
         <div>
           <label for="forgot-email" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
-            Email address
+            {{ t('auth.emailAddress') }}
           </label>
           <div class="mt-1">
             <input
@@ -80,7 +87,7 @@ async function handleSubmit() {
           :disabled="isSubmitting"
           class="w-full flex justify-center py-3 px-4 border border-verve-dark/5 rounded-xl shadow-sm text-sm font-bold text-verve-brown bg-verve-neon hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-verve-neon transition-all disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {{ isSubmitting ? 'Sending...' : 'Send reset link' }}
+          {{ isSubmitting ? t('auth.forgotPending') : t('auth.forgotSubmit') }}
         </button>
       </form>
 
@@ -89,7 +96,7 @@ async function handleSubmit() {
           :to="{ name: 'login' }"
           class="font-bold text-verve-dark hover:text-verve-brown hover:underline transition-colors"
         >
-          Back to sign in
+          {{ t('auth.backToSignIn') }}
         </RouterLink>
       </div>
     </div>

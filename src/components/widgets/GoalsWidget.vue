@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useGoalStore, type Goal } from '@/stores/goals';
-import { useActivityStore } from '@/stores/activity'; // Import
+import { useActivityStore } from '@/stores/activity';
+import { useDashboardLoadError } from '@/composables/useDashboardLoadError';
 import GoalCreateForm from '@/components/forms/GoalCreateForm.vue';
 
 const goalStore = useGoalStore();
-const activityStore = useActivityStore(); // Init
+const activityStore = useActivityStore();
+const { t, n } = useI18n();
+const formatLoadError = useDashboardLoadError();
 const showCreateModal = ref(false);
 
 const now = new Date();
@@ -58,18 +62,24 @@ const handleManualUpdate = async (goal: Goal, increase: boolean) => {
 };
 
 // --- Formatting Helpers ---
-const getGoalUnit = (agg: string) => {
-  if (agg.includes('distance')) return 'km';
-  if (agg === 'duration') return 'h';
-  if (agg === 'active_days') return 'days';
-  return '';
-};
+const decimalPrecision = { minimumFractionDigits: 1, maximumFractionDigits: 1 };
+const countPrecision = { maximumSignificantDigits: 21 };
 
-const formatValue = (val: number, agg: string) => {
-  if (agg === 'duration') return (val / 3600).toFixed(1);
-  if (agg.includes('distance')) return val.toFixed(1);
-  return val.toString();
-};
+function formatValue(value: number, aggregation: Goal['aggregation'], showUnit = false): string {
+  if (aggregation === 'duration') {
+    const hours = n(value / 3600, decimalPrecision);
+    return showUnit ? t('dashboard.goals.hours', { value: hours }) : hours;
+  }
+  if (aggregation.includes('distance')) {
+    return showUnit
+      ? n(value, { ...decimalPrecision, style: 'unit', unit: 'kilometer', unitDisplay: 'short' })
+      : n(value, decimalPrecision);
+  }
+  if (aggregation === 'active_days' && showUnit) {
+    return n(value, { ...countPrecision, style: 'unit', unit: 'day', unitDisplay: 'long' });
+  }
+  return n(value, countPrecision);
+}
 
 const getProgressBarColor = (goal: Goal) => {
   if (goal.reached) return 'bg-verve-neon';
@@ -83,21 +93,21 @@ const getProgressBarColor = (goal: Goal) => {
     class="bg-white rounded-xl shadow-sm border border-verve-medium/30 p-6 relative flex flex-col min-h-[300px]">
     <!-- Header -->
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xl font-bold text-verve-brown">My Goals</h3>
-      <button @click="showCreateModal = true"
+      <h3 class="text-xl font-bold text-verve-brown">{{ t('dashboard.goals.title') }}</h3>
+      <button type="button" @click="showCreateModal = true"
         class="text-sm text-verve-orange hover:text-verve-brown font-bold transition-colors cursor-pointer">
-        + Add Goal
+        {{ t('dashboard.goals.add') }}
       </button>
     </div>
 
     <!-- Tabs -->
     <div class="flex border-b border-verve-medium/30 mb-4">
-      <button v-for="tab in tabs" :key="tab" @click="activeTab = tab"
-        class="pb-2 px-3 text-sm font-bold transition-colors relative capitalize cursor-pointer" :class="activeTab === tab
+      <button v-for="tab in tabs" :key="tab" type="button" :aria-pressed="activeTab === tab" @click="activeTab = tab"
+        class="pb-2 px-3 text-sm font-bold transition-colors relative cursor-pointer" :class="activeTab === tab
           ? 'text-verve-brown'
           : 'text-verve-brown/50 hover:text-verve-brown/80'
           ">
-        {{ tab }}
+        {{ t(`dashboard.goals.tabs.${tab}`) }}
         <!-- Active Indicator -->
         <div v-if="activeTab === tab" class="absolute bottom-0 left-0 w-full h-0.5 bg-verve-orange"></div>
       </button>
@@ -105,18 +115,18 @@ const getProgressBarColor = (goal: Goal) => {
 
     <!-- Content -->
     <div v-if="goalStore.isLoadingPeriods" class="grow flex items-center justify-center text-verve-brown/60 text-sm">
-      Loading...
+      {{ t('dashboard.goals.loading') }}
     </div>
 
     <div v-else-if="goalStore.periodsError" role="alert" class="p-3 text-sm text-red-700">
-      <p>{{ goalStore.periodsError }}</p>
-      <button type="button" @click="refreshGoals" class="mt-2 rounded px-2 py-1 font-bold underline focus-visible:outline-2 focus-visible:outline-offset-2">Retry goals</button>
+      <p>{{ formatLoadError('goals', goalStore.periodsError) }}</p>
+      <button type="button" @click="refreshGoals" class="mt-2 rounded px-2 py-1 font-bold underline focus-visible:outline-2 focus-visible:outline-offset-2">{{ t('dashboard.goals.retry') }}</button>
     </div>
 
     <div v-else-if="currentGoals.length === 0"
       class="grow flex flex-col items-center justify-center text-verve-brown/50 py-6">
-      <p>No {{ activeTab }} goals set.</p>
-      <p class="text-xs mt-1">Time to challenge yourself!</p>
+      <p>{{ t(`dashboard.goals.empty.${activeTab}`) }}</p>
+      <p class="text-xs mt-1">{{ t('dashboard.goals.challenge') }}</p>
     </div>
 
     <div v-else class="space-y-5">
@@ -128,7 +138,7 @@ const getProgressBarColor = (goal: Goal) => {
           </span>
           <span class="text-verve-brown/70 whitespace-nowrap text-xs flex items-center font-mono">
             {{ formatValue(goal.current, goal.aggregation) }} /
-            {{ formatValue(goal.target, goal.aggregation) }} {{ getGoalUnit(goal.aggregation) }}
+            {{ formatValue(goal.target, goal.aggregation, true) }}
           </span>
         </div>
 
@@ -140,18 +150,21 @@ const getProgressBarColor = (goal: Goal) => {
 
         <!-- Manual Controls -->
         <div v-if="goal.type === 'manual'" class="flex items-center justify-end gap-1">
-          <button @click="handleManualUpdate(goal, false)"
+          <button type="button" @click="handleManualUpdate(goal, false)"
             class="size-6 flex items-center justify-center rounded-lg bg-verve-light text-verve-brown hover:bg-red-100 hover:text-red-600 transition-colors"
-            title="Decrease">
+            :title="t('dashboard.goals.decrease', { goal: goal.name })"
+            :aria-label="t('dashboard.goals.decrease', { goal: goal.name })">
             -
           </button>
 
           <input type="number" min="1" :value="getStep(goal.id)" @input="updateStep(goal.id, $event)"
+            :aria-label="t('dashboard.goals.amount', { goal: goal.name })"
             class="w-10 h-6 text-xs text-center border-verve-medium rounded-lg text-verve-brown bg-white focus:ring-verve-dark focus:border-verve-dark" />
 
-          <button @click="handleManualUpdate(goal, true)"
+          <button type="button" @click="handleManualUpdate(goal, true)"
             class="size-6 flex items-center justify-center rounded-lg bg-verve-light text-verve-brown hover:bg-green-100 hover:text-green-600 transition-colors"
-            title="Increase">
+            :title="t('dashboard.goals.increase', { goal: goal.name })"
+            :aria-label="t('dashboard.goals.increase', { goal: goal.name })">
             +
           </button>
         </div>

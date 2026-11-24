@@ -5,6 +5,7 @@
 - Authenticated routes provide a list (`/collections`), manual creation (`/collections/new`), detail (`/collections/:id`), and editing (`/collections/:id/edit`). Collections is reachable from Training navigation.
 - Users create a collection by naming it and selecting activities; description is optional.
 - The list shows backend overview metrics and sorts collections by start descending. Detail shows totals and activities ordered by start ascending.
+- Collection controls, map labels, and displayed dates and metrics use the active app language. Stored collection and activity names, sort order, and timezones keep their existing meaning.
 - Collection track points are grouped by `activity_id`, with a separate colored map polyline for each activity. Omit the map and its placeholder when no coordinate data exists.
 - Collection track cadence is already classified separately by the backend for each activity. Preserve its full precision, zero/null values, and activity ID; never scale samples or aggregate different cadence units. The current collection UI displays no cadence statistics.
 - Opening a collection refetches its detail and track, including updated cadence after member activity type/subtype edits; collection track data is not persisted between views.

@@ -1,4 +1,9 @@
-import { responseError, getAuthHeaders, getJsonAuthHeaders } from '../services/authHeaders';
+import {
+  ApiResponseError,
+  responseError,
+  getAuthHeaders,
+  getJsonAuthHeaders,
+} from '../services/authHeaders';
 import type { SupportedLocale, UserPublic } from '../types/api';
 import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
@@ -47,11 +52,13 @@ export const useSettingsStore = defineStore('settings', () => {
   const userSettings = ref<UserSettings | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const errorDetail = ref<string | null>(null);
   const timezone = computed(() => userSettings.value?.timezone ?? null);
   const isSavingTimezone = ref(false);
   const timezoneError = ref<string | null>(null);
+  const timezoneErrorDetail = ref<string | null>(null);
   const isSavingLocale = ref(false);
-  const localeError = ref<string | null>(null);
+  const localeError = ref<{ detail?: string } | null>(null);
   const userStore = useUserStore();
   let session = 0;
   let settingsRequest: Promise<UserSettings> | null = null;
@@ -66,7 +73,9 @@ export const useSettingsStore = defineStore('settings', () => {
       isLoading.value = false;
       isSavingTimezone.value = false;
       error.value = null;
+      errorDetail.value = null;
       timezoneError.value = null;
+      timezoneErrorDetail.value = null;
       isSavingLocale.value = false;
       localeError.value = null;
     },
@@ -96,6 +105,7 @@ export const useSettingsStore = defineStore('settings', () => {
     const currentSession = session;
     isSavingTimezone.value = true;
     timezoneError.value = null;
+    timezoneErrorDetail.value = null;
     try {
       await saveUserTimezone(value);
       if (currentSession !== session) return false;
@@ -106,7 +116,8 @@ export const useSettingsStore = defineStore('settings', () => {
       return currentSession === session;
     } catch (e: unknown) {
       if (currentSession === session) {
-        timezoneError.value = e instanceof Error ? e.message : 'Failed to save timezone.';
+        timezoneError.value = 'Failed to save timezone.';
+        timezoneErrorDetail.value = e instanceof ApiResponseError ? (e.detail ?? null) : null;
       }
       return false;
     } finally {
@@ -128,7 +139,7 @@ export const useSettingsStore = defineStore('settings', () => {
       return currentSession === session;
     } catch (e: unknown) {
       if (currentSession === session) {
-        localeError.value = e instanceof Error ? e.message : 'Failed to save locale.';
+        localeError.value = { detail: e instanceof ApiResponseError ? e.detail : undefined };
       }
       return false;
     } finally {
@@ -146,6 +157,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
     isLoading.value = true;
     error.value = null;
+    errorDetail.value = null;
 
     const currentSession = session;
     if (!userStore.token) {
@@ -170,7 +182,8 @@ export const useSettingsStore = defineStore('settings', () => {
       if (currentSession === session) userProfile.value = profile;
     } catch (e: unknown) {
       if (currentSession === session) {
-        error.value = e instanceof Error ? e.message : 'An error occurred while loading settings.';
+        error.value = 'An error occurred while loading settings.';
+        errorDetail.value = e instanceof ApiResponseError ? (e.detail ?? null) : null;
       }
     } finally {
       if (currentSession === session) isLoading.value = false;
@@ -212,11 +225,16 @@ export const useSettingsStore = defineStore('settings', () => {
 
   async function updatePassword(
     payload: PasswordUpdatePayload
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{
+    success: boolean;
+    message: string;
+    detail?: string;
+    reason?: 'notAuthenticated' | 'accountChanged' | 'failed';
+  }> {
     const currentSession = session;
     const userStore = useUserStore();
     if (!userStore.token) {
-      return { success: false, message: 'Not authenticated.' };
+      return { success: false, message: 'Not authenticated.', reason: 'notAuthenticated' };
     }
 
     try {
@@ -226,18 +244,21 @@ export const useSettingsStore = defineStore('settings', () => {
         body: JSON.stringify(payload),
       });
       if (currentSession !== session)
-        return { success: false, message: 'Account changed while processing the request.' };
+        return {
+          success: false,
+          message: 'Account changed while processing the request.',
+          reason: 'accountChanged',
+        };
 
-      if (!response.ok) {
-        const data = await response.json();
-        if (currentSession !== session)
-          return { success: false, message: 'Account changed while processing the request.' };
-        throw new Error(data.detail || 'Failed to update password.');
-      }
+      if (!response.ok) throw await responseError(response, 'Failed to update password.');
 
       const { default: router } = await import('../router');
       if (currentSession !== session)
-        return { success: false, message: 'Account changed while processing the request.' };
+        return {
+          success: false,
+          message: 'Account changed while processing the request.',
+          reason: 'accountChanged',
+        };
       userStore.logout();
       router.push({
         name: 'login',
@@ -250,8 +271,18 @@ export const useSettingsStore = defineStore('settings', () => {
       };
     } catch (e: unknown) {
       if (currentSession !== session)
-        return { success: false, message: 'Account changed while processing the request.' };
-      return { success: false, message: e instanceof Error ? e.message : String(e) };
+        return {
+          success: false,
+          message: 'Account changed while processing the request.',
+          reason: 'accountChanged',
+        };
+      const detail = e instanceof ApiResponseError ? e.detail : undefined;
+      return {
+        success: false,
+        message: detail ?? 'Failed to update password.',
+        detail,
+        reason: 'failed',
+      };
     }
   }
 
@@ -351,9 +382,11 @@ export const useSettingsStore = defineStore('settings', () => {
     userSettings,
     isLoading,
     error,
+    errorDetail,
     timezone,
     isSavingTimezone,
     timezoneError,
+    timezoneErrorDetail,
     isSavingLocale,
     localeError,
     ensureSettings,

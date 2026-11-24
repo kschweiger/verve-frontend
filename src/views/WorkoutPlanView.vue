@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import WorkoutExerciseFields from '@/components/WorkoutExerciseFields.vue';
 import WorkoutPlanActivities from '@/components/WorkoutPlanActivities.vue';
+import type { en as trainingMessages } from '@/i18n/training';
 import { useUserStore } from '@/stores/auth';
 import { ApiResponseError } from '@/services/authHeaders';
 import {
@@ -23,6 +25,8 @@ import {
   type DraftEntry,
 } from '@/utils/workoutPlanDraft';
 
+type PlanError = { key: keyof typeof trainingMessages.errors; detail?: string };
+
 const fieldClass =
   'w-full rounded-lg border border-verve-brown/30 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-verve-orange';
 const actionClass =
@@ -30,6 +34,7 @@ const actionClass =
 
 const route = useRoute();
 const router = useRouter();
+const { t, n } = useI18n();
 const auth = useUserStore();
 const isNew = computed(() => route.name === 'workout-plan-create');
 const plan = ref<WorkoutPlan | null>(null);
@@ -40,8 +45,8 @@ const labels = ref<Record<string, Exercise>>({});
 const editing = ref(false);
 const loading = ref(false);
 const saving = ref(false);
-const error = ref('');
-const nameError = ref('');
+const error = ref<PlanError | null>(null);
+const nameError = ref<'nameRequired' | 'nameConflict' | null>(null);
 const labelError = ref(false);
 const catalogError = ref(false);
 const catalogLoading = ref(false);
@@ -54,6 +59,34 @@ let dialogTrigger: HTMLElement | null = null;
 let generation = 0;
 let labelGeneration = 0;
 const pendingLabels = new Map<string, Promise<Exercise>>();
+
+const errorMessage = computed(() => {
+  if (!error.value) return '';
+  const { key, detail } = error.value;
+  const message = t(`training.errors.${key}`);
+  return detail ? t('workout.errors.withDetail', { message, detail }) : message;
+});
+
+function planError(key: PlanError['key'], cause: unknown): PlanError {
+  return { key, detail: cause instanceof ApiResponseError ? cause.detail : undefined };
+}
+
+function exerciseTargets(entry: DraftEntry) {
+  return t('training.plan.exerciseTargets', {
+    sets: entry.sets === '' ? '—' : n(entry.sets),
+    repetitions: entry.repetitions === '' ? '—' : n(entry.repetitions),
+    weight:
+      entry.weight === ''
+        ? '—'
+        : t('workout.weight', { weight: n(entry.weight, { maximumSignificantDigits: 21 }) }),
+  });
+}
+
+function showRequiredName(event: Event) {
+  nameError.value = 'nameRequired';
+  (event.currentTarget as HTMLInputElement).focus();
+}
+
 function lookupLabel(id: string): Promise<Exercise> {
   const existing = pendingLabels.get(id);
   if (existing) return existing;
@@ -108,8 +141,8 @@ async function load() {
   name.value = '';
   exercises.value = [];
   labels.value = {};
-  error.value = '';
-  nameError.value = '';
+  error.value = null;
+  nameError.value = null;
   labelError.value = false;
   dialog.value = null;
   saving.value = false;
@@ -127,8 +160,7 @@ async function load() {
       });
     }
   } catch (e) {
-    if (current === generation)
-      error.value = e instanceof Error ? e.message : 'Failed to load workout plan.';
+    if (current === generation) error.value = planError('loadPlan', e);
   } finally {
     if (current === generation) loading.value = false;
   }
@@ -154,8 +186,8 @@ onUnmounted(() => {
   generation++;
 });
 function cancel() {
-  nameError.value = '';
-  error.value = '';
+  nameError.value = null;
+  error.value = null;
   if (isNew.value) void router.push({ name: 'workout-plans' });
   else if (plan.value) {
     draftFrom(plan.value);
@@ -165,13 +197,13 @@ function cancel() {
 async function save() {
   if (saving.value) return;
   if (!name.value.trim()) {
-    nameError.value = 'Enter a plan name.';
+    nameError.value = 'nameRequired';
     return;
   }
   const current = generation;
   saving.value = true;
-  error.value = '';
-  nameError.value = '';
+  error.value = null;
+  nameError.value = null;
   const normalized = serializeEntries(entries.value);
   try {
     let result: WorkoutPlan;
@@ -195,9 +227,8 @@ async function save() {
     }
   } catch (e) {
     if (current === generation) {
-      if (e instanceof ApiResponseError && e.status === 409)
-        nameError.value = 'A plan with this name already exists.';
-      else error.value = e instanceof Error ? e.message : 'Failed to save workout plan.';
+      if (e instanceof ApiResponseError && e.status === 409) nameError.value = 'nameConflict';
+      else error.value = planError(isNew.value ? 'createPlan' : 'savePlan', e);
     }
   } finally {
     if (current === generation) saving.value = false;
@@ -206,9 +237,9 @@ async function save() {
 async function openDialog(kind: 'duplicate' | 'delete') {
   dialogTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   dialog.value = kind;
-  error.value = '';
-  nameError.value = '';
-  duplicateName.value = `${plan.value?.name ?? ''} copy`;
+  error.value = null;
+  nameError.value = null;
+  duplicateName.value = t('training.plan.copyName', { name: plan.value?.name ?? '' });
   await nextTick();
   dialogBox.value?.showModal();
   (kind === 'delete' ? dialogCancel.value : dialogInput.value)?.focus();
@@ -222,14 +253,14 @@ function closeDialog() {
 async function confirmDialog() {
   if (!plan.value || saving.value) return;
   if (dialog.value === 'duplicate' && !duplicateName.value.trim()) {
-    nameError.value = 'Enter a plan name.';
+    nameError.value = 'nameRequired';
     return;
   }
   const current = generation;
   const id = plan.value.id;
   saving.value = true;
-  error.value = '';
-  nameError.value = '';
+  error.value = null;
+  nameError.value = null;
   try {
     if (dialog.value === 'duplicate') {
       const result = await duplicateWorkoutPlan(id, duplicateName.value);
@@ -241,9 +272,10 @@ async function confirmDialog() {
     }
   } catch (e) {
     if (current === generation) {
-      if (e instanceof ApiResponseError && e.status === 409)
-        nameError.value = 'A plan with this name already exists.';
-      else error.value = e instanceof Error ? e.message : 'Action failed.';
+      if (dialog.value === 'duplicate' && e instanceof ApiResponseError && e.status === 409)
+        nameError.value = 'nameConflict';
+      else
+        error.value = planError(dialog.value === 'duplicate' ? 'duplicatePlan' : 'deletePlan', e);
     }
   } finally {
     if (current === generation) saving.value = false;
@@ -256,27 +288,32 @@ async function confirmDialog() {
       <router-link
         :to="{ name: 'workout-plans' }"
         class="text-sm underline focus-visible:outline-2 focus-visible:outline-verve-orange"
-        >← Workout Plans</router-link
       >
-      <p v-if="loading" class="mt-6">Loading workout plan...</p>
+        <span aria-hidden="true">←</span> {{ t('navigation.workoutPlans') }}
+      </router-link>
+      <p v-if="loading" class="mt-6">{{ t('training.plan.loading') }}</p>
       <template v-else-if="isNew || plan">
         <div class="my-6 flex flex-wrap items-center justify-between gap-4">
           <h1 class="min-w-0 wrap-anywhere text-3xl font-bold">
-            {{ isNew ? 'New Workout Plan' : plan?.name }}
+            {{ isNew ? t('training.plan.newTitle') : plan?.name }}
           </h1>
           <div v-if="!editing" class="flex flex-wrap gap-2">
-            <button :class="actionClass" type="button" @click="editing = true">Edit</button>
-            <button :class="actionClass" type="button" @click="openDialog('duplicate')">
-              Duplicate
+            <button :class="actionClass" type="button" @click="editing = true">
+              {{ t('training.plan.edit') }}
             </button>
-            <button :class="actionClass" type="button" @click="openDialog('delete')">Delete</button>
+            <button :class="actionClass" type="button" @click="openDialog('duplicate')">
+              {{ t('training.plan.duplicate') }}
+            </button>
+            <button :class="actionClass" type="button" @click="openDialog('delete')">
+              {{ t('training.plan.delete') }}
+            </button>
           </div>
         </div>
-        <div v-if="error && !dialog" role="alert" class="my-4 text-red-700">{{ error }}</div>
+        <div v-if="error && !dialog" role="alert" class="my-4 text-red-700">{{ errorMessage }}</div>
         <form v-if="editing" @submit.prevent="save">
           <fieldset :disabled="saving">
-            <label class="block font-bold" for="plan-name">Plan name</label
-            ><input
+            <label class="block font-bold" for="plan-name">{{ t('workout.planName') }}</label>
+            <input
               id="plan-name"
               v-model="name"
               required
@@ -284,14 +321,17 @@ async function confirmDialog() {
               :class="fieldClass"
               :aria-invalid="!!nameError"
               :aria-describedby="nameError ? 'name-error' : undefined"
+              @invalid.prevent="showRequiredName"
             />
             <p v-if="nameError" id="name-error" role="alert" class="text-red-700">
-              {{ nameError }}
+              {{ t(`workout.errors.${nameError}`) }}
             </p>
-            <h2 class="mt-8 text-xl font-bold">Exercises</h2>
+            <h2 class="mt-8 text-xl font-bold">{{ t('workout.exercises') }}</h2>
             <div v-if="catalogError" role="alert" class="my-2 text-red-700">
-              Could not load the exercise catalog.
-              <button type="button" class="underline" @click="retryCatalog">Retry</button>
+              {{ t('workout.errors.loadCatalog') }}
+              <button type="button" class="underline" @click="retryCatalog">
+                {{ t('training.retry') }}
+              </button>
             </div>
             <WorkoutExerciseFields
               v-model="entries"
@@ -307,46 +347,50 @@ async function confirmDialog() {
                 :disabled="saving"
                 type="submit"
               >
-                {{ saving ? 'Saving...' : 'Save' }}
+                {{ t(saving ? 'workout.saving' : 'workout.save') }}
               </button>
               <button :class="actionClass" :disabled="saving" type="button" @click="cancel">
-                Cancel
+                {{ t('workout.cancel') }}
               </button>
             </div>
           </fieldset>
         </form>
         <div v-else>
-          <h2 class="mb-4 text-xl font-bold">Exercises</h2>
-          <p v-if="!entries.length">No exercises in this plan.</p>
+          <h2 class="mb-4 text-xl font-bold">{{ t('workout.exercises') }}</h2>
+          <p v-if="!entries.length">{{ t('training.plan.noExercises') }}</p>
           <ul v-else class="space-y-2">
             <li
               v-for="entry in entries"
               :key="entry.key"
               class="flex flex-wrap justify-between gap-2 bg-white p-4"
             >
-              <strong class="min-w-0 wrap-anywhere"
-                >{{ labels[entry.exercise_id]?.name ?? `Exercise ${entry.exercise_id}` }}
+              <strong class="min-w-0 wrap-anywhere">
+                {{
+                  labels[entry.exercise_id]?.name ??
+                  t('workoutFields.exercise', { id: entry.exercise_id })
+                }}
                 <span
                   v-if="labels[entry.exercise_id] && !labels[entry.exercise_id]?.is_active"
                   class="text-sm font-normal"
-                  >(inactive)</span
-                ></strong
-              ><span
-                >Sets: {{ entry.sets === '' ? '—' : entry.sets }} · Reps:
-                {{ entry.repetitions === '' ? '—' : entry.repetitions }} · Weight:
-                {{ entry.weight === '' ? '—' : `${entry.weight} kg` }}</span
-              >
+                >
+                  {{ t('workout.inactive') }}
+                </span>
+              </strong>
+              <span>{{ exerciseTargets(entry) }}</span>
             </li>
           </ul>
         </div>
         <p v-if="labelError" role="alert" class="mt-4 text-red-700">
-          Some exercise names could not be loaded.
-          <button type="button" class="underline" @click="resolveLabels(generation)">Retry</button>
+          {{ t('workout.errors.loadNames') }}
+          <button type="button" class="underline" @click="resolveLabels(generation)">
+            {{ t('training.retry') }}
+          </button>
         </p>
         <WorkoutPlanActivities v-if="plan && !editing" :plan-id="plan.id" />
       </template>
       <div v-else-if="error" role="alert" class="mt-6 text-red-700">
-        {{ error }} <button type="button" class="underline" @click="load">Retry</button>
+        {{ errorMessage }}
+        <button type="button" class="underline" @click="load">{{ t('training.retry') }}</button>
       </div>
       <dialog
         v-if="dialog"
@@ -356,12 +400,16 @@ async function confirmDialog() {
         @cancel.prevent="closeDialog"
       >
         <h2 id="dialog-title" class="text-xl font-bold">
-          {{ dialog === 'duplicate' ? 'Duplicate plan' : 'Delete plan?' }}
+          {{
+            t(dialog === 'duplicate' ? 'training.plan.duplicateTitle' : 'training.plan.deleteTitle')
+          }}
         </h2>
         <form @submit.prevent="confirmDialog">
           <fieldset :disabled="saving">
             <template v-if="dialog === 'duplicate'">
-              <label for="duplicate-name" class="mt-4 block">Name for the copy</label>
+              <label for="duplicate-name" class="mt-4 block">
+                {{ t('training.plan.duplicateNameLabel') }}
+              </label>
               <input
                 id="duplicate-name"
                 ref="dialogInput"
@@ -371,19 +419,22 @@ async function confirmDialog() {
                 :class="fieldClass"
                 :aria-invalid="!!nameError"
                 :aria-describedby="nameError ? 'duplicate-name-error' : undefined"
+                @invalid.prevent="showRequiredName"
               />
               <p v-if="nameError" id="duplicate-name-error" role="alert" class="text-red-700">
-                {{ nameError }}
+                {{ t(`workout.errors.${nameError}`) }}
               </p>
             </template>
-            <p v-else class="mt-4 wrap-anywhere">Delete “{{ plan?.name }}”?</p>
-            <p v-if="error" role="alert" class="mt-3 text-red-700">{{ error }}</p>
+            <p v-else class="mt-4 wrap-anywhere">
+              {{ t('training.plan.deleteConfirmation', { name: plan?.name ?? '' }) }}
+            </p>
+            <p v-if="error" role="alert" class="mt-3 text-red-700">{{ errorMessage }}</p>
             <div class="mt-6 flex gap-3">
               <button class="bg-verve-brown text-white" :class="actionClass" type="submit">
-                {{ dialog === 'duplicate' ? 'Duplicate' : 'Delete' }}
+                {{ t(dialog === 'duplicate' ? 'training.plan.duplicate' : 'training.plan.delete') }}
               </button>
               <button ref="dialogCancel" :class="actionClass" type="button" @click="closeDialog">
-                Cancel
+                {{ t('workout.cancel') }}
               </button>
             </div>
           </fieldset>

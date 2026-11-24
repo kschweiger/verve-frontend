@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { formatDurationUnit } from '@/utils/datetime';
 import { type Goal } from '@/stores/goals';
 import { useTypeStore } from '@/stores/types';
 import { useEquipmentStore } from '@/stores/equipment';
@@ -15,6 +17,7 @@ defineEmits<{
   (e: 'manual-update', goal: Goal, increase: boolean): void;
 }>();
 
+const { t, n, locale } = useI18n();
 const typeStore = useTypeStore();
 const equipmentStore = useEquipmentStore();
 
@@ -22,16 +25,23 @@ const isEquipmentExpanded = ref(false);
 
 const progressPercent = computed(() => Math.min(props.goal.progress * 100, 100));
 
-const formatValue = (val: number, agg: string) => {
-  if (agg === 'active_days') return `${val} ${val === 1 ? 'day' : 'days'}`;
-  if (agg === 'duration') {
-    const hours = Math.floor(val / 3600);
-    const mins = Math.floor((val % 3600) / 60);
-    return `${hours}h ${mins}m`;
+function formatValue(value: number, aggregation: Goal['aggregation']) {
+  if (aggregation === 'active_days') {
+    return n(value, { maximumSignificantDigits: 21, style: 'unit', unit: 'day', unitDisplay: 'long' });
   }
-  if (agg.includes('distance')) return `${val.toFixed(1)} km`;
-  return val.toString();
-};
+  if (aggregation === 'duration') {
+    const hours = formatDurationUnit(Math.floor(value / 3600), 'hour', locale.value);
+    const minutes = formatDurationUnit(Math.floor((value % 3600) / 60), 'minute', locale.value);
+    return `${hours} ${minutes}`;
+  }
+  if (aggregation.includes('distance')) {
+    return n(value, {
+      minimumFractionDigits: 1, maximumFractionDigits: 1,
+      style: 'unit', unit: 'kilometer', unitDisplay: 'short',
+    });
+  }
+  return n(value, { maximumSignificantDigits: 21 });
+}
 
 interface Badge {
   label: string;
@@ -56,7 +66,7 @@ const constraintBadges = computed<Badge[]>(() => {
       }
       badges.push({ label, type: 'general', clickable: false });
     } else {
-      badges.push({ label: 'Specific Activity Type', type: 'general', clickable: false });
+      badges.push({ label: t('goals.specificActivityType'), type: 'general', clickable: false });
     }
   }
 
@@ -64,7 +74,7 @@ const constraintBadges = computed<Badge[]>(() => {
   // Safe check for Array
   if (Array.isArray(c.equipment_ids) && c.equipment_ids.length > 0) {
     badges.push({
-      label: `${c.equipment_ids.length} Equipment Item(s)`,
+      label: t('goals.equipmentCount', { value: n(c.equipment_ids.length) }, c.equipment_ids.length),
       type: 'equipment',
       clickable: true,
     });
@@ -80,7 +90,7 @@ const resolvedEquipmentNames = computed(() => {
 
   return ids.map((id) => {
     const eq = equipmentStore.allEquipment.find((e) => e.id === id);
-    return eq ? eq.name : 'Unknown Item';
+    return eq ? eq.name : t('goals.unknownEquipment');
   });
 });
 
@@ -100,6 +110,7 @@ const toggleEquipment = () => {
         <!-- BADGES ROW -->
         <div v-if="constraintBadges.length > 0" class="flex flex-wrap gap-2 mt-2">
           <button v-for="(badge, index) in constraintBadges" :key="index"
+            :aria-expanded="badge.clickable ? isEquipmentExpanded : undefined"
             @click="badge.type === 'equipment' ? toggleEquipment() : null" :class="[
               'px-2 py-0.5 rounded-lg text-xs font-bold border transition-colors',
               badge.clickable
@@ -120,7 +131,7 @@ const toggleEquipment = () => {
         <div v-if="isEquipmentExpanded"
           class="mt-2 p-2 bg-verve-light/30 rounded-lg border border-verve-medium/20 text-xs text-verve-brown/80 animate-fadeIn">
           <p class="font-bold mb-1 text-verve-brown/50 uppercase tracking-wider text-[10px]">
-            Included Gear:
+            {{ t('goals.includedEquipment') }}
           </p>
           <ul class="list-disc list-inside space-y-0.5 ml-1">
             <li v-for="name in resolvedEquipmentNames" :key="name">{{ name }}</li>
@@ -133,15 +144,17 @@ const toggleEquipment = () => {
       </div>
 
       <!-- Context Menu / Actions -->
-      <div class="flex items-center space-x-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div class="flex items-center space-x-1 shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <!-- Manual +/- Controls -->
         <div v-if="goal.type === 'manual'" class="flex items-center bg-verve-light rounded-lg mr-2">
           <button @click="$emit('manual-update', goal, false)"
+            :aria-label="t('dashboard.goals.decrease', { goal: goal.name })"
             class="px-2 py-1 hover:bg-red-100 text-verve-brown hover:text-red-600 rounded-l-lg transition-colors font-bold">
             -
           </button>
           <div class="w-px h-3 bg-verve-medium/30"></div>
           <button @click="$emit('manual-update', goal, true)"
+            :aria-label="t('dashboard.goals.increase', { goal: goal.name })"
             class="px-2 py-1 hover:bg-green-100 text-verve-brown hover:text-green-600 rounded-r-lg transition-colors font-bold">
             +
           </button>
@@ -149,7 +162,7 @@ const toggleEquipment = () => {
 
         <button @click="$emit('edit', goal)"
           class="p-1.5 text-verve-brown/40 hover:text-verve-brown rounded-lg hover:bg-verve-light transition-colors"
-          title="Edit">
+          :title="t('goals.edit')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
             <path
               d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
@@ -157,7 +170,7 @@ const toggleEquipment = () => {
         </button>
         <button @click="$emit('clone', goal)"
           class="p-1.5 text-verve-brown/40 hover:text-verve-brown rounded-lg hover:bg-verve-light transition-colors"
-          title="Clone to next period">
+          :title="t('goals.clone')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
             <path
               d="M7 3.5A1.5 1.5 0 0 1 8.5 2h3.879a1.5 1.5 0 0 1 1.06.44l3.122 3.12A1.5 1.5 0 0 1 17 6.622V12.5a1.5 1.5 0 0 1-1.5 1.5h-1v-3.379a3 3 0 0 0-.879-2.121L9.5 4.379A3 3 0 0 0 7.379 3.5H7Z" />
@@ -167,7 +180,7 @@ const toggleEquipment = () => {
         </button>
         <button @click="$emit('delete', goal)"
           class="p-1.5 text-verve-brown/40 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-          title="Delete">
+          :title="t('goals.delete')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
             <path fill-rule="evenodd"
               d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
@@ -183,7 +196,7 @@ const toggleEquipment = () => {
     <!-- Progress Stats -->
     <div class="flex justify-between items-end mb-2 text-sm mt-3">
       <div class="font-bold text-verve-brown text-2xl">
-        {{ (goal.progress * 100).toFixed(0) }}%
+        {{ n(goal.progress, { style: 'percent' }) }}
       </div>
       <div class="text-verve-brown/60 font-mono text-xs">
         <span class="font-bold text-verve-brown">{{

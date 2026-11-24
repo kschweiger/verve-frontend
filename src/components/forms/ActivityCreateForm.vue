@@ -1,26 +1,40 @@
 <script setup lang="ts">
 import { useSubTypes } from '@/composables/useSubTypes';
 import { ref, computed, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { ApiResponseError } from '@/services/authHeaders';
+import type { en as manualEntry } from '@/i18n/manualEntry';
 import { useActivityStore, type ActivityCreatePayload } from '@/stores/activity';
 import { useTypeStore } from '@/stores/types';
 import { quickAddDefinitions } from '@/components/widgets/quick-add/definitions';
 import { useSettingsStore } from '@/stores/settings';
 import TimezonePicker from './TimezonePicker.vue';
-import { currentActivityLocalTime, localActivityTimeToInstant } from '@/utils/manualActivityTime';
+import {
+  currentActivityLocalTime,
+  localActivityTimeToInstant,
+  ManualActivityTimeError,
+} from '@/utils/manualActivityTime';
 
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'saved'): void;
 }>();
 
+const { t, n } = useI18n();
 const activityStore = useActivityStore();
 const typeStore = useTypeStore();
 const settingsStore = useSettingsStore();
 const selectedTimezone = ref('');
 const isTimezoneLoading = ref(true);
+const isEnglishCatalogLoading = ref(true);
+const englishCatalogError = ref(false);
 
 const isLoading = ref(false);
-const error = ref<string | null>(null);
+const error = ref<{
+  key: keyof typeof manualEntry.errors;
+  detail?: string;
+  timezone?: string;
+} | null>(null);
 
 // --- Core Form State ---
 const name = ref('');
@@ -56,7 +70,7 @@ const swimmingSegments = ref<LapDataUI[]>([]);
 const availableSubTypes = useSubTypes(() => typeStore.activityTypes, typeId, subTypeId);
 
 const distanceMode = computed(() => {
-  const type = typeStore.activityTypes.find((activityType) => activityType.id === typeId.value);
+  const type = typeStore.englishActivityTypes.find((activityType) => activityType.id === typeId.value);
   const subType = type?.sub_types.find((activitySubType) => activitySubType.id === subTypeId.value);
 
   return (
@@ -67,7 +81,7 @@ const distanceMode = computed(() => {
 });
 
 const isSwimming = computed(() => {
-  const t = typeStore.activityTypes.find((x) => x.id === typeId.value);
+  const t = typeStore.englishActivityTypes.find((x) => x.id === typeId.value);
   return t?.name === 'Swimming';
 });
 
@@ -79,18 +93,34 @@ watch(isSwimming, (newVal) => {
 
 onMounted(async () => {
   typeStore.fetchActivityTypes();
+  void loadEnglishActivityTypes();
   try {
     const settings = await settingsStore.ensureSettings();
     selectedTimezone.value = settings.timezone;
     start.value = currentActivityLocalTime(settings.timezone);
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Unable to load your timezone.';
+  } catch (cause: unknown) {
+    error.value = describeTimeError(cause, 'timezone');
   } finally {
     isTimezoneLoading.value = false;
   }
 });
 
+async function loadEnglishActivityTypes() {
+  isEnglishCatalogLoading.value = true;
+  englishCatalogError.value = false;
+  const catalog = await typeStore.fetchEnglishActivityTypes();
+  englishCatalogError.value = catalog === undefined;
+  isEnglishCatalogLoading.value = false;
+}
+
 // --- Methods ---
+function describeTimeError(cause: unknown, fallback: 'timezone' | 'dateTime') {
+  if (cause instanceof ManualActivityTimeError) {
+    return { key: cause.reason, timezone: cause.timezone };
+  }
+  return { key: fallback, detail: cause instanceof ApiResponseError ? cause.detail : undefined };
+}
+
 function handleFileChange(event: Event) {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files[0]) selectedFile.value = target.files[0];
@@ -125,16 +155,17 @@ function removeSwimSegment(index: number) {
 
 async function handleSubmit() {
   if (isLoading.value || isTimezoneLoading.value) return;
+  if (isEnglishCatalogLoading.value || englishCatalogError.value) return;
   if (!typeId.value) {
-    error.value = 'Activity Type is required.';
+    error.value = { key: 'type' };
     return;
   }
 
   let instant: string;
   try {
     instant = localActivityTimeToInstant(start.value, selectedTimezone.value);
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Unable to interpret the date and time.';
+  } catch (cause: unknown) {
+    error.value = describeTimeError(cause, 'dateTime');
     return;
   }
   isLoading.value = true;
@@ -144,7 +175,7 @@ async function handleSubmit() {
 
   // 1. Build Base Payload
   const payload: ActivityCreatePayload = {
-    name: name.value || 'Manual Activity',
+    name: name.value || t('manualEntry.defaultName'),
     start: instant,
     type_id: typeId.value,
     sub_type_id: subTypeId.value,
@@ -186,7 +217,7 @@ async function handleSubmit() {
     emit('saved');
     emit('close');
   } else {
-    error.value = result.message;
+    error.value = { key: result.reason, detail: result.detail };
   }
 }
 </script>
@@ -194,8 +225,10 @@ async function handleSubmit() {
 <template>
   <div class="space-y-5">
     <div class="flex justify-between items-center border-b border-verve-medium/30 pb-3">
-      <h3 class="text-xl font-bold text-verve-brown">Log Activity</h3>
+      <h3 class="text-xl font-bold text-verve-brown">{{ t('manualEntry.title') }}</h3>
       <button
+        type="button"
+        :aria-label="t('manualEntry.close')"
         @click="$emit('close')"
         class="text-verve-brown/40 hover:text-verve-brown transition-colors"
       >
@@ -222,18 +255,23 @@ async function handleSubmit() {
       role="alert"
       class="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100"
     >
-      {{ error }}
+      {{ error.detail || t(`manualEntry.errors.${error.key}`, { timezone: error.timezone ?? '' }) }}
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-5 max-h-[75vh] overflow-y-auto px-1">
       <!-- Name & Date -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Name</label>
+          <label
+            for="manual-name"
+            class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+            >{{ t('manualEntry.name') }}</label
+          >
           <input
+            id="manual-name"
             v-model="name"
             type="text"
-            placeholder="e.g. Morning Jog"
+            :placeholder="t('manualEntry.namePlaceholder')"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white"
           />
         </div>
@@ -241,7 +279,7 @@ async function handleSubmit() {
           <label
             for="manual-start"
             class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
-            >Date & Time</label
+            >{{ t('manualEntry.dateTime') }}</label
           >
           <input
             id="manual-start"
@@ -259,39 +297,53 @@ async function handleSubmit() {
         <TimezonePicker
           id="manual-timezone"
           v-model="selectedTimezone"
-          label="Timezone"
+          :label="t('manualEntry.timezone')"
           :disabled="isTimezoneLoading || isLoading"
           :suggested-timezone="settingsStore.timezone ?? undefined"
           described-by="manual-timezone-help"
         />
         <p id="manual-timezone-help" class="mt-1 text-xs text-verve-brown/60">
-          Date &amp; Time is local time in {{ selectedTimezone || 'the selected timezone' }}.
+          {{
+            t('manualEntry.zoneHelp', {
+              timezone: selectedTimezone || t('manualEntry.selectedZone'),
+            })
+          }}
         </p>
       </div>
 
       <!-- Type & SubType -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Type *</label>
+          <label
+            for="manual-type"
+            class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+            >{{ t('manualEntry.type') }}</label
+          >
           <select
+            id="manual-type"
             v-model="typeId"
             required
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white"
           >
-            <option :value="null">Select...</option>
+            <option :value="null">{{ t('manualEntry.select') }}</option>
             <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">
               {{ t.name }}
             </option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Sub-Type</label>
+          <label
+            for="manual-sub-type"
+            class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+            >{{ t('manualEntry.subType') }}</label
+          >
           <select
+            id="manual-sub-type"
             v-model="subTypeId"
             :disabled="!typeId"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white disabled:bg-gray-50 disabled:text-gray-400"
           >
-            <option :value="null">None</option>
+            <option :value="null">{{ t('manualEntry.none') }}</option>
             <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
               {{ st.name }}
             </option>
@@ -302,13 +354,17 @@ async function handleSubmit() {
       <!-- Stats -->
       <div class="grid grid-cols-2 gap-4">
         <div v-if="distanceMode !== 'NOT_APPLICABLE'">
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
-            Distance (km)
-            <span v-if="distanceMode === 'OPTIONAL'" class="font-normal opacity-70"
-              >(Optional)</span
-            >
+          <label
+            for="manual-distance"
+            class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+          >
+            {{ t('manualEntry.distance') }}
+            <span v-if="distanceMode === 'OPTIONAL'" class="font-normal opacity-70">{{
+              t('manualEntry.optional')
+            }}</span>
           </label>
           <input
+            id="manual-distance"
             v-model="distanceKm"
             type="number"
             step="0.01"
@@ -318,10 +374,13 @@ async function handleSubmit() {
           />
         </div>
         <div v-if="distanceMode !== 'NOT_APPLICABLE'">
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
-            >Elevation (m)</label
+          <label
+            for="manual-elevation"
+            class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+            >{{ t('manualEntry.elevation') }}</label
           >
           <input
+            id="manual-elevation"
             v-model="elevationGain"
             type="number"
             step="1"
@@ -333,44 +392,52 @@ async function handleSubmit() {
 
       <!-- Duration -->
       <div>
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Duration</label>
+        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{
+          t('manualEntry.duration')
+        }}</label>
         <div class="flex space-x-2">
           <div class="flex-1">
             <input
               v-model="durHours"
+              :aria-label="t('manualEntry.hourLabel')"
               type="number"
               min="0"
               placeholder="HH"
               class="w-full border-verve-medium rounded-xl text-sm py-2 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white"
             />
-            <span class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold"
-              >Hrs</span
+            <span
+              class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold"
+              >{{ t('manualEntry.hours') }}</span
             >
           </div>
           <div class="flex-1">
             <input
               v-model="durMinutes"
+              :aria-label="t('manualEntry.minuteLabel')"
               type="number"
               min="0"
               max="59"
               placeholder="MM"
               class="w-full border-verve-medium rounded-xl text-sm py-2 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white"
             />
-            <span class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold"
-              >Min</span
+            <span
+              class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold"
+              >{{ t('manualEntry.minutes') }}</span
             >
           </div>
           <div class="flex-1">
             <input
               v-model="durSeconds"
+              :aria-label="t('manualEntry.secondLabel')"
               type="number"
               min="0"
               max="59"
               placeholder="SS"
               class="w-full border-verve-medium rounded-xl text-sm py-2 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white"
             />
-            <span class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold"
-              >Sec</span
+            <span
+              class="text-[10px] text-verve-brown/60 block text-center mt-1 uppercase font-bold"
+              >{{ t('manualEntry.seconds') }}</span
             >
           </div>
         </div>
@@ -379,13 +446,13 @@ async function handleSubmit() {
       <!-- === SWIMMING SPECIFIC META DATA === -->
       <div v-if="isSwimming" class="border border-verve-medium/30 rounded-xl p-4 bg-verve-light/20">
         <div class="flex justify-between items-center mb-3">
-          <h4 class="text-sm font-bold text-verve-brown">Swimming Laps</h4>
+          <h4 class="text-sm font-bold text-verve-brown">{{ t('swimming.lapsTitle') }}</h4>
           <button
             type="button"
             @click="addSwimSegment"
             class="text-xs bg-verve-light hover:bg-verve-medium text-verve-brown font-bold px-3 py-1.5 rounded-lg border border-verve-medium/50 transition-colors"
           >
-            + Add Set
+            + {{ t('swimming.addSet') }}
           </button>
         </div>
 
@@ -397,38 +464,41 @@ async function handleSubmit() {
           >
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
               <div>
-                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1"
-                  >Laps</label
-                >
+                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">{{
+                  t('swimming.laps')
+                }}</label>
                 <input
                   v-model="segment.count"
+                  :aria-label="t('swimming.laps')"
                   type="number"
                   min="1"
                   class="w-full text-sm border-verve-medium rounded-lg text-verve-brown"
                 />
               </div>
               <div>
-                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1"
-                  >Length (m)</label
-                >
+                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">{{
+                  t('swimming.lapLength')
+                }}</label>
                 <input
                   v-model="segment.lap_lengths"
+                  :aria-label="t('swimming.lapLength')"
                   type="number"
                   placeholder="25"
                   class="w-full text-sm border-verve-medium rounded-lg text-verve-brown"
                 />
               </div>
               <div class="col-span-2">
-                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1"
-                  >Style</label
-                >
+                <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">{{
+                  t('swimming.style')
+                }}</label>
                 <select
                   v-model="segment.style"
+                  :aria-label="t('swimming.style')"
                   class="w-full text-sm border-verve-medium rounded-lg text-verve-brown"
                 >
-                  <option :value="null">Mixed/Other</option>
+                  <option :value="null">{{ t('swimming.mixed') }}</option>
                   <option v-for="style in swimStyles" :key="style" :value="style">
-                    {{ style.charAt(0).toUpperCase() + style.slice(1) }}
+                    {{ t(`swimming.styles.${style}`) }}
                   </option>
                 </select>
               </div>
@@ -436,24 +506,27 @@ async function handleSubmit() {
 
             <!-- Segment Duration -->
             <div>
-              <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1"
-                >Set Duration (Optional)</label
-              >
+              <label class="block text-[10px] font-bold text-verve-brown/50 uppercase mb-1">{{
+                t('swimming.setDuration')
+              }}</label>
               <div class="flex space-x-1">
                 <input
                   v-model="segment.h"
+                  :aria-label="t('manualEntry.hourLabel')"
                   type="number"
                   placeholder="H"
                   class="w-1/3 text-sm text-center border-verve-medium rounded-lg text-verve-brown"
                 />
                 <input
                   v-model="segment.m"
+                  :aria-label="t('manualEntry.minuteLabel')"
                   type="number"
                   placeholder="M"
                   class="w-1/3 text-sm text-center border-verve-medium rounded-lg text-verve-brown"
                 />
                 <input
                   v-model="segment.s"
+                  :aria-label="t('manualEntry.secondLabel')"
                   type="number"
                   placeholder="S"
                   class="w-1/3 text-sm text-center border-verve-medium rounded-lg text-verve-brown"
@@ -465,6 +538,7 @@ async function handleSubmit() {
             <button
               v-if="swimmingSegments.length > 1"
               type="button"
+              :aria-label="t('swimming.removeSet', { number: n(index + 1) })"
               @click="removeSwimSegment(index)"
               class="absolute -top-2 -right-2 bg-white text-red-500 border border-red-200 rounded-full size-6 flex items-center justify-center hover:bg-red-50 hover:border-red-300 shadow-sm transition-colors"
             >
@@ -476,10 +550,13 @@ async function handleSubmit() {
 
       <!-- Optional Track -->
       <div class="border-t border-verve-medium/30 pt-4">
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-2"
-          >Attach Track File (Optional)</label
+        <label
+          for="manual-file"
+          class="block text-xs font-bold text-verve-brown/60 uppercase mb-2"
+          >{{ t('manualEntry.attach') }}</label
         >
         <input
+          id="manual-file"
           type="file"
           @change="handleFileChange"
           accept=".gpx,.fit,.tcx"
@@ -495,26 +572,39 @@ async function handleSubmit() {
           id="def-equip"
           class="size-4 text-verve-dark border-verve-medium rounded focus:ring-verve-dark"
         />
-        <label for="def-equip" class="ml-2 text-sm font-medium text-verve-brown"
-          >Add default equipment for this activity type</label
-        >
+        <label for="def-equip" class="ml-2 text-sm font-medium text-verve-brown">{{
+          t('manualEntry.defaultEquipment')
+        }}</label>
       </div>
 
       <!-- Buttons -->
+      <p v-if="englishCatalogError" role="status" class="text-sm text-red-700">
+        {{ t('manualEntry.errors.typeCatalog') }}
+        <button
+          type="button"
+          class="underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2"
+          @click="loadEnglishActivityTypes"
+        >
+          {{ t('manualEntry.retryTypeCatalog') }}
+        </button>
+      </p>
+      <p v-else-if="isEnglishCatalogLoading" role="status" class="text-sm text-verve-brown/60">
+        {{ t('manualEntry.loadingTypes') }}
+      </p>
       <div class="flex justify-end space-x-3 pt-2">
         <button
           type="button"
           @click="$emit('close')"
           class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors"
         >
-          Cancel
+          {{ t('manualEntry.cancel') }}
         </button>
         <button
           type="submit"
-          :disabled="isLoading || isTimezoneLoading"
+          :disabled="isLoading || isTimezoneLoading || isEnglishCatalogLoading || englishCatalogError"
           class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-verve-dark/5"
         >
-          {{ isLoading ? 'Saving...' : 'Save Activity' }}
+          {{ t(isLoading ? 'manualEntry.saving' : 'manualEntry.save') }}
         </button>
       </div>
     </form>

@@ -7,11 +7,11 @@ type ActivityClassification = Pick<Activity, 'type_id' | 'sub_type_id'>;
 
 export function useCadence(activity: MaybeRefOrGetter<ActivityClassification | null>) {
   const typeStore = useTypeStore();
-  void typeStore.fetchActivityTypes();
+  if (typeStore.englishActivityTypes.length === 0) void typeStore.fetchEnglishActivityTypes();
 
   return computed<CadenceUnit>(() => {
     const classification = toValue(activity);
-    const type = typeStore.activityTypes.find((item) => item.id === classification?.type_id);
+    const type = typeStore.englishActivityTypes.find((item) => item.id === classification?.type_id);
     if (type?.name === 'Cycling') return 'RPM';
     if (type?.name === 'Foot Sports') {
       const subType = type.sub_types.find((item) => item.id === classification?.sub_type_id);
@@ -21,10 +21,11 @@ export function useCadence(activity: MaybeRefOrGetter<ActivityClassification | n
   });
 }
 
-export function formatCadenceValue(value: number): string {
-  return Number(value.toFixed(1)).toString();
+export function formatCadenceValue(value: number, locale?: string): string {
+  const rounded = Number(value.toFixed(1));
+  return locale ? rounded.toLocaleString(locale, { maximumFractionDigits: 1 }) : rounded.toString();
 }
 
-export function formatCadence(value: number | null, unit: CadenceUnit): string {
-  return value === null ? '-' : `${formatCadenceValue(value)} ${unit}`;
+export function formatCadence(value: number | null, unit: CadenceUnit, locale?: string): string {
+  return value === null ? '-' : `${formatCadenceValue(value, locale)} ${unit}`;
 }

@@ -126,6 +126,21 @@ describe('upload timezone requests', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  test('an upload failure retains the backend diagnostic for localized status', async () => {
+    globalThis.fetch = stubFetch(async () =>
+      json({ detail: [{ loc: ['body', 'file'], msg: 'The file contains no track.', type: 'value_error' }] }, 422)
+    );
+
+    const result = await useActivityStore().uploadActivity(new File([''], 'test.gpx'), null, null);
+
+    expect(result).toEqual({
+      success: false,
+      reason: 'failed',
+      message: 'The file contains no track.',
+      detail: 'The file contains no track.',
+    });
+  });
+
   test('does not attach a track when activity creation fails', async () => {
     const fetchMock = mock(async () => json({}, 422));
     globalThis.fetch = stubFetch(fetchMock);

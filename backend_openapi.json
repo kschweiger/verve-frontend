@@ -6863,6 +6863,32 @@
         ],
         "summary": "Get All Activity Types",
         "operationId": "activity-get_all_activity_types",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportedLocale"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the account preference, or English if unset.",
+              "title": "Locale"
+            },
+            "description": "Defaults to the account preference, or English if unset."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6870,6 +6896,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResolvedTypes"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -6884,6 +6920,33 @@
         ],
         "summary": "Get All Activity Types",
         "operationId": "get_all_activity_types_deprecated",
+        "deprecated": true,
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportedLocale"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the account preference, or English if unset.",
+              "title": "Locale"
+            },
+            "description": "Defaults to the account preference, or English if unset."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6894,9 +6957,18 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "deprecated": true
+        }
       }
     },
     "/api/v1/resolve/location_types": {
@@ -6906,6 +6978,32 @@
         ],
         "summary": "Get All Location Types",
         "operationId": "location-get_all_location_types",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "name": "locale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SupportedLocale"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to the account preference, or English if unset.",
+              "title": "Locale"
+            },
+            "description": "Defaults to the account preference, or English if unset."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6913,6 +7011,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResolvedTypes"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }

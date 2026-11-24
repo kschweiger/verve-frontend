@@ -1,4 +1,4 @@
-import { responseError, getAuthHeaders } from '../services/authHeaders';
+import { ApiResponseError, responseError, getAuthHeaders } from '../services/authHeaders';
 import type { ActivityCalendarItem } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
@@ -6,7 +6,7 @@ import { ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useUserStore } from './auth';
 
-type StatsPerType = Record<string, number>;
+type StatisticsError = { reason: 'notAuthenticated' | 'loadFailed'; detail?: string };
 
 export interface StatsMetric {
   count: number;
@@ -76,23 +76,17 @@ export interface ActivityGridResponse {
   summary: GridSummary;
 }
 
+interface YearMetric {
+  total: number;
+  per_type: Record<string, number>;
+  per_sub_type: Record<string, Record<string, number>>;
+}
+
 export interface YearStats {
-  distance: {
-    total: number;
-    per_type: StatsPerType;
-  };
-  duration: {
-    total: number;
-    per_type: StatsPerType;
-  };
-  effective_duration: {
-    total: number;
-    per_type: StatsPerType;
-  };
-  count: {
-    total: number;
-    per_type: StatsPerType;
-  };
+  distance: YearMetric;
+  duration: YearMetric;
+  effective_duration: YearMetric;
+  count: YearMetric;
 }
 
 export interface MetricData {
@@ -114,14 +108,14 @@ export const useStatisticsStore = defineStore('statistics', () => {
   const calendarData = ref<CalendarResponse | null>(null);
   const activityGrid = ref<ActivityGridResponse | null>(null);
   const isActivityGridLoading = ref(false);
-  const activityGridError = ref<string | null>(null);
+  const activityGridError = ref<StatisticsError | null>(null);
   const isWeeklyLoading = ref(false);
-  const weeklyError = ref<string | null>(null);
+  const weeklyError = ref<StatisticsError | null>(null);
   const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const error = ref<StatisticsError | null>(null);
 
   const isCalendarLoading = ref(false);
-  const calendarError = ref<string | null>(null);
+  const calendarError = ref<StatisticsError | null>(null);
 
   const userStore = useUserStore();
 
@@ -150,7 +144,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     error.value = null;
 
     if (!userStore.token) {
-      error.value = 'Not authenticated.';
+      error.value = { reason: 'notAuthenticated' };
       isLoading.value = false;
       return;
     }
@@ -171,7 +165,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
       if (!isCurrent()) return;
 
       if (!response.ok) {
-        throw new Error('Failed to fetch statistics.');
+        throw await responseError(response, 'Failed to fetch statistics.');
       }
 
       const data: typeof yearlyStats.value = await response.json();
@@ -179,7 +173,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
       yearlyStats.value = data;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      error.value = e instanceof Error ? e.message : String(e);
+      error.value = { reason: 'loadFailed', detail: e instanceof ApiResponseError ? e.detail : undefined };
       yearlyStats.value = null;
     } finally {
       if (isCurrent()) {
@@ -194,7 +188,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     calendarError.value = null;
 
     if (!userStore.token) {
-      calendarError.value = 'Not authenticated';
+      calendarError.value = { reason: 'notAuthenticated' };
       isCalendarLoading.value = false;
       return;
     }
@@ -216,7 +210,10 @@ export const useStatisticsStore = defineStore('statistics', () => {
       calendarData.value = data;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      calendarError.value = e instanceof Error ? e.message : String(e);
+      calendarError.value = {
+        reason: 'loadFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
     } finally {
       if (isCurrent()) {
         isCalendarLoading.value = false;
@@ -234,7 +231,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     weeklyError.value = null;
 
     if (!userStore.token) {
-      weeklyError.value = 'Not authenticated.';
+      weeklyError.value = { reason: 'notAuthenticated' };
       isWeeklyLoading.value = false;
       return;
     }
@@ -260,7 +257,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
       weeklyStats.value = data;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      weeklyError.value = e instanceof Error ? e.message : String(e);
+      weeklyError.value = { reason: 'loadFailed', detail: e instanceof ApiResponseError ? e.detail : undefined };
       weeklyStats.value = null;
     } finally {
       if (isCurrent()) {
@@ -275,7 +272,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     activityGridError.value = null;
 
     if (!userStore.token) {
-      activityGridError.value = 'Not authenticated';
+      activityGridError.value = { reason: 'notAuthenticated' };
       isActivityGridLoading.value = false;
       return;
     }
@@ -300,7 +297,10 @@ export const useStatisticsStore = defineStore('statistics', () => {
       activityGrid.value = data;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      activityGridError.value = e instanceof Error ? e.message : String(e);
+      activityGridError.value = {
+        reason: 'loadFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
       activityGrid.value = null;
     } finally {
       if (isCurrent()) {

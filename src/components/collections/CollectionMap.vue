@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useMapLabels } from '@/composables/useMapLabels';
 import type { Activity } from '@/stores/activity';
 import type { CollectionTrackPoint } from '@/services/collections';
 import { CHART_COLORS, VERVE_COLORS } from '@/utils/colors';
@@ -11,9 +13,11 @@ const props = defineProps<{
   activities: Activity[];
 }>();
 
+const { t, locale } = useI18n();
+const localizeMap = useMapLabels();
 const mapContainer = ref<HTMLElement | null>(null);
 let map: L.Map | null = null;
-let polylines: L.Polyline[] = [];
+const polylines = new Map<string, L.Polyline>();
 
 const activityById = computed(
   () => new Map(props.activities.map((activity) => [activity.id, activity]))
@@ -37,18 +41,27 @@ const groupedTrackData = computed(() => {
 });
 
 const legendItems = computed(() =>
-  Array.from(groupedTrackData.value.keys()).map((activityId) => ({
-    activityId,
-    label:
-      activityById.value.get(activityId)?.name ||
-      new Date(activityById.value.get(activityId)?.start ?? '').toLocaleDateString(),
-    color: activityColor(activityId),
-  }))
+  Array.from(groupedTrackData.value.keys()).map((activityId) => {
+    const activity = activityById.value.get(activityId);
+    return {
+      activityId,
+      label: activity?.name || (activity
+        ? new Date(activity.start).toLocaleDateString(locale.value)
+        : t('collections.activity')),
+      color: activityColor(activityId),
+    };
+  })
 );
 
 function clearPolylines() {
   polylines.forEach((polyline) => polyline.remove());
-  polylines = [];
+  polylines.clear();
+}
+
+function tooltipContent(activityId: string): HTMLElement {
+  const label = document.createElement('span');
+  label.textContent = activityById.value.get(activityId)?.name || t('collections.activity');
+  return label;
 }
 
 function drawMap() {
@@ -68,8 +81,8 @@ function drawMap() {
       opacity: 0.9,
     }).addTo(activeMap);
 
-    polyline.bindTooltip(activityById.value.get(activityId)?.name || 'Activity');
-    polylines.push(polyline);
+    polyline.bindTooltip(tooltipContent(activityId));
+    polylines.set(activityId, polyline);
     latLngs.forEach((latLng) => bounds.extend(latLng));
   });
 
@@ -82,10 +95,8 @@ onMounted(() => {
   if (!mapContainer.value) return;
 
   map = L.map(mapContainer.value).setView([47.37, 8.54], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
+  localizeMap(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
   drawMap();
 });
@@ -101,11 +112,16 @@ watch(
   () => drawMap(),
   { deep: true }
 );
+watch(locale, () => {
+  polylines.forEach((polyline, activityId) => {
+    polyline.setTooltipContent(tooltipContent(activityId));
+  });
+});
 </script>
 
 <template>
   <div class="overflow-hidden rounded-xl border border-verve-medium/30 bg-white shadow-sm">
-    <div ref="mapContainer" class="h-[28rem] w-full"></div>
+    <div ref="mapContainer" :aria-label="t('collections.map.label')" role="region" class="h-[28rem] w-full"></div>
     <div
       v-if="legendItems.length > 0"
       class="flex flex-wrap gap-3 border-t border-verve-medium/20 p-4"

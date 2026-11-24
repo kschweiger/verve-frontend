@@ -9,6 +9,7 @@
 - Users can select among sets and show/hide statistics. Display available distance, duration, elevation gain/loss, pace, speed, heart rate, power, and cadence using backend units.
 - Segment review and editing have an independent loading and error state in their own panel. The activity summary and track become usable without waiting for segment requests. Changing activity IDs reloads core data, images, locations, equipment, highlights, and segments, clears drafts and modal state, and ignores work from the previous activity or disposed view.
 - Missing or failed segment-set data is a non-blocking panel state. Activities without tracks or segment sets remain usable.
+- The panel uses the active app language for labels and number formatting. Saved set names, metric values, and track point IDs remain as supplied.
 
 ## Editing
 

@@ -1,3 +1,4 @@
+import { germanTimeUnit } from '../helpers/intl';
 import { describe, expect, test } from 'bun:test';
 import type { RecordsMetricGroup } from '../../src/services/records';
 import {
@@ -42,7 +43,6 @@ describe('records utilities', () => {
     ]);
     expect(getRecordMetricDefinition('avg_power20min')).toEqual({
       metric: 'avg_power20min',
-      label: '20 min power',
       group: 'power',
       unit: 'watts',
     });
@@ -58,6 +58,20 @@ describe('records utilities', () => {
     expect(formatRecordValue('elevation_change_up', 123.4)).toBe('123 m');
     expect(formatRecordValue('avg_speed', 11.26)).toBe('11.3 km/h');
     expect(formatRecordValue('max_power', 320.7)).toBe('321 W');
+  });
+
+  test('formats record values using the active locale', () => {
+    expect(formatRecordValue('distance', 1234.5, 'en')).toBe('1,234.50 km');
+    expect(formatRecordValue('distance', 1234.5, 'de')).toBe('1.234,50 km');
+    expect(formatRecordValue('avg_speed', 11.26, 'de')).toBe('11,3 km/h');
+    expect(formatRecordValue('elevation_change_up', 1234.4, 'de')).toBe('1.234 m');
+    expect(formatRecordValue('duration', 'P1DT1H30M15S', 'de')).toBe(`25h ${germanTimeUnit(30, 'minute')}`);
+  });
+
+  test('preserves record rounding when localizing the result', () => {
+    expect(formatRecordValue('distance', 1.005, 'de')).toBe('1,00 km');
+    expect(formatRecordValue('max_power', -1.5, 'de')).toBe('-1 W');
+    expect(formatRecordValue('elevation_change_up', -0.25, 'de')).toBe('0 m');
   });
 
   test('sorts groups by display group, metric definition order, and record rank', () => {
@@ -81,7 +95,9 @@ describe('records utilities', () => {
   });
 
   test('formats record activity dates and falls back to activity id', () => {
-    expect(formatRecordActivityDate({ start: '2026-06-18T10:15:00Z' })).toBe('Jun 18, 2026');
-    expect(formatRecordActivityDate(null, 'activity-1')).toBe('activity-1');
+    const activity = { start: new Date(2026, 5, 18, 0, 15).toISOString() };
+    expect(formatRecordActivityDate(activity)).toBe('Jun 18, 2026');
+    expect(formatRecordActivityDate(activity, 'activity-1', 'de')).toBe('18. Juni 2026');
+    expect(formatRecordActivityDate(null, 'activity-1', 'de')).toBe('activity-1');
   });
 });

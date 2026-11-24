@@ -23,15 +23,24 @@ export function parseISODuration(duration: string): number {
  * @param seconds Total seconds
  * @returns Formatted string
  */
-export function formatDuration(seconds: number): string {
+export function formatDuration(seconds: number, locale?: string): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return `${formatDurationUnit(hours, 'hour', locale)} ${formatDurationUnit(minutes, 'minute', locale)}`;
   }
-  return `${minutes}m ${secs}s`;
+  return `${formatDurationUnit(minutes, 'minute', locale)} ${formatDurationUnit(secs, 'second', locale)}`;
+}
+
+export function formatDurationUnit(
+  value: number,
+  unit: 'hour' | 'minute' | 'second',
+  locale?: string
+): string {
+  if (!locale) return `${value}${unit[0]}`;
+  return new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: 'narrow' }).format(value);
 }
 
 /**

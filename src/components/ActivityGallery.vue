@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAccountSession } from '@/composables/useAccountSession';
 import { useActivityStore, type ActivityImage } from '@/stores/activity';
 import { Trash2, Plus, X } from '@lucide/vue';
@@ -11,6 +12,7 @@ const props = defineProps<{
 }>();
 
 const activityStore = useActivityStore();
+const { t, n } = useI18n();
 const isUploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const selectedImage = ref<ActivityImage | null>(null);
@@ -68,13 +70,13 @@ const handleFileChange = async (event: Event) => {
     const success = await activityStore.uploadActivityImage(activityId, file);
     if (!active || !isCurrentSession() || props.activityId !== activityId) return;
     isUploading.value = false;
-    if (!success) alert('Failed to upload image.');
+    if (!success) alert(t('activityActions.gallery.uploadFailed'));
     target.value = '';
   }
 };
 
 const handleDelete = async (imageId: string) => {
-  if (!confirm('Delete this photo?')) return;
+  if (!confirm(t('activityActions.gallery.confirmDelete'))) return;
   const isCurrentSession = captureSession();
   const activityId = props.activityId;
   if (selectedImage.value?.id === imageId) {
@@ -83,7 +85,7 @@ const handleDelete = async (imageId: string) => {
   }
   const success = await activityStore.deleteActivityImage(imageId);
   if (!active || !isCurrentSession() || props.activityId !== activityId) return;
-  if (!success) alert('Failed to delete image.');
+  if (!success) alert(t('activityActions.gallery.deleteFailed'));
 };
 </script>
 
@@ -91,10 +93,10 @@ const handleDelete = async (imageId: string) => {
   <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30">
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
-      <h3 class="text-xl font-bold text-verve-brown">Photos</h3>
+      <h3 class="text-xl font-bold text-verve-brown">{{ t('activityActions.gallery.title') }}</h3>
       <div class="flex items-center space-x-3">
-        <span v-if="isUploading" class="text-xs text-verve-brown/60 animate-pulse font-medium">
-          Uploading...
+        <span v-if="isUploading" role="status" class="text-xs text-verve-brown/60 animate-pulse font-medium">
+          {{ t('activityActions.gallery.uploading') }}
         </span>
 
         <button
@@ -105,7 +107,7 @@ const handleDelete = async (imageId: string) => {
           class="px-4 py-2 bg-verve-neon text-verve-brown text-sm font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 transition-all flex items-center border border-verve-dark/5 focus-visible:outline-2 focus-visible:outline-verve-dark"
         >
           <Plus class="size-4 mr-2" />
-          Add Photo
+          {{ t('activityActions.gallery.add') }}
         </button>
       </div>
       <input
@@ -118,8 +120,9 @@ const handleDelete = async (imageId: string) => {
     </div>
 
     <!-- Loading -->
-    <div v-if="isLoading" class="flex justify-center py-12">
-      <div class="animate-spin rounded-full size-8 border-b-2 border-verve-brown"></div>
+    <div v-if="isLoading" role="status" class="flex justify-center py-12">
+      <div class="animate-spin rounded-full size-8 border-b-2 border-verve-brown" aria-hidden="true"></div>
+      <span class="sr-only">{{ t('activityActions.gallery.loading') }}</span>
     </div>
 
     <!-- Gallery Grid -->
@@ -131,7 +134,7 @@ const handleDelete = async (imageId: string) => {
         v-for="(img, index) in images"
         :key="img.id"
         type="button"
-        :aria-label="`Open photo ${index + 1}`"
+        :aria-label="t('activityActions.gallery.open', { number: n(index + 1) })"
         class="relative aspect-square group bg-verve-light/20 rounded-xl overflow-hidden border border-verve-medium/20 cursor-pointer shadow-sm hover:shadow-md transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verve-dark"
         @click="openImage(img, $event)"
       >
@@ -150,12 +153,12 @@ const handleDelete = async (imageId: string) => {
       v-else
       class="text-center py-12 bg-verve-light/20 rounded-xl border border-dashed border-verve-medium/40"
     >
-      <p class="text-verve-brown/50 text-sm">No photos added yet.</p>
+      <p class="text-verve-brown/50 text-sm">{{ t('activityActions.gallery.empty') }}</p>
     </div>
 
     <dialog
       ref="lightbox"
-      aria-label="Activity photo viewer"
+      :aria-label="t('activityActions.gallery.viewer')"
       @close="restoreFocus"
       @click.self="closeImage"
       class="fixed inset-0 m-0 h-full w-full max-h-none max-w-none bg-black/95 p-4 text-white"
@@ -164,7 +167,7 @@ const handleDelete = async (imageId: string) => {
         <button
           type="button"
           autofocus
-          aria-label="Close photo viewer"
+          :aria-label="t('activityActions.gallery.closeViewer')"
           @click="closeImage"
           class="absolute top-4 right-4 rounded-full p-3 text-white hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
         >
@@ -173,7 +176,7 @@ const handleDelete = async (imageId: string) => {
         <img
           v-if="selectedImage"
           :src="selectedImage.url"
-          alt="Expanded activity photo"
+          :alt="t('activityActions.gallery.expanded')"
           class="max-h-[80vh] max-w-[95vw] h-auto w-auto object-contain rounded-lg shadow-2xl border-4 border-verve-orange bg-black"
         />
         <button
@@ -182,7 +185,7 @@ const handleDelete = async (imageId: string) => {
           @click="handleDelete(selectedImage.id)"
           class="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center px-6 py-3 bg-red-600/90 hover:bg-red-600 text-white font-medium rounded-full shadow-xl backdrop-blur-md transition-all focus-visible:outline-2 focus-visible:outline-white"
         >
-          <Trash2 class="size-4 mr-2" aria-hidden="true" />Delete Photo
+          <Trash2 class="size-4 mr-2" aria-hidden="true" />{{ t('activityActions.gallery.delete') }}
         </button>
       </div>
     </dialog>

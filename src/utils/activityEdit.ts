@@ -11,6 +11,13 @@ export interface ActivityEditValues {
   durationSeconds: number;
 }
 
+export class ActivityEditValidationError extends Error {
+  constructor(readonly reason: 'invalidTimezone' | 'invalidDuration') {
+    super(reason);
+    this.name = 'ActivityEditValidationError';
+  }
+}
+
 /** Compare against displayed values so unrelated edits preserve backend precision. */
 export function toActivityEditValues(
   activity: Omit<ActivityEditValues, 'name'> & { name: string | null }
@@ -29,7 +36,7 @@ export function buildActivityUpdate(
   original: ActivityEditValues,
   draft: ActivityEditValues
 ): ActivityUpdatePayload {
-  if (!isSupportedTimezone(draft.timezone)) throw new Error('Select a supported timezone.');
+  if (!isSupportedTimezone(draft.timezone)) throw new ActivityEditValidationError('invalidTimezone');
   const payload: ActivityUpdatePayload = {};
   if (draft.timezone !== original.timezone) payload.timezone = draft.timezone;
   if (draft.name !== original.name) payload.name = draft.name;
@@ -38,7 +45,7 @@ export function buildActivityUpdate(
   if (draft.distance !== original.distance) payload.distance = draft.distance;
   if (draft.durationSeconds !== original.durationSeconds) {
     if (!Number.isInteger(draft.durationSeconds) || draft.durationSeconds <= 0) {
-      throw new Error('Duration must be greater than zero.');
+      throw new ActivityEditValidationError('invalidDuration');
     }
     payload.duration = toISODuration(
       Math.floor(draft.durationSeconds / 3600),

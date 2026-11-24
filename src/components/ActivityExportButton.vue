@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, useId, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { ChevronDown, Download, LoaderCircle } from "@lucide/vue";
 import { fetchActivityExportability, fetchActivityExport, type ActivityExportFormat } from "@/services/api";
+import { ApiResponseError } from "@/services/authHeaders";
 import { useAccountSession } from "@/composables/useAccountSession";
 
 const props = defineProps<{ activityId: string }>();
+const { t } = useI18n();
 const menuId = useId();
 const root = ref<HTMLElement | null>(null);
 const toggle = ref<HTMLButtonElement | null>(null);
 const menu = ref<HTMLElement | null>(null);
 const open = ref(false);
 const busy = ref(false);
-const error = ref<string | null>(null);
+const error = ref<{ detail?: string } | null>(null);
 const isExportable = ref(false);
 let eligibilityGeneration = 0;
 let generation = 0;
@@ -109,7 +112,7 @@ async function download(format: ActivityExportFormat, fromMenu = false) {
     }
   } catch (cause: unknown) {
     if (active && request === generation) {
-      error.value = cause instanceof Error ? cause.message : "Failed to export activity.";
+      error.value = { detail: cause instanceof ApiResponseError ? cause.detail : undefined };
     }
   } finally {
     if (active && request === generation) {
@@ -138,17 +141,17 @@ onUnmounted(() => {
         :disabled="busy" @click="download('geojson')">
         <LoaderCircle v-if="busy" class="size-4 animate-spin" aria-hidden="true" />
         <Download v-else class="size-4" aria-hidden="true" />
-        {{ busy ? "Exporting…" : "Export" }}
+        {{ t(busy ? 'activityActions.export.exporting' : 'activityActions.export.action') }}
       </button>
       <button ref="toggle" type="button"
         class="rounded-r-xl border-l border-verve-medium px-3 py-2 transition-colors hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-50"
-        aria-label="Choose export format" aria-haspopup="menu" :aria-expanded="open" :aria-controls="menuId"
+        :aria-label="t('activityActions.export.chooseFormat')" aria-haspopup="menu" :aria-expanded="open" :aria-controls="menuId"
         :disabled="busy" @click="open ? close() : showMenu()" @keydown.down.prevent="showMenu()"
         @keydown.up.prevent="showMenu(true)" @keydown.esc.prevent="close(true)">
         <ChevronDown class="size-4" aria-hidden="true" />
       </button>
     </div>
-    <div v-if="open" :id="menuId" ref="menu" role="menu" aria-label="Export format"
+    <div v-if="open" :id="menuId" ref="menu" role="menu" :aria-label="t('activityActions.export.format')"
       class="absolute right-0 z-20 mt-2 min-w-56 rounded-xl border border-verve-medium bg-white p-1 shadow-lg"
       @keydown="handleMenuKey">
       <button type="button" role="menuitem" tabindex="-1"
@@ -162,7 +165,9 @@ onUnmounted(() => {
         GPX (.gpx)
       </button>
     </div>
-    <span role="status" class="sr-only">{{ busy ? "Exporting activity…" : "" }}</span>
-    <p v-if="error" role="alert" class="mt-2 max-w-64 text-sm text-red-600">{{ error }}</p>
+    <span role="status" class="sr-only">{{ busy ? t('activityActions.export.progress') : '' }}</span>
+    <p v-if="error" role="alert" class="mt-2 max-w-64 text-sm text-red-600">
+      {{ error.detail || t('activityActions.export.failed') }}
+    </p>
   </div>
 </template>

@@ -14,6 +14,20 @@ describe('reactive activity date display', () => {
     expect(activity.value.start).toBe('2026-08-11T06:30:00Z');
   });
 
+  test('updates date and time formatting when locale changes in the assigned timezone', () => {
+    const activity = { start: '2026-08-11T06:30:00Z', timezone: 'America/Los_Angeles' };
+    const locale = ref('en');
+    const display = useActivityDateTime(activity, locale);
+
+    expect(display.value.shortDate).toBe('Aug 10, 2026');
+    expect(display.value.time).toContain('11:30');
+
+    locale.value = 'de';
+
+    expect(display.value.shortDate).toBe('10. Aug. 2026');
+    expect(display.value.time).toContain('23:30');
+  });
+
   test('an unnamed or unavailable-zone activity still has a date display', () => {
     const display = useActivityDateTime(() => ({
       start: '2026-08-10T08:00:00Z',

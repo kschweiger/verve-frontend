@@ -8,6 +8,7 @@ const props = defineProps<{
   isDeleting: boolean;
   confirmLabel?: string;
   confirmingLabel?: string;
+  cancelLabel?: string;
   errorMessage?: string | null;
 }>();
 
@@ -33,7 +34,7 @@ onUnmounted(() => {
     enter-to-class="opacity-100" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100"
     leave-to-class="opacity-0">
     <div v-if="isOpen" class="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-6" role="dialog"
-      aria-modal="true">
+      aria-modal="true" :aria-label="title">
       <!-- Backdrop -->
       <div
         class="fixed inset-0 bg-verve-brown/30 backdrop-blur-sm transition-opacity"
@@ -84,7 +85,7 @@ onUnmounted(() => {
           </button>
           <button type="button" @click="emit('close')" :disabled="isDeleting"
             class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-verve-brown shadow-sm ring-1 ring-inset ring-verve-medium/50 hover:bg-verve-light/50 sm:mt-0 sm:w-auto disabled:opacity-50 transition-colors">
-            Cancel
+            {{ cancelLabel ?? 'Cancel' }}
           </button>
         </div>
       </div>

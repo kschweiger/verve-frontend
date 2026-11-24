@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, useId } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useLocationCoordinates } from '@/composables/useLocationCoordinates';
 import { useRoute } from 'vue-router';
 import { useLocationStore, type LocationSearchResult } from '@/stores/location';
 import { Plus, X, Search, Loader2 } from '@lucide/vue';
 
+const { t } = useI18n();
+const searchId = useId();
 const route = useRoute();
 const locationStore = useLocationStore();
 
@@ -19,7 +23,7 @@ const isSearching = ref(false);
 const searchResults = ref<LocationSearchResult[]>([]);
 const selectedLocationId = ref<string | null>(null);
 
-const formatCoords = (lat: number, lng: number) => `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+const formatCoords = useLocationCoordinates();
 
 const displayList = computed(() => {
   const currentIds = new Set(locationStore.currentActivityLocations.map((l) => l.id));
@@ -101,12 +105,12 @@ async function handleAdd() {
     searchQuery.value = '';
     searchResults.value = [];
   } else {
-    alert('Failed to add location.');
+    alert(t('locations.errors.addFailed'));
   }
 }
 
 async function handleRemove(locationId: string) {
-  if (!confirm('Remove this location from the activity?')) return;
+  if (!confirm(t('locations.removeConfirm'))) return;
   await locationStore.removeLocationFromActivity(activityId.value, locationId);
 }
 </script>
@@ -114,25 +118,25 @@ async function handleRemove(locationId: string) {
 <template>
   <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30 overflow-visible">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xl font-bold text-verve-brown">Matched Locations</h3>
-      <button @click="toggleAddMode"
+      <h3 class="text-xl font-bold text-verve-brown">{{ t('locations.matchedLocations') }}</h3>
+      <button type="button" @click="toggleAddMode"
         class="p-2 bg-verve-light hover:bg-verve-medium text-verve-brown rounded-lg transition-colors"
-        :title="showAddMode ? 'Cancel' : 'Add Location'">
+        :title="showAddMode ? t('locations.cancel') : t('locations.addLocation')">
         <component :is="showAddMode ? X : Plus" class="size-4" />
       </button>
     </div>
 
     <!-- Hybrid Add Location Form -->
     <div v-if="showAddMode" class="mb-4 p-3 bg-verve-light/20 rounded-xl border border-verve-medium/20">
-      <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-2">Find or Select Location</label>
+      <label :for="searchId" class="block text-xs font-bold text-verve-brown/60 uppercase mb-2">{{ t('locations.findOrSelect') }}</label>
 
       <div class="flex gap-2">
         <div class="relative grow" ref="dropdownRef">
           <!-- Search Input -->
           <div class="relative">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-verve-brown/40 pointer-events-none" />
-            <input v-model="searchQuery" @focus="isDropdownOpen = true" @input="handleSearchInput" type="text"
-              placeholder="Search database..."
+            <input :id="searchId" v-model="searchQuery" @focus="isDropdownOpen = true" @input="handleSearchInput" type="text"
+              :placeholder="t('locations.searchDatabase')"
               class="w-full text-sm border-verve-medium rounded-xl py-2 pl-9 pr-3 text-verve-brown focus:ring-verve-dark bg-white" />
             <Loader2 v-if="isSearching"
               class="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-verve-orange" />
@@ -146,27 +150,29 @@ async function handleRemove(locationId: string) {
               class="absolute z-50 w-full mt-1 bg-white border border-verve-medium/30 rounded-xl shadow-xl max-h-48 overflow-y-auto">
               <div v-if="displayList.length === 0 && !isSearching"
                 class="p-3 text-xs text-verve-brown/50 text-center italic">
-                No matching locations found.
+                {{ t('locations.noMatches') }}
               </div>
               <ul v-else class="py-1">
-                <li v-for="loc in displayList" :key="loc.id" @click="selectOption(loc)"
-                  class="px-3 py-2 text-sm text-verve-brown hover:bg-verve-light cursor-pointer transition-colors">
-                  {{ loc.phrase }}
+                <li v-for="loc in displayList" :key="loc.id">
+                  <button type="button" @click="selectOption(loc)"
+                    class="block w-full px-3 py-2 text-left text-sm text-verve-brown hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark transition-colors">
+                    {{ loc.phrase }}
+                  </button>
                 </li>
               </ul>
             </div>
           </transition>
         </div>
 
-        <button @click="handleAdd" :disabled="!selectedLocationId || isAdding"
+        <button type="button" @click="handleAdd" :disabled="!selectedLocationId || isAdding"
           class="px-4 py-2 bg-verve-neon text-verve-brown text-sm font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed border border-verve-dark/5 transition-all">
-          {{ isAdding ? 'Adding...' : 'Add' }}
+          {{ isAdding ? t('locations.adding') : t('locations.add') }}
         </button>
       </div>
     </div>
 
     <div v-if="locationStore.isLoading && !isAdding" class="text-verve-brown/60 text-sm animate-pulse py-2">
-      Checking locations...
+      {{ t('locations.checking') }}
     </div>
 
     <div v-else-if="locationStore.currentActivityLocations.length > 0" class="space-y-3">
@@ -194,7 +200,7 @@ async function handleRemove(locationId: string) {
 
         <button @click.prevent="handleRemove(loc.id)"
           class="absolute top-3 right-3 text-verve-brown/20 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"
-          title="Remove location">
+          :title="t('locations.remove')">
           <X class="size-4" />
         </button>
       </div>
@@ -202,7 +208,7 @@ async function handleRemove(locationId: string) {
 
     <div v-else
       class="text-verve-brown/40 text-center py-8 italic border border-dashed border-verve-medium/30 rounded-xl bg-verve-light/10 text-sm">
-      No locations assigned.
+      {{ t('locations.noneAssigned') }}
     </div>
   </div>
 </template>

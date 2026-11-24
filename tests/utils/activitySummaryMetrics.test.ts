@@ -1,3 +1,4 @@
+import { germanTimeUnit } from '../helpers/intl';
 import { describe, expect, test } from 'bun:test';
 import {
   activitySummaryMetricCardClasses,
@@ -34,9 +35,9 @@ const baseActivity: Activity = {
 
 describe('activity summary metrics', () => {
   test('only includes activity metrics with available values', () => {
-    const metrics = buildActivitySummaryMetrics(baseActivity);
+    const metrics = buildActivitySummaryMetrics(baseActivity, 'en');
 
-    expect(metrics.map((metric) => metric.label)).toEqual(['km', 'Active Time']);
+    expect(metrics.map((metric) => metric.key)).toEqual(['distance', 'activeTime']);
     expect(metrics.map((metric) => metric.value)).toEqual(['10.00', '1h 0m']);
   });
 
@@ -55,17 +56,39 @@ describe('activity summary metrics', () => {
       max_heartrate: 178,
       avg_power: 210,
       max_power: 612,
-    });
+    }, 'en');
 
     expect(metrics).toEqual([
-      { label: 'Active Time', value: '1h 0m', secondary: '1h 10m total' },
-      { label: 'm Gain', value: '342' },
-      { label: 'Avg Speed', value: '26.2' },
-      { label: 'Max Speed', value: '58.9' },
-      { label: 'Avg HR', value: '142' },
-      { label: 'Max HR', value: '178' },
-      { label: 'Avg Power', value: '210' },
-      { label: 'Max Power', value: '612' },
+      { key: 'activeTime', value: '1h 0m', totalDuration: '1h 10m' },
+      { key: 'elevationGain', value: '342' },
+      { key: 'averageSpeed', value: '26.2' },
+      { key: 'maximumSpeed', value: '58.9' },
+      { key: 'averageHeartRate', value: '142' },
+      { key: 'maximumHeartRate', value: '178' },
+      { key: 'averagePower', value: '210' },
+      { key: 'maximumPower', value: '612' },
+    ]);
+  });
+
+  test('uses the display locale for fixed precision and distinguishes active from total time', () => {
+    const metrics = buildActivitySummaryMetrics({
+      ...baseActivity,
+      distance: 18.435,
+      durationSeconds: 100200,
+      effectiveDurationSeconds: 4200,
+      elevationGain: 1425,
+      avg_speed: 0,
+    }, 'de');
+
+    expect(metrics).toEqual([
+      { key: 'distance', value: '18,43' },
+      {
+        key: 'activeTime',
+        value: `1h ${germanTimeUnit(10, 'minute')}`,
+        totalDuration: `27h ${germanTimeUnit(50, 'minute')}`,
+      },
+      { key: 'elevationGain', value: '1.425' },
+      { key: 'averageSpeed', value: '0,0' },
     ]);
   });
 

@@ -1,7 +1,19 @@
 import { isSupportedTimezone } from '../services/timezones';
 
+export class ManualActivityTimeError extends Error {
+  constructor(
+    readonly reason: 'invalidTimezone' | 'unsupportedTimezone' | 'invalidDateTime' | 'dateTime',
+    message: string,
+    readonly timezone?: string
+  ) {
+    super(message);
+    this.name = 'ManualActivityTimeError';
+  }
+}
+
 function formatter(timezone: string): Intl.DateTimeFormat {
-  if (!isSupportedTimezone(timezone)) throw new Error('Select a supported timezone.');
+  if (!isSupportedTimezone(timezone))
+    throw new ManualActivityTimeError('invalidTimezone', 'Select a supported timezone.');
   try {
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: timezone,
@@ -17,7 +29,11 @@ function formatter(timezone: string): Intl.DateTimeFormat {
     });
   } catch (error) {
     if (error instanceof RangeError) {
-      throw new Error(`Your browser cannot process ${timezone}. Select another timezone.`);
+      throw new ManualActivityTimeError(
+        'unsupportedTimezone',
+        `Your browser cannot process ${timezone}. Select another timezone.`,
+        timezone
+      );
     }
     throw error;
   }
@@ -36,12 +52,12 @@ export function currentActivityLocalTime(timezone: string, now = new Date()): st
 
 export function localActivityTimeToInstant(local: string, timezone: string): string {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(local)) {
-    throw new Error('Enter a valid date and time.');
+    throw new ManualActivityTimeError('invalidDateTime', 'Enter a valid date and time.');
   }
   const normalized = local.length === 16 ? `${local}:00` : local;
   const wallTime = Date.parse(`${normalized}Z`);
   if (!Number.isFinite(wallTime) || new Date(wallTime).toISOString().slice(0, 19) !== normalized) {
-    throw new Error('Enter a valid date and time.');
+    throw new ManualActivityTimeError('invalidDateTime', 'Enter a valid date and time.');
   }
   const format = formatter(timezone);
   const offsets = new Set<number>();
@@ -63,6 +79,7 @@ export function localActivityTimeToInstant(local: string, timezone: string): str
     candidates
       .filter((candidate) => candidate.difference > 0)
       .sort((a, b) => a.difference - b.difference)[0];
-  if (!selected) throw new Error('Unable to interpret this date in the selected timezone.');
+  if (!selected)
+    throw new ManualActivityTimeError('dateTime', 'Unable to interpret this date in the selected timezone.');
   return new Date(selected.instant).toISOString();
 }

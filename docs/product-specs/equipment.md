@@ -2,6 +2,8 @@
 
 Users can maintain a personal inventory of equipment and organize items into sets.
 
+Inventory and activity equipment controls use the active app language. Equipment type descriptions are translated for display and the API receives the existing type values.
+
 ## Individual items
 
 - Users can create, view, edit, and delete individual equipment items from **My Gear**.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useTypeStore } from '@/stores/types';
 import {
   Bike,
@@ -18,11 +18,14 @@ const props = defineProps<{
 }>();
 
 const typeStore = useTypeStore();
+onMounted(() => {
+  if (typeStore.englishActivityTypes.length === 0) void typeStore.fetchEnglishActivityTypes();
+});
 
 const iconComponent = computed(() => {
   if (!props.typeId) return Rocket;
 
-  const type = typeStore.activityTypes.find((t) => t.id === props.typeId);
+  const type = typeStore.englishActivityTypes.find((t) => t.id === props.typeId);
   const name = type?.name || '';
 
   switch (name) {

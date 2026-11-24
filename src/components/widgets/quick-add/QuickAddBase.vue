@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, useId } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useActivityStore } from '@/stores/activity';
 
 const props = defineProps<{
@@ -15,6 +16,8 @@ const emit = defineEmits<{
 }>();
 
 const activityStore = useActivityStore();
+const { t, n } = useI18n();
+const fieldId = useId();
 
 const isLoading = ref(false);
 const showForm = ref(false);
@@ -88,70 +91,121 @@ async function handleSubmit() {
     showForm.value = false;
     emit('success');
   } else {
-    alert(result.message);
+    alert(result.detail || t(`manualEntry.errors.${result.reason}`));
   }
 }
 </script>
 
 <template>
-  <div class="border border-verve-medium/50 rounded-xl p-3 bg-white/60 hover:bg-white hover:shadow-sm transition-all">
+  <div
+    class="border border-verve-medium/50 rounded-xl p-3 bg-white/60 hover:bg-white hover:shadow-sm transition-all"
+  >
     <!-- Header / Toggle -->
-    <div @click="showForm = !showForm" class="flex justify-between items-center cursor-pointer select-none">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-verve-brown text-sm">{{ title }}</span>
-      </div>
-      <div class="text-verve-brown font-bold">
+    <button
+      type="button"
+      :aria-expanded="showForm"
+      :aria-controls="`${fieldId}-form`"
+      @click="showForm = !showForm"
+      class="flex w-full justify-between items-center cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-verve-dark"
+    >
+      <span class="font-bold text-verve-brown text-sm">{{ title }}</span>
+      <span class="text-verve-brown font-bold" aria-hidden="true">
         <span v-if="!showForm" class="text-xl leading-none">+</span>
         <span v-else class="text-xl leading-none">&minus;</span>
-      </div>
-    </div>
+      </span>
+    </button>
 
     <!-- Form (Expanded) -->
-    <div v-if="showForm" class="mt-3 space-y-3">
+    <div v-if="showForm" :id="`${fieldId}-form`" class="mt-3 space-y-3">
       <!-- Date Picker -->
       <div>
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Date</label>
-        <input v-model="date" type="date"
-          class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white" />
+        <label
+          :for="`${fieldId}-date`"
+          class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+          >{{ t('manualEntry.date') }}</label
+        >
+        <input
+          :id="`${fieldId}-date`"
+          v-model="date"
+          type="date"
+          class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white"
+        />
       </div>
 
       <!-- Duration Inputs (HH : MM : SS) -->
       <div>
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Duration</label>
+        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{
+          t('manualEntry.duration')
+        }}</label>
         <div class="flex gap-2">
           <div class="flex-1">
-            <input v-model="durHours" type="number" min="0" placeholder="HH"
+            <input
+              v-model="durHours"
+              type="number"
+              min="0"
+              placeholder="HH"
+              :aria-label="t('manualEntry.hourLabel')"
               class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
-              @keyup.enter="handleSubmit" />
+              @keyup.enter="handleSubmit"
+            />
           </div>
           <div class="flex-1">
-            <input v-model="durMinutes" type="number" min="0" max="59" placeholder="MM"
+            <input
+              v-model="durMinutes"
+              type="number"
+              min="0"
+              max="59"
+              placeholder="MM"
+              :aria-label="t('manualEntry.minuteLabel')"
               class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
-              @keyup.enter="handleSubmit" />
+              @keyup.enter="handleSubmit"
+            />
           </div>
           <div class="flex-1">
-            <input v-model="durSeconds" type="number" min="0" max="59" placeholder="SS"
+            <input
+              v-model="durSeconds"
+              type="number"
+              min="0"
+              max="59"
+              placeholder="SS"
+              :aria-label="t('manualEntry.secondLabel')"
               class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-center text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
-              @keyup.enter="handleSubmit" />
+              @keyup.enter="handleSubmit"
+            />
           </div>
         </div>
       </div>
 
       <!-- Distance Input (Conditional) -->
       <div v-if="distanceMode !== 'NOT_APPLICABLE'">
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
-          Distance (km)
-          <span v-if="distanceMode === 'OPTIONAL'" class="font-normal opacity-70">(Opt)</span>
+        <label
+          :for="`${fieldId}-distance`"
+          class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+        >
+          {{ t('manualEntry.distance') }}
+          <span v-if="distanceMode === 'OPTIONAL'" class="font-normal opacity-70">{{
+            t('manualEntry.optional')
+          }}</span>
         </label>
-        <input v-model="distance" type="number" step="0.01" placeholder="0.0"
+        <input
+          :id="`${fieldId}-distance`"
+          v-model="distance"
+          type="number"
+          step="0.01"
+          :placeholder="n(0, { minimumFractionDigits: 1 })"
           class="w-full border-verve-medium rounded-xl text-sm py-1.5 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-medium"
-          @keyup.enter="handleSubmit" />
+          @keyup.enter="handleSubmit"
+        />
       </div>
 
       <!-- Submit -->
-      <button @click="handleSubmit" :disabled="isLoading || (!durHours && !durMinutes && !durSeconds)"
-        class="w-full bg-verve-neon text-verve-brown text-sm font-bold py-2 rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-verve-dark/5">
-        {{ isLoading ? 'Saving...' : 'Log Activity' }}
+      <button
+        type="button"
+        @click="handleSubmit"
+        :disabled="isLoading || (!durHours && !durMinutes && !durSeconds)"
+        class="w-full bg-verve-neon text-verve-brown text-sm font-bold py-2 rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all border border-verve-dark/5"
+      >
+        {{ t(isLoading ? 'manualEntry.saving' : 'manualEntry.title') }}
       </button>
     </div>
   </div>

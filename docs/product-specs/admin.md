@@ -8,3 +8,4 @@
 - Store submitted jobs for the current frontend session, including returned track, completion, and highlight tasks. Display each run's target user. Refresh task status manually through `GET /api/v1/admin/tasks/{task_id}`; show the returned state, optional error, and expandable result without assuming terminal state values.
 - Clear cached user lists and submitted jobs on logout, token changes, or revoked admin status. Ignore responses from previous sessions. A 401 clears authentication; a 403 removes admin access and returns the user to the dashboard.
 - Backend authorization remains authoritative for every admin request. The menu and route checks control frontend navigation.
+- Admin controls and frontend status messages use the active app language. Backend job IDs, diagnostic details, and result data are displayed as supplied.

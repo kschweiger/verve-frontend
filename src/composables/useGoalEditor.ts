@@ -1,5 +1,5 @@
 import { onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
-import { useGoalStore, type Goal } from '../stores/goals';
+import { useGoalStore, type Goal, type GoalSaveError } from '../stores/goals';
 import { useAccountSession } from './useAccountSession';
 
 export function useGoalEditor(goal: MaybeRefOrGetter<Goal>) {
@@ -11,7 +11,7 @@ export function useGoalEditor(goal: MaybeRefOrGetter<Goal>) {
   const form = ref(readFields());
   let saved = readFields();
   const isSaving = ref(false);
-  const error = ref<string | null>(null);
+  const error = ref<GoalSaveError | null>(null);
   let active = true;
   const captureSession = useAccountSession(() => {
     form.value = { name: '', description: '', target: 0 };
@@ -46,15 +46,14 @@ export function useGoalEditor(goal: MaybeRefOrGetter<Goal>) {
         const success = await store.updateGoal(id, attribute, changes[attribute]);
         if (!isCurrent()) return false;
         if (!success) {
-          error.value = store.updateError ?? 'Failed to update goal.';
+          error.value = store.updateError ?? { reason: 'updateFailed' };
           return false;
         }
         saved = { ...saved, [attribute]: changes[attribute] };
       }
       return true;
-    } catch (cause: unknown) {
-      if (isCurrent())
-        error.value = cause instanceof Error ? cause.message : 'Failed to update goal.';
+    } catch {
+      if (isCurrent()) error.value = { reason: 'updateFailed' };
       return false;
     } finally {
       if (isCurrent()) isSaving.value = false;

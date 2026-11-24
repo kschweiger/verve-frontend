@@ -1,21 +1,19 @@
 import { responseError } from '../services/authHeaders';
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
+import type { SupportedLocale } from '../types/api';
 
-// --- Interfaces ---
 export interface SubType {
   id: number;
   name: string;
 }
 
-// Renamed from ActivityType to generic CategoryType
 export interface CategoryType {
   id: number;
   name: string;
   sub_types: SubType[];
 }
 
-// Alias for backward compatibility with existing components
 export type ActivityType = CategoryType;
 export type LocationType = CategoryType;
 
@@ -23,54 +21,92 @@ interface ApiResponse<T> {
   data: T;
 }
 
+type Catalog = 'activity' | 'location';
+
 export const useTypeStore = defineStore('type', () => {
-  // --- STATE ---
   const activityTypes = ref<ActivityType[]>([]);
   const locationTypes = ref<LocationType[]>([]);
-  const isLoading = ref(false);
+  const englishActivityTypes = ref<ActivityType[]>([]);
+  const locale = ref<SupportedLocale>('en');
+  let activityRequested = false;
+  let locationRequested = false;
 
-  // --- ACTIONS ---
-  async function fetchActivityTypes() {
-    if (activityTypes.value.length > 0 || isLoading.value) return;
+  const cache = new Map<Catalog, Map<SupportedLocale, CategoryType[]>>();
+  const requests = new Map<string, Promise<CategoryType[] | undefined>>();
 
-    isLoading.value = true;
+  async function requestCatalog(catalog: Catalog, requestLocale: SupportedLocale) {
+    const key = `${catalog}:${requestLocale}`;
+    const cached = cache.get(catalog)?.get(requestLocale);
+    if (cached) return cached;
+    const existing = requests.get(key);
+    if (existing) return existing;
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/resolve/activity_types`, {
-        method: 'GET',
-      });
-      if (!response.ok) throw await responseError(response, 'Failed to fetch activity types.');
-
-      const responseData: ApiResponse<ActivityType[]> = await response.json();
-      activityTypes.value = responseData.data;
-    } catch (error) {
-      console.error(error);
-    } finally {
-      isLoading.value = false;
-    }
+    const endpoint = catalog === 'activity' ? 'activity_types' : 'location_types';
+    const promise = Promise.resolve().then(async (): Promise<CategoryType[] | undefined> => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/resolve/${endpoint}?locale=${requestLocale}`,
+          { method: 'GET' }
+        );
+        if (!response.ok)
+          throw await responseError(
+            response,
+            `Failed to fetch ${catalog} types.`
+          );
+        const responseData: ApiResponse<CategoryType[]> = await response.json();
+        const catalogCache = cache.get(catalog) ?? new Map<SupportedLocale, CategoryType[]>();
+        catalogCache.set(requestLocale, responseData.data);
+        cache.set(catalog, catalogCache);
+        return responseData.data;
+      } catch (error) {
+        console.error(error);
+        return undefined;
+      } finally {
+        requests.delete(key);
+      }
+    });
+    requests.set(key, promise);
+    return promise;
   }
 
-  async function fetchLocationTypes() {
-    if (locationTypes.value.length > 0) return;
+  async function fetchActivityTypes(): Promise<ActivityType[] | undefined> {
+    activityRequested = true;
+    const requestedLocale = locale.value;
+    const types = await requestCatalog('activity', requestedLocale);
+    if (types && requestedLocale === locale.value) activityTypes.value = types;
+    return types;
+  }
 
-    // We don't block isLoading here to allow parallel loading with activity types if needed
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/resolve/location_types`, {
-        method: 'GET',
-      });
-      if (!response.ok) throw await responseError(response, 'Failed to fetch location types.');
+  async function fetchLocationTypes(): Promise<LocationType[] | undefined> {
+    locationRequested = true;
+    const requestedLocale = locale.value;
+    const types = await requestCatalog('location', requestedLocale);
+    if (types && requestedLocale === locale.value)
+      locationTypes.value = types;
+    return types;
+  }
 
-      const responseData: ApiResponse<LocationType[]> = await response.json();
-      locationTypes.value = responseData.data;
-    } catch (error) {
-      console.error(error);
-    }
+  async function fetchEnglishActivityTypes(): Promise<ActivityType[] | undefined> {
+    const types = await requestCatalog('activity', 'en');
+    if (types) englishActivityTypes.value = types;
+    return types;
+  }
+
+  function setLocale(nextLocale: SupportedLocale) {
+    if (locale.value === nextLocale) return;
+    locale.value = nextLocale;
+    if (activityRequested) void fetchActivityTypes();
+    if (locationRequested) void fetchLocationTypes();
   }
 
   return {
     activityTypes,
     locationTypes,
+    englishActivityTypes,
+    locale,
     fetchActivityTypes,
     fetchLocationTypes,
+    fetchEnglishActivityTypes,
+    setLocale,
   };
 });

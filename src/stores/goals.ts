@@ -1,4 +1,4 @@
-import { responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
+import { ApiResponseError, responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
 import type { GoalPublic } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
@@ -13,6 +13,11 @@ export type Goal = GoalPublic & {
   month: number | null;
   constraints: Record<string, unknown>;
 };
+
+export interface GoalSaveError {
+  reason: 'createFailed' | 'updateFailed';
+  detail?: string;
+}
 
 function mapGoal(value: GoalPublic): Goal {
   return {
@@ -53,10 +58,10 @@ export const useGoalStore = defineStore('goal', () => {
   const error = ref<string | null>(null);
 
   const isLoadingPeriods = ref(false);
-  const periodsError = ref<string | null>(null);
+  const periodsError = ref<{ reason: 'loadFailed'; detail?: string } | null>(null);
   const isCreating = ref(false);
-  const creationError = ref<string | null>(null);
-  const updateError = ref<string | null>(null);
+  const creationError = ref<GoalSaveError | null>(null);
+  const updateError = ref<GoalSaveError | null>(null);
 
   const captureSession = useAccountSession(() => {
     isLoadingPeriods.value = false;
@@ -128,7 +133,10 @@ export const useGoalStore = defineStore('goal', () => {
       weeklyGoals.value = weekly.filter((g) => g.temporal_type === 'weekly');
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      periodsError.value = e instanceof Error ? e.message : String(e);
+      periodsError.value = {
+        reason: 'loadFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
     } finally {
       if (isCurrent()) {
         isLoadingPeriods.value = false;
@@ -155,7 +163,10 @@ export const useGoalStore = defineStore('goal', () => {
       return true;
     } catch (e: unknown) {
       if (!isCurrent()) return false;
-      creationError.value = e instanceof Error ? e.message : String(e);
+      creationError.value = {
+        reason: 'createFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
       return false;
     } finally {
       if (isCurrent()) {
@@ -193,7 +204,10 @@ export const useGoalStore = defineStore('goal', () => {
       return true;
     } catch (e) {
       if (!isCurrent()) return false;
-      updateError.value = e instanceof Error ? e.message : 'Failed to update goal.';
+      updateError.value = {
+        reason: 'updateFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
       return false;
     }
   }

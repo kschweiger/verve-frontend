@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import 'leaflet.heat';
 import type { HeatPoint } from '@/stores/heatmap';
+import { useMapLabels } from '@/composables/useMapLabels';
 
 const props = defineProps<{
   points: HeatPoint[];
@@ -11,6 +13,8 @@ const props = defineProps<{
 }>();
 
 const mapContainer = ref<HTMLElement | null>(null);
+const { t } = useI18n();
+const localizeMap = useMapLabels();
 let map: L.Map | null = null;
 let heatLayer: L.Layer | null = null;
 
@@ -25,10 +29,7 @@ const updateHeatLayer = () => {
   }
 
   if (props.points && props.points.length > 0) {
-    // Cast to any because leaflet.heat is a plugin that extends L at runtime
-    // and types might be loose without specific augmenting
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    heatLayer = (L as any).heatLayer(props.points, {
+    heatLayer = L.heatLayer(props.points, {
       radius: 5,
       blur: 5,
       maxZoom: 18,
@@ -42,10 +43,9 @@ onMounted(() => {
     const initialZoom = props.center ? 13 : DEFAULT_ZOOM;
 
     map = L.map(mapContainer.value).setView(initialCenter, initialZoom);
+    localizeMap(map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     updateHeatLayer();
   }
@@ -67,5 +67,5 @@ watch(
 </script>
 
 <template>
-  <div ref="mapContainer" class="h-[75vh] w-full rounded-lg shadow-md z-0"></div>
+  <div ref="mapContainer" role="region" :aria-label="t('heatmap.title')" class="h-[75vh] w-full rounded-lg shadow-md z-0"></div>
 </template>

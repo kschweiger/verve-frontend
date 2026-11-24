@@ -1,9 +1,11 @@
-import { useClientRendering } from '../helpers/vueComponents';
+import '../helpers/vueComponents';
 import { afterEach, expect, test } from 'bun:test';
 import { createRenderer, defineComponent, h, nextTick, ref } from 'vue';
 import { createPinia } from 'pinia';
 import { useUserStore } from '../../src/stores/auth';
-useClientRendering(import.meta.dir + '/../../src/components/WorkoutPlanActivities.vue');
+import { createAppI18n } from '../../src/i18n';
+import type { ActivityPublic } from '../../src/types/api';
+import { stubFetch } from '../helpers/fetch';
 const { default: Panel } = await import('../../src/components/WorkoutPlanActivities.vue');
 class Element {
   children: Element[] = [];
@@ -84,6 +86,8 @@ function mount() {
   const id = ref('one');
   const app = renderer.createApp({ render: () => h(Panel, { planId: id.value }) });
   app.use(pinia);
+  const i18n = createAppI18n('en');
+  app.use(i18n);
   app.component(
     'router-link',
     defineComponent({
@@ -103,22 +107,34 @@ function mount() {
     all(root)
       .map((el) => el.text)
       .join(' ');
-  return { id, auth, root, all, content };
+  return { id, auth, root, all, content, i18n };
 }
 test('links activities to detail and displays activity-local time', async () => {
+  const activity: ActivityPublic = {
+    id: '00000000-0000-4000-8000-000000000001',
+    name: 'Run',
+    start: '2024-01-01T23:30:00Z',
+    timezone: 'Asia/Tokyo',
+    created_at: '2024-01-03T00:00:00Z',
+    duration: 'PT30M',
+    distance: null,
+    type_id: 1,
+    sub_type_id: null,
+    tags: [],
+  };
   globalThis.fetch = (async () =>
     Response.json({
-      data: [{ id: 'a', name: 'Run', start: '2024-01-01T23:30:00Z', timezone: 'Asia/Tokyo' }],
+      data: [activity],
     })) as unknown as typeof fetch;
   const view = mount();
   await flush();
   expect(view.content()).toContain('Run');
   expect(view.all(view.root).find((el) => el.tag === 'a')?.props.targetRoute).toEqual({
     name: 'activity-detail',
-    params: { id: 'a' },
+    params: { id: activity.id },
   });
   expect(view.all(view.root).find((el) => el.tag === 'time')?.props.title).toBe('Asia/Tokyo');
-  const expectedLocalTime = new Intl.DateTimeFormat(undefined, {
+  const expectedLocalTime = new Intl.DateTimeFormat('en', {
     timeZone: 'Asia/Tokyo',
     year: 'numeric',
     month: 'short',
@@ -132,8 +148,11 @@ test('links activities to detail and displays activity-local time', async () => 
   expect(details).toBeDefined();
   expect(details?.props.open).toBeUndefined();
   const summary = view.all(view.root).find((el) => el.tag === 'summary')!;
-  const summaryText = view.all(summary).map((el) => el.text).join(' ');
-  const expectedLocalDate = new Intl.DateTimeFormat(undefined, {
+  const summaryText = view
+    .all(summary)
+    .map((el) => el.text)
+    .join(' ');
+  const expectedLocalDate = new Intl.DateTimeFormat('en', {
     timeZone: 'Asia/Tokyo',
     year: 'numeric',
     month: '2-digit',
@@ -141,6 +160,13 @@ test('links activities to detail and displays activity-local time', async () => 
   }).format(new Date('2024-01-01T23:30:00Z'));
   expect(summaryText).toContain('1 linked activity');
   expect(summaryText).toContain(expectedLocalDate);
+
+  view.i18n.global.locale.value = 'de';
+  await nextTick();
+  expect(view.content()).toContain('1 verknüpfte Aktivität');
+  expect(view.content()).toContain('02.01.2024');
+  expect(view.content()).toContain('Run');
+  expect(view.all(view.root).find((el) => el.tag === 'time')?.props.datetime).toBe(activity.start);
 });
 
 test('expanded activities are paged locally and reset when the plan changes', async () => {
@@ -182,6 +208,12 @@ test('expanded activities are paged locally and reset when the plan changes', as
   await nextTick();
   expect(links()).toHaveLength(2);
   expect(view.content()).toContain('Page 2 of 2');
+  view.i18n.global.locale.value = 'de';
+  await nextTick();
+  expect(view.content()).toContain('Seite 2 von 2');
+  expect(links()).toHaveLength(2);
+  view.i18n.global.locale.value = 'en';
+  await nextTick();
   (button('Previous page').props.onClick as () => void)();
   await nextTick();
   expect(links()).toHaveLength(10);
@@ -212,6 +244,20 @@ test('failure offers a local retry and then shows the empty state', async () => 
   expect(view.content()).toContain('No linked activities yet.');
   expect(view.content()).toContain('0 linked activities');
 });
+
+test('preserves the server diagnostic when the linked activities error changes language', async () => {
+  globalThis.fetch = stubFetch(async () =>
+    Response.json({ detail: 'Exercise plan not found' }, { status: 404 })
+  );
+  const view = mount();
+  await flush();
+  view.i18n.global.locale.value = 'de';
+  await nextTick();
+
+  expect(view.content()).toContain('Verknüpfte Aktivitäten konnten nicht geladen werden.');
+  expect(view.content()).toContain('Exercise plan not found');
+});
+
 test('account changes invalidate pending responses and disable stale retry', async () => {
   let resolve!: (response: Response) => void;
   let calls = 0;

@@ -24,6 +24,7 @@ const types = [
 beforeEach(() => {
   setActivePinia(createPinia());
   useTypeStore().activityTypes = structuredClone(types);
+  useTypeStore().englishActivityTypes = structuredClone(types);
 });
 afterEach(() => {
   scopes.splice(0).forEach((scope) => scope.stop());
@@ -55,8 +56,20 @@ test('classification edits update cadence units reactively', () => {
   activity.value = { type_id: 50, sub_type_id: null };
   expect(unit.value).toBe('RPM');
 });
+test('cadence classification uses English names when the visible catalog is localized', () => {
+  const store = useTypeStore();
+  store.activityTypes = [
+    { id: 90, name: 'Fußsport', sub_types: [{ id: 91, name: 'Laufen' }] },
+    { id: 50, name: 'Radfahren', sub_types: [] },
+  ];
+  store.englishActivityTypes = structuredClone(types);
+
+  expect(inScope(() => useCadence({ type_id: 90, sub_type_id: 91 })).value).toBe('steps/min');
+  expect(inScope(() => useCadence({ type_id: 50, sub_type_id: null })).value).toBe('RPM');
+});
 test('a delayed type catalog replaces the generic cadence unit', async () => {
   useTypeStore().activityTypes = [];
+  useTypeStore().englishActivityTypes = [];
   let complete!: (response: Response) => void;
   globalThis.fetch = stubFetch(
     () =>
@@ -66,6 +79,7 @@ test('a delayed type catalog replaces the generic cadence unit', async () => {
   );
   const unit = inScope(() => useCadence({ type_id: 90, sub_type_id: 91 }));
   expect(unit.value).toBe('counts/min');
+  await Promise.resolve();
   complete(Response.json({ data: types }));
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
   await nextTick();

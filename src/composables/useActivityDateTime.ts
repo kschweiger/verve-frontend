@@ -8,14 +8,21 @@ interface ActivityTimestamp {
 
 export function useActivityDateTime(
   activity: MaybeRefOrGetter<ActivityTimestamp | null>,
-  locale?: string | string[]
+  locale?: MaybeRefOrGetter<string | string[]>
 ) {
   return computed(() => {
     const value = toValue(activity);
-    if (!value) return { date: '', shortDate: '', time: '', dateTime: '' };
-    const date = formatActivityTimestamp(value.start, value.timezone, {}, locale);
+    if (!value) return { date: '', shortDate: '', time: '', dateTime: '', isLocalTimeAvailable: false };
+    const activeLocale = toValue(locale);
+    const date = formatActivityTimestamp(value.start, value.timezone, {}, activeLocale);
     if (!date.isLocalTimeAvailable) {
-      return { date: date.text, shortDate: date.text, time: '', dateTime: date.text };
+      return {
+        date: date.text,
+        shortDate: date.text,
+        time: '',
+        dateTime: date.text,
+        isLocalTimeAvailable: false,
+      };
     }
     return {
       date: date.text,
@@ -23,13 +30,13 @@ export function useActivityDateTime(
         value.start,
         value.timezone,
         { year: 'numeric', month: 'short', day: 'numeric' },
-        locale
+        activeLocale
       ).text,
       time: formatActivityTimestamp(
         value.start,
         value.timezone,
         { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' },
-        locale
+        activeLocale
       ).text,
       dateTime: formatActivityTimestamp(
         value.start,
@@ -42,8 +49,9 @@ export function useActivityDateTime(
           minute: 'numeric',
           second: 'numeric',
         },
-        locale
+        activeLocale
       ).text,
+      isLocalTimeAvailable: true,
     };
   });
 }

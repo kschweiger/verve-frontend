@@ -101,7 +101,7 @@ test('both goal kinds prevent duplicate submission and preserve a visible failur
   expect(requests).toHaveLength(1);
   complete(Response.json({ detail: 'Try later.' }, { status: 503 }));
   expect(await pending).toBe(false);
-  expect(state.error.value).toBe('Try later.');
+  expect(state.error.value).toEqual({ reason: 'createFailed', detail: 'Try later.' });
   expect(draft.value.name).toBe('Visits');
   const retry = state.submit({ type: 'activity', aggregation: 'total_distance' });
   complete(Response.json({ data: [] }));
@@ -131,7 +131,7 @@ test('weekly validation is shared by location and activity creation', async () =
     return Response.json({});
   });
   expect(await state.submit({ type: 'location', aggregation: 'count' })).toBe(false);
-  expect(state.errors.value.week).toBeTruthy();
+  expect(state.errors.value.week).toBe('invalidWeek');
   expect(requested).toBe(false);
 });
 

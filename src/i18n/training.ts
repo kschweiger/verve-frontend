@@ -1,0 +1,63 @@
+export const en = {
+  retry: 'Retry',
+  list: {
+    description: 'Build reusable exercise plans.',
+    newPlan: 'New Plan',
+    loading: 'Loading workout plans...',
+    empty: 'No workout plans yet.',
+    exerciseCount: '{count} exercise | {count} exercises',
+  },
+  plan: {
+    loading: 'Loading workout plan...',
+    newTitle: 'New Workout Plan',
+    edit: 'Edit',
+    duplicate: 'Duplicate',
+    delete: 'Delete',
+    noExercises: 'No exercises in this plan.',
+    exerciseTargets: 'Sets: {sets} · Reps: {repetitions} · Weight: {weight}',
+    duplicateTitle: 'Duplicate plan',
+    duplicateNameLabel: 'Name for the copy',
+    copyName: '{name} copy',
+    deleteTitle: 'Delete plan?',
+    deleteConfirmation: 'Delete “{name}”?',
+  },
+  errors: {
+    loadPlan: 'Failed to load workout plan.',
+    createPlan: 'Failed to create workout plan.',
+    savePlan: 'Failed to save workout plan.',
+    duplicatePlan: 'Failed to duplicate workout plan.',
+    deletePlan: 'Failed to delete workout plan.',
+  },
+};
+
+export const de = {
+  retry: 'Erneut versuchen',
+  list: {
+    description: 'Erstelle wiederverwendbare Trainingspläne.',
+    newPlan: 'Neuer Plan',
+    loading: 'Trainingspläne werden geladen...',
+    empty: 'Noch keine Trainingspläne vorhanden.',
+    exerciseCount: '{count} Übung | {count} Übungen',
+  },
+  plan: {
+    loading: 'Trainingsplan wird geladen...',
+    newTitle: 'Neuer Trainingsplan',
+    edit: 'Bearbeiten',
+    duplicate: 'Duplizieren',
+    delete: 'Löschen',
+    noExercises: 'Dieser Plan enthält keine Übungen.',
+    exerciseTargets: 'Sätze: {sets} · Wdh.: {repetitions} · Gewicht: {weight}',
+    duplicateTitle: 'Plan duplizieren',
+    duplicateNameLabel: 'Name für die Kopie',
+    copyName: '{name} (Kopie)',
+    deleteTitle: 'Plan löschen?',
+    deleteConfirmation: '„{name}“ löschen?',
+  },
+  errors: {
+    loadPlan: 'Der Trainingsplan konnte nicht geladen werden.',
+    createPlan: 'Der Trainingsplan konnte nicht erstellt werden.',
+    savePlan: 'Der Trainingsplan konnte nicht gespeichert werden.',
+    duplicatePlan: 'Der Trainingsplan konnte nicht dupliziert werden.',
+    deletePlan: 'Der Trainingsplan konnte nicht gelöscht werden.',
+  },
+} satisfies typeof en;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useTagsStore, type ActivityTagPublic, type TagSearchResult } from '@/stores/tags';
 import { Plus, X, Tag, Search, Loader2 } from '@lucide/vue';
 
@@ -13,6 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const tagsStore = useTagsStore();
+const { t } = useI18n();
 const showAddMode = ref(false);
 const isAdding = ref(false);
 
@@ -99,7 +101,7 @@ const handleAdd = async () => {
     searchQuery.value = '';
     emit('updated');
   } else {
-    alert('Failed to add tag');
+    alert(t('tags.activity.addFailed'));
   }
   isAdding.value = false;
 };
@@ -113,9 +115,10 @@ const handleRemove = async (tagId: number) => {
 <template>
   <div class="bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30 overflow-visible">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xl font-bold text-verve-brown">Tags</h3>
-      <button @click="toggleAddMode"
-        class="p-2 bg-verve-light hover:bg-verve-medium text-verve-brown rounded-lg transition-colors">
+      <h3 class="text-xl font-bold text-verve-brown">{{ t('tags.activity.title') }}</h3>
+      <button type="button" @click="toggleAddMode"
+        :aria-label="t(showAddMode ? 'tags.activity.closeAdd' : 'tags.addTag')" :aria-expanded="showAddMode"
+        class="p-2 bg-verve-light hover:bg-verve-medium focus-visible:outline-2 focus-visible:outline-verve-orange text-verve-brown rounded-lg transition-colors">
         <component :is="showAddMode ? X : Plus" class="size-4" />
       </button>
     </div>
@@ -128,8 +131,8 @@ const handleRemove = async (tagId: number) => {
         <div class="relative grow" ref="dropdownRef">
           <div class="relative">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-verve-brown/40 pointer-events-none" />
-            <input v-model="searchQuery" @focus="isDropdownOpen = true" @input="handleSearchInput" type="text"
-              placeholder="Find a tag..."
+            <input v-model="searchQuery" @focus="isDropdownOpen = true" @input="handleSearchInput" @keydown.esc="isDropdownOpen = false" type="text"
+              :aria-label="t('tags.activity.search')" :placeholder="t('tags.activity.search')"
               class="w-full text-sm border-verve-medium rounded-xl py-2 pl-9 pr-3 text-verve-brown focus:ring-verve-dark bg-white" />
             <Loader2 v-if="isSearching"
               class="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-verve-orange" />
@@ -143,21 +146,23 @@ const handleRemove = async (tagId: number) => {
               class="absolute z-50 w-full mt-1 bg-white border border-verve-medium/30 rounded-xl shadow-xl max-h-48 overflow-y-auto">
               <div v-if="displayList.length === 0 && !isSearching"
                 class="p-3 text-xs text-verve-brown/50 text-center italic">
-                No tags found.
+                {{ t('tags.activity.noResults') }}
               </div>
               <ul v-else class="py-1">
-                <li v-for="item in displayList" :key="item.id" @click="selectOption(item)"
-                  class="px-3 py-2 text-sm text-verve-brown hover:bg-verve-light cursor-pointer transition-colors">
-                  {{ item.phrase }}
+                <li v-for="item in displayList" :key="item.id">
+                  <button type="button" @click="selectOption(item)"
+                    class="w-full px-3 py-2 text-left text-sm text-verve-brown hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-verve-orange">
+                    {{ item.phrase }}
+                  </button>
                 </li>
               </ul>
             </div>
           </transition>
         </div>
 
-        <button @click="handleAdd" :disabled="!selectedTagId || isAdding"
+        <button type="button" @click="handleAdd" :disabled="!selectedTagId || isAdding"
           class="px-4 py-2 bg-verve-neon text-verve-brown text-sm font-bold rounded-xl shadow-sm hover:brightness-105 disabled:opacity-50 transition-all">
-          {{ isAdding ? '...' : 'Add' }}
+          {{ t(isAdding ? 'tags.activity.adding' : 'tags.activity.add') }}
         </button>
       </div>
     </div>
@@ -168,13 +173,13 @@ const handleRemove = async (tagId: number) => {
         class="group flex items-center gap-2 bg-verve-light/50 px-3 py-1.5 rounded-lg border border-verve-medium/40 text-sm text-verve-brown font-medium">
         <Tag class="size-3 text-verve-brown/50" />
         {{ tag.name }}
-        <button @click="handleRemove(tag.id)"
-          class="text-verve-brown/30 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+        <button type="button" @click="handleRemove(tag.id)" :aria-label="t('tags.activity.remove', { name: tag.name })"
+          class="text-verve-brown/30 hover:text-red-500 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-verve-orange transition-all">
           <X class="size-3" />
         </button>
       </div>
       <p v-if="!currentTags || currentTags.length === 0" class="text-sm text-verve-brown/40 italic">
-        No tags assigned.
+        {{ t('tags.activity.empty') }}
       </p>
     </div>
   </div>

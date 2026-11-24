@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { VERVE_COLORS, hexToRgba } from '@/utils/colors';
 import { Line } from 'vue-chartjs';
+import { useI18n } from 'vue-i18n';
 import {
   Chart as ChartJS,
   Title,
@@ -42,6 +43,7 @@ const emit = defineEmits<{
   (e: 'point-hover', index: number | null): void;
 }>();
 
+const { t, n, locale } = useI18n();
 const isChartHovered = ref(false);
 
 const formatTimeLabel = (seconds: number) => {
@@ -70,7 +72,7 @@ const chartData = computed(() => {
     labels,
     datasets: [
       {
-        label: 'Elevation',
+        label: t('activityCharts.elevation'),
         backgroundColor: hexToRgba(VERVE_COLORS.dark, 0.2),
         borderColor: VERVE_COLORS.dark,
         data: data,
@@ -96,7 +98,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
         borderDash: [],
         label: {
           display: true,
-          content: `Cut ${index + 1}`,
+          content: t('activityCharts.cut', { number: n(index + 1) }),
           position: 'start',
           backgroundColor: hexToRgba(VERVE_COLORS.dark, 0.9),
           color: '#ffffff',
@@ -112,25 +114,23 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
   );
 
   return {
+    locale: locale.value,
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
       intersect: false,
       mode: 'index' as const,
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onHover: (event: any, chartElement: any[]) => {
-      if (chartElement.length > 0) {
+    onHover: (_event, chartElements) => {
+      const currentIndex = chartElements[0]?.index;
+      if (currentIndex !== undefined) {
         isChartHovered.value = true;
-        const currentIndex = chartElement[0].index;
         if (currentIndex !== props.hoveredIndex) {
           emit('point-hover', currentIndex);
         }
-      } else {
-        if (isChartHovered.value) {
-          isChartHovered.value = false;
-          emit('point-hover', null);
-        }
+      } else if (isChartHovered.value) {
+        isChartHovered.value = false;
+        emit('point-hover', null);
       }
     },
     plugins: {
@@ -156,13 +156,13 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       y: {
         title: {
           display: true,
-          text: 'Elevation (m)',
+          text: t('activityCharts.series', { metric: t('activityCharts.elevation'), unit: 'm' }),
         },
       },
       x: {
         title: {
           display: true,
-          text: 'Elapsed time',
+          text: t('activityCharts.elapsedTime'),
         },
       },
     },
@@ -172,6 +172,11 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
 
 <template>
   <div class="h-72">
-    <Line v-if="trackData && trackData.length > 0" :data="chartData" :options="chartOptions" />
+    <Line
+      v-if="trackData && trackData.length > 0"
+      :data="chartData"
+      :options="chartOptions"
+      :aria-label="t('activityCharts.elevationProfile')"
+    />
   </div>
 </template>

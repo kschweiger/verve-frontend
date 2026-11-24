@@ -17,6 +17,7 @@ export function useTimezonePicker(options: {
   disabled: MaybeRefOrGetter<boolean>;
   allowEmpty: MaybeRefOrGetter<boolean>;
   suggestedTimezone: MaybeRefOrGetter<string | undefined>;
+  emptyLabel?: MaybeRefOrGetter<string>;
   select: (value: string) => void;
 }) {
   const isOpen = ref(false);
@@ -36,7 +37,11 @@ export function useTimezonePicker(options: {
       suggested: value === suggestion,
     }));
     if (toValue(options.allowEmpty))
-      entries.unshift({ value: '', label: 'No override', suggested: false });
+      entries.unshift({
+        value: '',
+        label: toValue(options.emptyLabel) ?? 'No override',
+        suggested: false,
+      });
     return entries.filter((entry) =>
       words.every((word) => normalize(`${entry.label} ${entry.value}`).includes(word))
     );

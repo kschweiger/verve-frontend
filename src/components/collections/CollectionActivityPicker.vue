@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Check, Plus, X } from '@lucide/vue';
 import ActivityFilter from '@/components/ActivityFilter.vue';
 import ActivityListItem from '@/components/ActivityListItem.vue';
 import { fetchActivityPage, type ActivityPageParams } from '@/services/api';
+import { ApiResponseError } from '@/services/authHeaders';
 import type { Activity, ActivityFilters } from '@/stores/activity';
 
 const props = defineProps<{
@@ -17,10 +19,11 @@ const emit = defineEmits<{
 
 const ACTIVITIES_PER_PAGE = 10;
 
+const { t, n } = useI18n();
 const activities = ref<Activity[]>([]);
 const filters = ref<ActivityFilters>({});
 const isLoading = ref(false);
-const error = ref<string | null>(null);
+const error = ref<{ detail?: string } | null>(null);
 const offset = ref(0);
 const canLoadMore = ref(true);
 
@@ -57,7 +60,7 @@ async function loadActivities(loadMore = false) {
     offset.value += page.length;
     canLoadMore.value = page.length === ACTIVITIES_PER_PAGE;
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load activities.';
+    error.value = { detail: e instanceof ApiResponseError ? e.detail : undefined };
   } finally {
     isLoading.value = false;
   }
@@ -91,9 +94,9 @@ onMounted(() => {
     <section class="rounded-xl border border-verve-medium/30 bg-white p-5">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-bold text-verve-brown">Selected activities</h2>
+          <h2 class="text-lg font-bold text-verve-brown">{{ t('collections.picker.selected') }}</h2>
           <p class="mt-1 text-sm text-verve-brown/60">
-            {{ selectedActivities.length }} activities in chronological order.
+            {{ t('collections.picker.selectedCount', { formattedCount: n(selectedActivities.length) }, selectedActivities.length) }}
           </p>
         </div>
       </div>
@@ -111,7 +114,9 @@ onMounted(() => {
             type="button"
             class="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
             :disabled="lockedIds.has(activity.id)"
-            :aria-label="`Remove ${activity.name || 'activity'} from collection`"
+            :aria-label="activity.name
+              ? t('collections.picker.remove', { name: activity.name })
+              : t('collections.picker.removeUnnamed')"
             @click="removeActivity(activity.id)"
           >
             <X class="size-4" />
@@ -120,18 +125,18 @@ onMounted(() => {
       </div>
 
       <p v-else class="mt-4 rounded-lg bg-verve-light/30 p-4 text-sm text-verve-brown/60">
-        Select at least one activity.
+        {{ t('collections.picker.selectOne') }}
       </p>
     </section>
 
     <section class="rounded-xl border border-verve-medium/30 bg-white p-5">
-      <h2 class="text-lg font-bold text-verve-brown">Add activities</h2>
+      <h2 class="text-lg font-bold text-verve-brown">{{ t('collections.picker.addActivities') }}</h2>
       <div class="mt-4">
         <ActivityFilter :initial-filters="filters" @filter-change="handleFilterChange" />
       </div>
 
-      <div v-if="error" class="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
-        {{ error }}
+      <div v-if="error" role="alert" class="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+        {{ t('collections.errors.loadActivities') }} {{ error.detail }}
       </div>
 
       <div class="mt-4 space-y-2">
@@ -148,7 +153,9 @@ onMounted(() => {
             type="button"
             disabled
             class="inline-flex items-center justify-center rounded-lg bg-verve-light p-2 text-verve-brown/60"
-            :aria-label="`${activity.name || 'Activity'} already selected`"
+            :aria-label="activity.name
+              ? t('collections.picker.alreadySelected', { name: activity.name })
+              : t('collections.picker.unnamedAlreadySelected')"
           >
             <Check class="size-4" />
           </button>
@@ -156,7 +163,9 @@ onMounted(() => {
             v-else
             type="button"
             class="inline-flex items-center justify-center rounded-lg bg-verve-brown p-2 text-white transition-colors hover:bg-verve-brown/90"
-            :aria-label="`Add ${activity.name || 'activity'} to collection`"
+            :aria-label="activity.name
+              ? t('collections.picker.add', { name: activity.name })
+              : t('collections.picker.addUnnamed')"
             @click="addActivity(activity)"
           >
             <Plus class="size-4" />
@@ -171,10 +180,10 @@ onMounted(() => {
           class="rounded-xl border border-verve-medium bg-white px-5 py-2 text-sm font-semibold text-verve-brown transition-colors hover:bg-verve-light"
           @click="loadActivities(true)"
         >
-          Load more activities
+          {{ t('collections.picker.loadMore') }}
         </button>
         <p v-if="isLoading" class="py-3 text-sm text-verve-brown/60">
-          Loading activities...
+          {{ t('collections.picker.loading') }}
         </p>
       </div>
     </section>

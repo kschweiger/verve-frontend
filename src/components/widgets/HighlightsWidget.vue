@@ -1,35 +1,31 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Trophy } from '@lucide/vue';
+import { useDashboardLoadError } from '@/composables/useDashboardLoadError';
 import type { HighlightMetric } from '@/services/records';
 import { useHighlightStore } from '@/stores/highlights';
 import { type Activity } from '@/stores/activity';
 import { fetchActivitySummary } from '@/services/api';
+import { ApiResponseError } from '@/services/authHeaders';
 import { formatDuration, parseISODuration } from '@/utils/datetime';
 
 const highlightStore = useHighlightStore();
+const { t, n, locale } = useI18n();
+const formatLoadError = useDashboardLoadError();
 
-interface CuratedRecordDefinition {
-  metric: HighlightMetric;
-  label: string;
-}
+const metrics = ['duration', 'distance', 'elevation_change_up'] as const satisfies readonly HighlightMetric[];
+type CuratedMetric = (typeof metrics)[number];
 
 interface CuratedRecord {
-  metric: HighlightMetric;
-  label: string;
+  metric: CuratedMetric;
   activity: Activity;
   value: number | string;
 }
 
-const definitions: CuratedRecordDefinition[] = [
-  { metric: 'duration', label: 'Longest duration' },
-  { metric: 'distance', label: 'Longest distance' },
-  { metric: 'elevation_change_up', label: 'Most elevation' },
-];
-
 const records = ref<CuratedRecord[]>([]);
 const isLoading = ref(false);
-const error = ref<string | null>(null);
+const error = ref<{ reason: 'loadFailed'; detail?: string } | null>(null);
 
 const currentYear = new Date().getFullYear();
 
@@ -41,15 +37,14 @@ async function loadCuratedRecords() {
   try {
     const loaded: CuratedRecord[] = [];
 
-    for (const definition of definitions) {
-      await highlightStore.fetchDashboardHighlights(definition.metric, currentYear);
+    for (const metric of metrics) {
+      await highlightStore.fetchDashboardHighlights(metric, currentYear);
       const first = highlightStore.dashboardHighlights[0];
       if (!first) continue;
 
       const activity = await fetchActivitySummary(first.activity_id);
       loaded.push({
-        metric: definition.metric,
-        label: definition.label,
+        metric,
         activity,
         value: first.value,
       });
@@ -57,23 +52,28 @@ async function loadCuratedRecords() {
 
     records.value = loaded;
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : String(e);
+    error.value = {
+      reason: 'loadFailed',
+      detail: e instanceof ApiResponseError ? e.detail : undefined,
+    };
   } finally {
     isLoading.value = false;
   }
 }
 
-function formatValue(value: number | string, metric: string): string {
-  if (metric === 'duration' && typeof value === 'string') {
-    return formatDuration(parseISODuration(value));
+function formatValue(value: number | string, metric: CuratedMetric): string {
+  if (metric === 'duration') {
+    return formatDuration(typeof value === 'string' ? parseISODuration(value) : value, locale.value);
   }
 
   const numericValue = typeof value === 'number' ? value : 0;
 
-  if (metric === 'duration') return formatDuration(numericValue);
-  if (metric === 'distance') return `${numericValue.toFixed(2)} km`;
-  if (metric === 'elevation_change_up') return `${numericValue.toFixed(0)} m`;
-  return numericValue.toString();
+  if (metric === 'distance') {
+    return n(numericValue, {
+      style: 'unit', unit: 'kilometer', unitDisplay: 'short', minimumFractionDigits: 2, maximumFractionDigits: 2,
+    });
+  }
+  return n(numericValue, { style: 'unit', unit: 'meter', unitDisplay: 'short', maximumFractionDigits: 0 });
 }
 
 const hasRecords = computed(() => records.value.length > 0);
@@ -86,17 +86,17 @@ onMounted(loadCuratedRecords);
     <div class="flex items-center gap-2 mb-4">
       <Trophy class="size-5 text-verve-orange" aria-hidden="true" />
       <div>
-        <h3 class="text-xl font-bold text-verve-brown">Records</h3>
-        <p class="text-sm text-verve-brown/60">This year's highlights</p>
+        <h3 class="text-xl font-bold text-verve-brown">{{ t('dashboard.records.title') }}</h3>
+        <p class="text-sm text-verve-brown/60">{{ t('dashboard.records.subtitle') }}</p>
       </div>
     </div>
 
     <div v-if="isLoading" class="text-center py-8 text-verve-brown/60 text-sm">
-      Loading records...
+      {{ t('dashboard.records.loading') }}
     </div>
 
     <div v-else-if="error" class="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-      {{ error }}
+      {{ formatLoadError('records', error) }}
     </div>
 
     <div v-else-if="hasRecords" class="space-y-2">
@@ -109,10 +109,10 @@ onMounted(loadCuratedRecords);
         <div class="flex items-center justify-between gap-4">
           <div class="min-w-0">
             <p class="text-xs font-bold uppercase tracking-wider text-verve-brown/45">
-              {{ record.label }}
+              {{ t(`dashboard.records.metrics.${record.metric}`) }}
             </p>
             <p class="font-bold text-verve-brown text-sm truncate">
-              {{ record.activity.name || new Date(record.activity.start).toLocaleDateString() }}
+              {{ record.activity.name || new Date(record.activity.start).toLocaleDateString(locale) }}
             </p>
           </div>
           <p class="text-lg font-bold text-verve-orange whitespace-nowrap">
@@ -123,7 +123,7 @@ onMounted(loadCuratedRecords);
     </div>
 
     <div v-else class="text-center py-8 text-verve-brown/60 text-sm italic">
-      No records found yet.
+      {{ t('dashboard.records.empty') }}
     </div>
   </section>
 </template>
