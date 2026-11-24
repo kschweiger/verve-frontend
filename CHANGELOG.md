@@ -1,4 +1,13 @@
 <!-- insertion marker -->
+<a name="1.3.0"></a>
+
+## [1.3.0](https://github.com/kschweiger/verve-frontend/compare/1.2.0...1.3.0) (2026-11-24)
+
+### Features
+
+- localization (#47) ([d48e818](https://github.com/kschweiger/verve-frontend/commit/d48e818c5e855a8ca65307a7172b0b7a9dbf2aa5))
+- users can change locale (#46) ([8d9a8d2](https://github.com/kschweiger/verve-frontend/commit/8d9a8d2b42bbfe081d419f3d104f790a31a92087))
+
 <a name="1.2.0"></a>
 
 ## [1.2.0](https://github.com/kschweiger/verve-frontend/compare/1.1.0...1.2.0) (2026-11-22)
