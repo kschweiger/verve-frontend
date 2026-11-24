@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, watch, onMounted, computed, useId } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useLocationStore, type LocationCreatePayload } from '@/stores/location';
 import { useTypeStore } from '@/stores/types';
 
@@ -13,6 +14,8 @@ const emit = defineEmits<{
   (e: 'saved'): void;
 }>();
 
+const { t } = useI18n();
+const id = useId();
 const locationStore = useLocationStore();
 const typeStore = useTypeStore();
 
@@ -26,7 +29,7 @@ const form = ref({
 });
 
 const isSaving = ref(false);
-const error = ref<string | null>(null);
+const error = ref<{ reason: 'nameRequired' | 'createFailed'; detail?: string } | null>(null);
 
 onMounted(() => {
   typeStore.fetchLocationTypes();
@@ -58,7 +61,7 @@ const availableSubTypes = computed(() => {
 
 async function handleSubmit() {
   if (!form.value.name) {
-    error.value = 'Name is required.';
+    error.value = { reason: 'nameRequired' };
     return;
   }
 
@@ -81,58 +84,58 @@ async function handleSubmit() {
     emit('saved');
     emit('close');
   } else {
-    error.value = locationStore.error || 'Failed to create location.';
+    error.value = locationStore.creationError ?? { reason: 'createFailed' };
   }
 }
 </script>
 
 <template>
   <div class="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-verve-brown/20 backdrop-blur-sm">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-verve-medium/30">
+    <div role="dialog" aria-modal="true" :aria-labelledby="`${id}-title`" class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-verve-medium/30">
       <!-- Header -->
       <div class="flex justify-between items-center mb-5 border-b border-verve-medium/30 pb-3">
-        <h3 class="text-xl font-bold text-verve-brown">Add Location</h3>
-        <button @click="$emit('close')" class="text-verve-brown/40 hover:text-verve-brown transition-colors">
+        <h3 :id="`${id}-title`" class="text-xl font-bold text-verve-brown">{{ t('locations.addLocation') }}</h3>
+        <button type="button" :aria-label="t('locations.closeCreation')" @click="$emit('close')" class="text-verve-brown/40 hover:text-verve-brown transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <div v-if="error" class="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
-        {{ error }}
+      <div v-if="error" role="alert" class="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
+        {{ error.detail ?? t(`locations.errors.${error.reason}`) }}
       </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Name</label>
-          <input v-model="form.name" type="text" placeholder="e.g. Hidden Lake Trailhead" required
+          <label :for="`${id}-name`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{ t('locations.name') }}</label>
+          <input :id="`${id}-name`" v-model="form.name" type="text" :placeholder="t('locations.nameExample')" required
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-brown/30" />
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Description</label>
-          <textarea v-model="form.description" rows="2"
+          <label :for="`${id}-description`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{ t('locations.description') }}</label>
+          <textarea :id="`${id}-description`" v-model="form.description" rows="2"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-brown/30"></textarea>
         </div>
 
         <!-- Types Row -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Category</label>
-            <select v-model="form.typeId"
+            <label :for="`${id}-typeId`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{ t('locations.category') }}</label>
+            <select :id="`${id}-typeId`" v-model="form.typeId"
               class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white">
-              <option :value="null">None</option>
+              <option :value="null">{{ t('locations.none') }}</option>
               <option v-for="t in typeStore.locationTypes" :key="t.id" :value="t.id">
                 {{ t.name }}
               </option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Sub Category</label>
-            <select v-model="form.subTypeId" :disabled="!form.typeId || availableSubTypes.length === 0"
+            <label :for="`${id}-subTypeId`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{ t('locations.subcategory') }}</label>
+            <select :id="`${id}-subTypeId`" v-model="form.subTypeId" :disabled="!form.typeId || availableSubTypes.length === 0"
               class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white disabled:bg-gray-50 disabled:text-gray-400">
-              <option :value="null">None</option>
+              <option :value="null">{{ t('locations.none') }}</option>
               <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
                 {{ st.name }}
               </option>
@@ -142,13 +145,13 @@ async function handleSubmit() {
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Latitude</label>
-            <input v-model="form.latitude" type="number" step="any" required
+            <label :for="`${id}-latitude`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{ t('locations.latitude') }}</label>
+            <input :id="`${id}-latitude`" v-model="form.latitude" type="number" step="any" required
               class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-verve-light/20" />
           </div>
           <div>
-            <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Longitude</label>
-            <input v-model="form.longitude" type="number" step="any" required
+            <label :for="`${id}-longitude`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{ t('locations.longitude') }}</label>
+            <input :id="`${id}-longitude`" v-model="form.longitude" type="number" step="any" required
               class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-verve-light/20" />
           </div>
         </div>
@@ -156,11 +159,11 @@ async function handleSubmit() {
         <div class="flex justify-end gap-3 pt-4 border-t border-verve-medium/30">
           <button type="button" @click="$emit('close')"
             class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors">
-            Cancel
+            {{ t('locations.cancel') }}
           </button>
           <button type="submit" :disabled="isSaving"
             class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-            {{ isSaving ? 'Creating...' : 'Create Location' }}
+            {{ isSaving ? t('locations.creating') : t('locations.createLocation') }}
           </button>
         </div>
       </form>

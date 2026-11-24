@@ -1,4 +1,4 @@
-import { responseError, getAuthHeaders } from '../services/authHeaders';
+import { ApiResponseError, responseError, getAuthHeaders } from '../services/authHeaders';
 import type { HeatMapResponse } from '../types/api';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
@@ -15,7 +15,7 @@ export const useHeatmapStore = defineStore('heatmap', () => {
   const heatmapPoints = ref<HeatPoint[]>([]);
   const heatmapCenter = ref<[number, number] | null>(null);
   const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const error = ref<{ reason: 'notAuthenticated' | 'loadFailed'; detail?: string } | null>(null);
 
   // --- ACTION ---
   const captureSession = useAccountSession(() => {
@@ -33,7 +33,7 @@ export const useHeatmapStore = defineStore('heatmap', () => {
     const userStore = useUserStore();
 
     if (!userStore.token) {
-      error.value = 'Not authenticated';
+      error.value = { reason: 'notAuthenticated' };
       isLoading.value = false;
       return;
     }
@@ -64,7 +64,7 @@ export const useHeatmapStore = defineStore('heatmap', () => {
       heatmapCenter.value = data.center;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      error.value = e instanceof Error ? e.message : String(e);
+      error.value = { reason: 'loadFailed', detail: e instanceof ApiResponseError ? e.detail : undefined };
     } finally {
       if (isCurrent()) {
         isLoading.value = false;

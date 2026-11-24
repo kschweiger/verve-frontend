@@ -14,6 +14,7 @@
 
 - File upload offers an optional backend-supported IANA timezone selector. Its empty default omits `timezone_name`; an explicit selection is sent as a query parameter to the auto-upload endpoint for every file in the batch. Upload More clears the selection. Files and timestamps are unchanged by the frontend.
 - Manual entry loads and preselects the saved user timezone. Date & Time starts at the current local time in that zone; changing zones preserves the entered wall time and interprets it in the new zone. The selected zone is shown beside the field.
+- Manual-entry labels use the active app language. A blank activity name receives a localized default. The native date and number fields keep their input and storage formats.
 - Native `Intl.DateTimeFormat` converts the manual wall time to an aware UTC `start`, independent of browser timezone. Repeated clock times use the earlier occurrence; nonexistent times shift forward by the clock-change gap. Invalid input or an unavailable timezone produces an inline error and preserves the form.
 - Send manual `timezone_name` on creation and optional track attachment. Read the typed creation response and use its ID. Settings loading disables submission; a loading failure stays inline and permits an explicit timezone selection. No external date library is required.
 

@@ -54,7 +54,9 @@ test('failed goal saves preserve edits and report backend errors', async () => {
   );
   expect(await state.save()).toBe(false);
   expect(state.form.value.name).toBe('Updated');
-  expect(state.error.value).toBe('Goal cannot be edited.');
+  expect(state.error.value).toEqual({
+    reason: 'updateFailed', detail: 'Goal cannot be edited.',
+  });
   expect(state.isSaving.value).toBe(false);
 });
 

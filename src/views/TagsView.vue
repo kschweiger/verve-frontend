@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useTagsStore, type TagSearchResult } from '@/stores/tags';
 import { Trash2, Plus, Search, Loader2, X } from '@lucide/vue';
 
 const tagsStore = useTagsStore();
+const { t } = useI18n();
 
 // --- Create Category ---
 const newCategoryName = ref('');
@@ -29,7 +31,7 @@ onUnmounted(() => {
 });
 
 const uncategorizedTags = computed(() => {
-  return tagsStore.tags.filter((t) => t.category_id === null);
+  return tagsStore.tags.filter((t) => t.category_id === null || t.category_id === undefined);
 });
 
 // --- Combobox Handlers ---
@@ -90,13 +92,13 @@ const handleCreateTag = async () => {
 };
 
 const handleDeleteCategory = async (id: number) => {
-  if (!confirm('Delete this category? Associated tags will become uncategorized unless you cascade delete.')) return;
-  const cascade = confirm('Do you also want to delete all tags inside this category?');
+  if (!confirm(t('tags.confirmCategory'))) return;
+  const cascade = confirm(t('tags.confirmCascade'));
   await tagsStore.deleteCategory(id, cascade);
 };
 
 const handleDeleteTag = async (id: number) => {
-  if (!confirm('Delete this tag globally?')) return;
+  if (!confirm(t('tags.confirmTag'))) return;
   await tagsStore.deleteTag(id);
 };
 </script>
@@ -105,26 +107,30 @@ const handleDeleteTag = async (id: number) => {
   <div class="p-4 sm:p-6 lg:p-8 bg-verve-medium min-h-[calc(100vh-64px)]">
     <div class="max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 class="text-3xl font-bold text-verve-brown">Tag Management</h1>
-        <p class="mt-2 text-verve-brown/60">Organize your activity categorization with global tags.</p>
+        <h1 class="text-3xl font-bold text-verve-brown">{{ t('tags.title') }}</h1>
+        <p class="mt-2 text-verve-brown/60">{{ t('tags.description') }}</p>
       </div>
 
-      <div v-if="tagsStore.isLoading" class="text-center py-12 text-verve-brown/60 animate-pulse">
-        Loading tags & categories...
+      <div v-if="tagsStore.isLoading" role="status" class="text-center py-12 text-verve-brown/60 animate-pulse">
+        {{ t('tags.loading') }}
       </div>
 
-      <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <p v-else-if="tagsStore.error" role="alert" class="rounded-xl border border-red-100 bg-red-50 p-4 text-red-600">
+        {{ tagsStore.error.detail ?? t('tags.loadFailed') }}
+      </p>
+
+      <div v-if="!tagsStore.isLoading" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         <!-- Forms Column -->
         <div class="space-y-6">
           <!-- Create Category -->
           <div class="bg-white p-5 rounded-xl shadow-sm border border-verve-medium/30">
-            <h3 class="font-bold text-verve-brown mb-3">Add Category</h3>
+            <h3 class="font-bold text-verve-brown mb-3">{{ t('tags.addCategory') }}</h3>
             <div class="flex gap-2">
-              <input v-model="newCategoryName" type="text" placeholder="e.g., Weather"
+              <input v-model="newCategoryName" type="text" :aria-label="t('tags.categoryName')" :placeholder="t('tags.categoryExample')"
                 class="grow border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white" />
-              <button @click="handleCreateCategory"
-                class="px-4 py-2 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5">
+              <button type="button" @click="handleCreateCategory" :aria-label="t('tags.addCategory')"
+                class="px-4 py-2 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 focus-visible:outline-2 focus-visible:outline-verve-orange border border-verve-dark/5">
                 <Plus class="size-4" />
               </button>
             </div>
@@ -132,9 +138,9 @@ const handleDeleteTag = async (id: number) => {
 
           <!-- Create Tag (with Combobox) -->
           <div class="bg-white p-5 rounded-xl shadow-sm border border-verve-medium/30 overflow-visible">
-            <h3 class="font-bold text-verve-brown mb-3">Add Tag</h3>
+            <h3 class="font-bold text-verve-brown mb-3">{{ t('tags.addTag') }}</h3>
             <div class="space-y-3">
-              <input v-model="newTagName" type="text" placeholder="e.g., Sunny"
+              <input v-model="newTagName" type="text" :aria-label="t('tags.tagName')" :placeholder="t('tags.tagExample')"
                 class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white" />
 
               <!-- Category Search Combobox -->
@@ -143,7 +149,8 @@ const handleDeleteTag = async (id: number) => {
                   <Search
                     class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-verve-brown/40 pointer-events-none" />
                   <input v-model="categoryQuery" @focus="isCategoryDropdownOpen = true"
-                    @input="handleCategorySearchInput" type="text" placeholder="Search category (optional)..."
+                    @input="handleCategorySearchInput" @keydown.esc="isCategoryDropdownOpen = false" type="text"
+                    :aria-label="t('tags.searchCategory')" :placeholder="t('tags.searchCategory')"
                     class="w-full text-sm border-verve-medium rounded-xl py-2 pl-9 pr-3 text-verve-brown focus:ring-verve-dark bg-white" />
                   <Loader2 v-if="isCategorySearching"
                     class="absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-verve-orange" />
@@ -156,21 +163,23 @@ const handleDeleteTag = async (id: number) => {
                     class="absolute z-50 w-full mt-1 bg-white border border-verve-medium/30 rounded-xl shadow-xl max-h-48 overflow-y-auto">
                     <div v-if="displayCategoryList.length === 0 && !isCategorySearching"
                       class="p-3 text-xs text-verve-brown/50 text-center italic">
-                      No matching categories found.
+                      {{ t('tags.noMatchingCategories') }}
                     </div>
                     <ul v-else class="py-1">
-                      <li v-for="item in displayCategoryList" :key="item.id" @click="selectCategoryOption(item)"
-                        class="px-3 py-2 text-sm text-verve-brown hover:bg-verve-light cursor-pointer transition-colors">
-                        {{ item.phrase }}
+                      <li v-for="item in displayCategoryList" :key="item.id">
+                        <button type="button" @click="selectCategoryOption(item)"
+                          class="w-full px-3 py-2 text-left text-sm text-verve-brown hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-verve-orange">
+                          {{ item.phrase }}
+                        </button>
                       </li>
                     </ul>
                   </div>
                 </transition>
               </div>
 
-              <button @click="handleCreateTag"
-                class="w-full py-2 bg-verve-brown text-white font-bold rounded-xl shadow-sm hover:bg-verve-dark transition-colors">
-                Create Tag
+              <button type="button" @click="handleCreateTag"
+                class="w-full py-2 bg-verve-brown text-white font-bold rounded-xl shadow-sm hover:bg-verve-dark focus-visible:outline-2 focus-visible:outline-verve-orange transition-colors">
+                {{ t('tags.createTag') }}
               </button>
             </div>
           </div>
@@ -183,8 +192,8 @@ const handleDeleteTag = async (id: number) => {
             class="bg-white p-5 rounded-xl shadow-sm border border-verve-medium/30">
             <div class="flex justify-between items-center mb-4 border-b border-verve-medium/20 pb-2">
               <h3 class="text-lg font-bold text-verve-brown">{{ cat.name }}</h3>
-              <button @click="handleDeleteCategory(cat.id)"
-                class="text-verve-brown/30 hover:text-red-500 transition-colors" title="Delete Category">
+              <button type="button" @click="handleDeleteCategory(cat.id)" :aria-label="t('tags.deleteCategory', { name: cat.name })"
+                class="text-verve-brown/30 hover:text-red-500 focus-visible:outline-2 focus-visible:outline-verve-orange transition-colors" :title="t('tags.deleteCategory', { name: cat.name })">
                 <Trash2 class="size-4" />
               </button>
             </div>
@@ -193,14 +202,14 @@ const handleDeleteTag = async (id: number) => {
               <div v-for="tag in tagsStore.tags.filter(t => t.category_id === cat.id)" :key="tag.id"
                 class="flex items-center gap-1.5 bg-verve-light/50 px-3 py-1.5 rounded-lg border border-verve-medium/30 transition-all hover:bg-verve-light">
                 <span class="text-sm text-verve-brown font-medium">{{ tag.name }}</span>
-                <button @click="handleDeleteTag(tag.id)"
-                  class="text-verve-brown/40 hover:text-red-500 transition-colors ml-1" title="Delete Tag">
+                <button type="button" @click="handleDeleteTag(tag.id)" :aria-label="t('tags.deleteTag', { name: tag.name })"
+                  class="text-verve-brown/40 hover:text-red-500 focus-visible:outline-2 focus-visible:outline-verve-orange transition-colors ml-1" :title="t('tags.deleteTag', { name: tag.name })">
                   <X class="size-3.5" />
                 </button>
               </div>
               <p v-if="tagsStore.tags.filter(t => t.category_id === cat.id).length === 0"
                 class="text-xs text-verve-brown/50 italic">
-                No tags in this category.
+                {{ t('tags.noCategoryTags') }}
               </p>
             </div>
           </div>
@@ -209,20 +218,20 @@ const handleDeleteTag = async (id: number) => {
           <div class="bg-white p-5 rounded-xl shadow-sm border border-verve-medium/30 border-dashed">
             <h3
               class="text-sm font-bold text-verve-brown/60 uppercase tracking-wider mb-4 border-b border-verve-medium/20 pb-2">
-              Uncategorized Tags
+              {{ t('tags.uncategorized') }}
             </h3>
 
             <div class="flex flex-wrap gap-2">
               <div v-for="tag in uncategorizedTags" :key="tag.id"
                 class="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 transition-all hover:bg-gray-100">
                 <span class="text-sm text-gray-600 font-medium">{{ tag.name }}</span>
-                <button @click="handleDeleteTag(tag.id)" class="text-gray-400 hover:text-red-500 transition-colors ml-1"
-                  title="Delete Tag">
+                <button type="button" @click="handleDeleteTag(tag.id)" :aria-label="t('tags.deleteTag', { name: tag.name })" class="text-gray-400 hover:text-red-500 focus-visible:outline-2 focus-visible:outline-verve-orange transition-colors ml-1"
+                  :title="t('tags.deleteTag', { name: tag.name })">
                   <X class="size-3.5" />
                 </button>
               </div>
               <p v-if="uncategorizedTags.length === 0" class="text-xs text-verve-brown/50 italic">
-                None.
+                {{ t('tags.noUncategorized') }}
               </p>
             </div>
           </div>

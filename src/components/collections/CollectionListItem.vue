@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Layers } from '@lucide/vue';
 import type { CollectionOverview } from '@/services/collections';
+import { formatDuration } from '@/utils/datetime';
 
 const props = defineProps<{
   collection: CollectionOverview;
 }>();
 
+const { t, n, locale } = useI18n();
 const dateRange = computed(() => {
-  const start = new Date(props.collection.start).toLocaleDateString(undefined, {
+  const date = new Intl.DateTimeFormat(locale.value, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
-  const end = new Date(props.collection.end).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const start = date.format(new Date(props.collection.start));
+  const end = date.format(new Date(props.collection.end));
   return start === end ? start : `${start} - ${end}`;
 });
 </script>
@@ -46,32 +46,32 @@ const dateRange = computed(() => {
 
       <div>
         <p class="text-sm font-semibold text-verve-brown/80">{{ dateRange }}</p>
-        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">Range</p>
+        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">{{ t('collections.range') }}</p>
       </div>
 
       <div>
-        <p class="font-bold text-verve-brown">{{ collection.count }}</p>
-        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">Activities</p>
+        <p class="font-bold text-verve-brown">{{ n(collection.count) }}</p>
+        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">{{ t('collections.activities') }}</p>
       </div>
 
       <div>
         <p class="font-bold text-verve-brown">
-          {{ collection.distance !== null ? collection.distance.toFixed(2) : '-' }}
+          {{ collection.distance === null ? '-' : n(collection.distance, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
           <span v-if="collection.distance !== null" class="text-xs font-normal text-verve-brown/50">km</span>
         </p>
-        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">Distance</p>
+        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">{{ t('collections.distance') }}</p>
       </div>
 
       <div class="text-left md:text-right">
-        <p class="font-bold text-verve-brown">{{ collection.effectiveDuration }}</p>
-        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">Active</p>
+        <p class="font-bold text-verve-brown">{{ formatDuration(collection.effectiveDurationSeconds, locale) }}</p>
+        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">{{ t('collections.active') }}</p>
       </div>
 
       <div class="text-left md:text-right">
-        <p class="font-bold text-verve-brown">{{ collection.duration }}</p>
-        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">Total</p>
-        <p v-if="collection.pauseDuration" class="text-[10px] text-verve-brown/45">
-          {{ collection.pauseDuration }} pause
+        <p class="font-bold text-verve-brown">{{ formatDuration(collection.durationSeconds, locale) }}</p>
+        <p class="text-xs font-bold uppercase tracking-wide text-verve-brown/40">{{ t('collections.total') }}</p>
+        <p v-if="collection.pauseDurationSeconds !== null" class="text-[10px] text-verve-brown/45">
+          {{ t('collections.pauseSummary', { duration: formatDuration(collection.pauseDurationSeconds, locale) }) }}
         </p>
       </div>
     </div>

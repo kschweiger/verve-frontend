@@ -8,6 +8,10 @@ import {
 } from '../services/admin';
 import type { UserPublic } from '../services/users';
 
+interface AdminRequestError {
+  detail?: string;
+}
+
 export type AdminOperation = 'reprocess-tracks' | 'recalculate-highlights';
 export interface AdminTask {
   taskId: string;
@@ -16,7 +20,7 @@ export interface AdminTask {
   activityId: string | null;
   status: AdminTaskStatus | null;
   isRefreshing: boolean;
-  refreshError: string | null;
+  refreshError: AdminRequestError | null;
 }
 export interface AdminRun {
   id: number;
@@ -36,10 +40,10 @@ export const useAdminStore = defineStore('admin', () => {
   const selectedUserId = ref('');
   const usersLoaded = ref(false);
   const isLoadingUsers = ref(false);
-  const usersError = ref<string | null>(null);
+  const usersError = ref<AdminRequestError | null>(null);
   const runs = ref<AdminRun[]>([]);
   const isSubmitting = ref(false);
-  const submissionError = ref<string | null>(null);
+  const submissionError = ref<AdminRequestError | null>(null);
   let session = 0;
   let nextRunId = 0;
   let usersRequest: Promise<void> | null = null;
@@ -83,7 +87,7 @@ export const useAdminStore = defineStore('admin', () => {
       usersLoaded.value = true;
     }).catch((error: unknown) => {
       if (currentSession !== session) return;
-      usersError.value = error instanceof Error ? error.message : 'Failed to load users.';
+      usersError.value = { detail: error instanceof ApiResponseError ? error.detail : undefined };
       handleAccessError(error);
     }).finally(() => {
       if (currentSession === session) isLoadingUsers.value = false;
@@ -113,8 +117,7 @@ export const useAdminStore = defineStore('admin', () => {
       runs.value.unshift({ id: ++nextRunId, operation, user, tasks });
     } catch (error: unknown) {
       if (currentSession !== session) return;
-      submissionError.value = error instanceof ApiResponseError ? error.message
-        : 'Could not confirm that the job was queued. Check before submitting again.';
+      submissionError.value = { detail: error instanceof ApiResponseError ? error.detail : undefined };
       handleAccessError(error);
     } finally {
       if (currentSession === session) isSubmitting.value = false;
@@ -131,7 +134,7 @@ export const useAdminStore = defineStore('admin', () => {
       if (currentSession === session) task.status = status;
     } catch (error: unknown) {
       if (currentSession !== session) return;
-      task.refreshError = error instanceof Error ? error.message : 'Failed to refresh task status.';
+      task.refreshError = { detail: error instanceof ApiResponseError ? error.detail : undefined };
       handleAccessError(error);
     } finally {
       if (currentSession === session) task.isRefreshing = false;

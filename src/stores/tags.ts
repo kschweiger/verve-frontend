@@ -1,25 +1,21 @@
-import { responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
+import { ApiResponseError, responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
-// src/stores/tags.ts
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
+import type { ActivityTagPublic, ListResponse } from '../types/api';
+
+export type { ActivityTagPublic } from '../types/api';
 
 export interface ActivityTagCategoryPublic {
   id: number;
   name: string;
 }
 
-export interface ActivityTagPublic {
-  id: number;
-  name: string;
-  category_id: number | null;
-}
-
 export interface TagSearchResult {
   id: number;
   phrase: string;
-  score?: number;
+  score: number;
 }
 
 interface UserTagResponse {
@@ -31,7 +27,7 @@ export const useTagsStore = defineStore('tags', () => {
   const tags = ref<ActivityTagPublic[]>([]);
   const categories = ref<ActivityTagCategoryPublic[]>([]);
   const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const error = ref<{ detail?: string } | null>(null);
 
   const captureSession = useAccountSession(() => {
     tags.value = [];
@@ -44,6 +40,7 @@ export const useTagsStore = defineStore('tags', () => {
   async function fetchAll() {
     const isCurrent = beginTagsRequest();
     isLoading.value = true;
+    error.value = null;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tag/all`, {
         headers: getHeaders(),
@@ -56,7 +53,7 @@ export const useTagsStore = defineStore('tags', () => {
       categories.value = data.categories;
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      error.value = e instanceof Error ? e.message : String(e);
+      error.value = { detail: e instanceof ApiResponseError ? e.detail : undefined };
     } finally {
       if (isCurrent()) {
         isLoading.value = false;
@@ -78,7 +75,7 @@ export const useTagsStore = defineStore('tags', () => {
       if (!isCurrent()) return [];
       if (!response.ok) throw await responseError(response, 'Tag search failed');
 
-      const data = await response.json();
+      const data: ListResponse<TagSearchResult> = await response.json();
       if (!isCurrent()) return [];
       return data.data;
     } catch (e) {
@@ -102,7 +99,7 @@ export const useTagsStore = defineStore('tags', () => {
       if (!isCurrent()) return [];
       if (!response.ok) throw await responseError(response, 'Category search failed');
 
-      const data = await response.json();
+      const data: ListResponse<TagSearchResult> = await response.json();
       if (!isCurrent()) return [];
       return data.data;
     } catch (e) {

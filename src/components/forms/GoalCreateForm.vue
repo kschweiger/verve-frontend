@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import { useSubTypes } from '@/composables/useSubTypes';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, useId } from 'vue';
 import type { Goal } from '@/stores/goals';
 import { useGoalCreation, type GoalDraft } from '@/composables/useGoalCreation';
 import GoalTimeframeFields from './GoalTimeframeFields.vue';
@@ -12,6 +13,8 @@ const emit = defineEmits<{
   (e: 'saved'): void;
 }>();
 
+const { t } = useI18n();
+const id = useId();
 const typeStore = useTypeStore();
 const equipmentStore = useEquipmentStore();
 
@@ -51,13 +54,13 @@ const useEquipmentConstraint = ref(false);
 const selectedEquipmentIds = ref<string[]>([]);
 
 const aggregations = [
-  { value: 'active_days', label: 'Active Days' },
-  { value: 'count', label: 'Count (Number of Activities)' },
-  { value: 'total_distance', label: 'Total Distance (km)' },
-  { value: 'avg_distance', label: 'Average Distance (km)' },
-  { value: 'max_distance', label: 'Max Distance (km)' },
-  { value: 'duration', label: 'Duration (Seconds)' },
-];
+  'active_days',
+  'count',
+  'total_distance',
+  'avg_distance',
+  'max_distance',
+  'duration',
+] as const satisfies readonly Goal['aggregation'][];
 
 const availableSubTypes = useSubTypes(
   () => typeStore.activityTypes,
@@ -95,10 +98,12 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div role="dialog" aria-modal="true" :aria-labelledby="`${id}-title`" class="space-y-5">
     <div class="flex justify-between items-center border-b border-verve-medium/30 pb-3">
-      <h3 class="text-xl font-bold text-verve-brown">Set New Goal</h3>
+      <h3 :id="`${id}-title`" class="text-xl font-bold text-verve-brown">{{ t('goals.setNewGoal') }}</h3>
       <button
+        type="button"
+        :aria-label="t('goals.closeCreation')"
         @click="$emit('close')"
         class="text-verve-brown/40 hover:text-verve-brown transition-colors"
       >
@@ -123,81 +128,90 @@ async function handleSubmit() {
       <!-- Name & Description -->
       <div class="grid grid-cols-1 gap-4">
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
-            Goal Name <span class="text-red-500">*</span>
+          <label :for="`${id}-name`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+            {{ t('goals.goalName') }} <span class="text-red-500">*</span>
           </label>
           <input
+            :id="`${id}-name`"
             v-model="form.name"
+            :aria-invalid="!!errors.name"
+            :aria-describedby="errors.name ? `${id}-name-error` : undefined"
             type="text"
-            placeholder="e.g. Run 100km"
+            :placeholder="t('goals.nameExample')"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-brown/30"
             :class="errors.name ? 'border-red-500' : ''"
           />
-          <p v-if="errors.name" class="text-red-500 text-xs mt-1">{{ errors.name }}</p>
+          <p v-if="errors.name" :id="`${id}-name-error`" class="text-red-500 text-xs mt-1">{{ t(`goals.errors.${errors.name}`) }}</p>
         </div>
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
-            >Description</label
+          <label :for="`${id}-description`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+            >{{ t('goals.description') }}</label
           >
           <input
+            :id="`${id}-description`"
             v-model="form.description"
             type="text"
-            placeholder="Optional details..."
+            :placeholder="t('goals.optionalDetails')"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark focus:border-verve-dark bg-white placeholder-verve-brown/30"
           />
         </div>
       </div>
 
-      <GoalTimeframeFields v-model="form" :week-error="errors.week" />
+      <GoalTimeframeFields v-model="form" :week-error="errors.week ? t(`goals.errors.${errors.week}`) : undefined" />
 
       <!-- Goal Logic -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
-            >Goal Type</label
+          <label :for="`${id}-type`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
+            >{{ t('goals.goalType') }}</label
           >
           <select
+            :id="`${id}-type`"
             v-model="form.type"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white"
           >
-            <option value="activity">Based on Activities</option>
-            <option value="manual">Manual Entry</option>
+            <option value="activity">{{ t('goals.activityBased') }}</option>
+            <option value="manual">{{ t('goals.manual') }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">Metric</label>
+          <label :for="`${id}-aggregation`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">{{ t('goals.metric') }}</label>
           <select
+            :id="`${id}-aggregation`"
             v-model="form.aggregation"
             class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white"
           >
-            <option v-for="agg in aggregations" :key="agg.value" :value="agg.value">
-              {{ agg.label }}
+            <option v-for="agg in aggregations" :key="agg" :value="agg">
+              {{ t(`goals.metrics.${agg}`) }}
             </option>
           </select>
         </div>
       </div>
 
       <div>
-        <label class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
-          Target Value <span class="text-red-500">*</span>
+        <label :for="`${id}-target`" class="block text-xs font-bold text-verve-brown/60 uppercase mb-1">
+          {{ t('goals.targetValue') }} <span class="text-red-500">*</span>
         </label>
         <input
-          v-model="form.target"
+          :id="`${id}-target`"
+            v-model="form.target"
+            :aria-invalid="!!errors.target"
+            :aria-describedby="errors.target ? `${id}-target-error` : undefined"
           type="number"
           step="any"
           class="w-full border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown focus:ring-verve-dark bg-white"
           :class="errors.target ? 'border-red-500' : ''"
         />
-        <p v-if="errors.target" class="text-red-500 text-xs mt-1">{{ errors.target }}</p>
+        <p v-if="errors.target" :id="`${id}-target-error`" class="text-red-500 text-xs mt-1">{{ t(`goals.errors.${errors.target}`) }}</p>
         <p class="text-xs text-verve-brown/50 mt-1 italic">
-          If using Duration, enter seconds (e.g., 3600 = 1 hour).
+          {{ t('goals.durationHelp') }}
         </p>
       </div>
 
       <!-- Constraints Section -->
       <div class="border-t border-verve-medium/30 pt-4">
         <h4 class="text-xs font-bold text-verve-brown/50 uppercase tracking-wide mb-3">
-          Filters (Optional)
+          {{ t('goals.optionalFilters') }}
         </h4>
 
         <!-- Activity Type Constraint -->
@@ -206,29 +220,31 @@ async function handleSubmit() {
             <input
               v-model="useActivityConstraint"
               type="checkbox"
-              id="use-type"
+              :id="`${id}-use-type`"
               class="size-4 rounded border-verve-medium"
             />
-            <label for="use-type" class="ml-2 text-sm font-medium text-verve-brown"
-              >Limit by Activity Type</label
+            <label :for="`${id}-use-type`" class="ml-2 text-sm font-medium text-verve-brown"
+              >{{ t('goals.limitActivityType') }}</label
             >
           </div>
           <div v-if="useActivityConstraint" class="pl-6 grid grid-cols-2 gap-3">
             <select
               v-model="selectedTypeId"
+              :aria-label="t('goals.activityType')"
               class="border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown bg-white"
             >
-              <option :value="null">Select Type...</option>
+              <option :value="null">{{ t('goals.selectType') }}</option>
               <option v-for="t in typeStore.activityTypes" :key="t.id" :value="t.id">
                 {{ t.name }}
               </option>
             </select>
             <select
               v-model="selectedSubTypeId"
+              :aria-label="t('goals.activitySubtype')"
               :disabled="!selectedTypeId"
               class="border-verve-medium rounded-xl text-sm py-2 px-3 text-verve-brown bg-white disabled:bg-gray-50 disabled:text-gray-400"
             >
-              <option :value="null">Any Sub-Type</option>
+              <option :value="null">{{ t('goals.anySubtype') }}</option>
               <option v-for="st in availableSubTypes" :key="st.id" :value="st.id">
                 {{ st.name }}
               </option>
@@ -242,30 +258,31 @@ async function handleSubmit() {
             <input
               v-model="useEquipmentConstraint"
               type="checkbox"
-              id="use-equip"
+              :id="`${id}-use-equip`"
               class="size-4 rounded border-verve-medium"
             />
-            <label for="use-equip" class="ml-2 text-sm font-medium text-verve-brown"
-              >Limit by Equipment</label
+            <label :for="`${id}-use-equip`" class="ml-2 text-sm font-medium text-verve-brown"
+              >{{ t('goals.limitEquipment') }}</label
             >
           </div>
           <div v-if="useEquipmentConstraint" class="pl-6">
             <select
               v-model="selectedEquipmentIds"
+              :aria-label="t('goals.equipment')"
               multiple
               class="w-full border-verve-medium rounded-xl text-sm h-24 p-2 text-verve-brown bg-white"
             >
               <option v-for="eq in equipmentStore.allEquipment" :key="eq.id" :value="eq.id">
-                {{ eq.name }} ({{ eq.equipment_type }})
+                {{ eq.name }} ({{ t(`equipment.types.${eq.equipment_type}`) }})
               </option>
             </select>
-            <p class="text-xs text-verve-brown/50 mt-1">Hold Ctrl/Cmd to select multiple.</p>
+            <p class="text-xs text-verve-brown/50 mt-1">{{ t('goals.selectMultiple') }}</p>
           </div>
         </div>
       </div>
     </fieldset>
     <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-      {{ error }}
+      {{ error.detail ?? t(`goals.errors.${error.reason}`) }}
     </p>
     <!-- Footer Actions -->
     <div class="flex justify-end gap-3 pt-4 border-t border-verve-medium/30">
@@ -274,7 +291,7 @@ async function handleSubmit() {
         @click="$emit('close')"
         class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light transition-colors"
       >
-        Cancel
+        {{ t('goals.cancel') }}
       </button>
       <button
         type="button"
@@ -282,7 +299,7 @@ async function handleSubmit() {
         :disabled="isSaving"
         class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all"
       >
-        {{ isSaving ? 'Saving...' : 'Save Goal' }}
+        {{ isSaving ? t('goals.saving') : t('goals.saveGoal') }}
       </button>
     </div>
   </div>

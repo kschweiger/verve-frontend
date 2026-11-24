@@ -516,7 +516,7 @@ test('goal creation cannot own the loading and error state of a period query', a
   completeCreation(Response.json({}, { status: 503 }));
   expect(await creation).toBe(false);
   expect(store.isCreating).toBe(false);
-  expect(store.creationError).toBe('Failed to create goal');
+  expect(store.creationError).toEqual({ reason: 'createFailed' });
   expect(store.periodsError).toBeNull();
 });
 

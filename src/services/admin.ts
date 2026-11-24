@@ -1,4 +1,4 @@
-import { ApiResponseError, getAuthHeaders } from './authHeaders';
+import { getAuthHeaders, responseError } from './authHeaders';
 import type { UserPublic } from './users';
 
 export interface AdminUserJob {
@@ -27,11 +27,11 @@ async function requestAdmin<T>(path: string, method: 'GET' | 'POST', expectedSta
     method, headers: getAuthHeaders(),
   });
   if (response.status !== expectedStatus) {
-    throw new ApiResponseError(
+    throw await responseError(
+      response,
       method === 'POST'
         ? 'Could not confirm that the job was queued. Check before submitting again.'
-        : 'Failed to load admin data. Please try again.',
-      response.status
+        : 'Failed to load admin data. Please try again.'
     );
   }
   const data: T = await response.json();

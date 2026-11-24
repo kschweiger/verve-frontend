@@ -86,6 +86,13 @@ export interface ActivityUploadFailure {
   detail?: string;
 }
 
+type ManualActivityFailure = {
+  success: false;
+  reason: 'notAuthenticated' | 'invalidTimezone' | 'accountChanged' | 'failed';
+  detail?: string;
+  message: string;
+};
+
 const ACTIVITIES_PER_PAGE = 5;
 
 export const useActivityStore = defineStore('activity', () => {
@@ -337,14 +344,25 @@ export const useActivityStore = defineStore('activity', () => {
     payload: ActivityCreatePayload,
     file: File | null,
     timezoneName?: string
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: true; message: string } | ManualActivityFailure> {
     const isCurrent = captureSession();
-    if (!userStore.token) return { success: false, message: 'Not authenticated.' };
+    if (!userStore.token) {
+      return { success: false, reason: 'notAuthenticated', message: 'Not authenticated.' };
+    }
+
+    if (timezoneName !== undefined && !isSupportedTimezone(timezoneName)) {
+      return { success: false, reason: 'invalidTimezone', message: 'Select a supported timezone.' };
+    }
+
+    const accountChanged = {
+      success: false,
+      reason: 'accountChanged',
+      message: 'Account changed while processing the request.',
+    } satisfies ManualActivityFailure;
 
     try {
       const query = new URLSearchParams();
       if (timezoneName !== undefined) {
-        if (!isSupportedTimezone(timezoneName)) throw new Error('Select a supported timezone.');
         query.set('timezone_name', timezoneName);
       }
       if (payload.add_default_equipment) query.append('add_default_equipment', 'true');
@@ -357,14 +375,12 @@ export const useActivityStore = defineStore('activity', () => {
           body: JSON.stringify(payload),
         }
       );
-      if (!isCurrent())
-        return { success: false, message: 'Account changed while processing the request.' };
+      if (!isCurrent()) return accountChanged;
 
       if (!response.ok) throw await responseError(response, 'Failed to create activity.');
 
       const activityData: ActivityPublic = await response.json();
-      if (!isCurrent())
-        return { success: false, message: 'Account changed while processing the request.' };
+      if (!isCurrent()) return accountChanged;
       const newActivityId = activityData.id;
 
       if (file) {
@@ -380,8 +396,7 @@ export const useActivityStore = defineStore('activity', () => {
             body: formData,
           }
         );
-        if (!isCurrent())
-          return { success: false, message: 'Account changed while processing the request.' };
+        if (!isCurrent()) return accountChanged;
 
         if (!trackResponse.ok) {
           return {
@@ -394,10 +409,14 @@ export const useActivityStore = defineStore('activity', () => {
       fetchRecentActivities();
       notifyUpdate();
       return { success: true, message: 'Activity created successfully!' };
-    } catch (e: unknown) {
-      if (!isCurrent())
-        return { success: false, message: 'Account changed while processing the request.' };
-      return { success: false, message: e instanceof Error ? e.message : String(e) };
+    } catch (cause: unknown) {
+      if (!isCurrent()) return accountChanged;
+      return {
+        success: false,
+        reason: 'failed',
+        detail: cause instanceof ApiResponseError ? cause.detail : undefined,
+        message: cause instanceof Error ? cause.message : String(cause),
+      };
     }
   }
 

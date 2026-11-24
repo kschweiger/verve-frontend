@@ -16,6 +16,17 @@ import * as segments from './segments';
 import * as linkedActivities from './linkedActivities';
 import * as training from './training';
 import * as records from './records';
+import * as manualEntry from './manualEntry';
+import * as swimming from './swimming';
+import * as collections from './collections';
+import * as equipment from './equipment';
+import * as goals from './goals';
+import * as locations from './locations';
+import * as admin from './admin';
+import * as help from './help';
+import * as heatmap from './heatmap';
+import * as tags from './tags';
+import * as stats from './stats';
 
 export function createAppI18n(initialLocale: SupportedLocale = 'en') {
   return createI18n({
@@ -40,6 +51,17 @@ export function createAppI18n(initialLocale: SupportedLocale = 'en') {
         linkedActivities: linkedActivities.en,
         training: training.en,
         records: records.en,
+        manualEntry: manualEntry.en,
+        swimming: swimming.en,
+        collections: collections.en,
+        equipment: equipment.en,
+        goals: goals.en,
+        locations: locations.en,
+        admin: admin.en,
+        help: help.en,
+        heatmap: heatmap.en,
+        tags: tags.en,
+        stats: stats.en,
         language: {
           en: 'English',
           de: 'German',
@@ -62,6 +84,17 @@ export function createAppI18n(initialLocale: SupportedLocale = 'en') {
         linkedActivities: linkedActivities.de,
         training: training.de,
         records: records.de,
+        manualEntry: manualEntry.de,
+        swimming: swimming.de,
+        collections: collections.de,
+        equipment: equipment.de,
+        goals: goals.de,
+        locations: locations.de,
+        admin: admin.de,
+        help: help.de,
+        heatmap: heatmap.de,
+        tags: tags.de,
+        stats: stats.de,
         language: {
           en: 'Englisch',
           de: 'Deutsch',

@@ -14,6 +14,11 @@ export type Goal = GoalPublic & {
   constraints: Record<string, unknown>;
 };
 
+export interface GoalSaveError {
+  reason: 'createFailed' | 'updateFailed';
+  detail?: string;
+}
+
 function mapGoal(value: GoalPublic): Goal {
   return {
     ...value,
@@ -55,8 +60,8 @@ export const useGoalStore = defineStore('goal', () => {
   const isLoadingPeriods = ref(false);
   const periodsError = ref<{ reason: 'loadFailed'; detail?: string } | null>(null);
   const isCreating = ref(false);
-  const creationError = ref<string | null>(null);
-  const updateError = ref<string | null>(null);
+  const creationError = ref<GoalSaveError | null>(null);
+  const updateError = ref<GoalSaveError | null>(null);
 
   const captureSession = useAccountSession(() => {
     isLoadingPeriods.value = false;
@@ -158,7 +163,10 @@ export const useGoalStore = defineStore('goal', () => {
       return true;
     } catch (e: unknown) {
       if (!isCurrent()) return false;
-      creationError.value = e instanceof Error ? e.message : String(e);
+      creationError.value = {
+        reason: 'createFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
       return false;
     } finally {
       if (isCurrent()) {
@@ -196,7 +204,10 @@ export const useGoalStore = defineStore('goal', () => {
       return true;
     } catch (e) {
       if (!isCurrent()) return false;
-      updateError.value = e instanceof Error ? e.message : 'Failed to update goal.';
+      updateError.value = {
+        reason: 'updateFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
       return false;
     }
   }

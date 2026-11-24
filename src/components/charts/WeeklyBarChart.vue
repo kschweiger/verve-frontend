@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Bar } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -14,7 +16,7 @@ import {
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
-defineProps<{
+const props = defineProps<{
   chartData: ChartData<'bar'>;
   chartOptions?: ChartOptions<'bar'>;
 }>();
@@ -47,8 +49,13 @@ const defaultOptions: ChartOptions<'bar'> = {
     },
   },
 };
+const { locale } = useI18n();
+const options = computed(() => ({
+  ...(props.chartOptions ?? defaultOptions),
+  locale: props.chartOptions?.locale ?? locale.value,
+}));
 </script>
 
 <template>
-  <Bar :data="chartData" :options="chartOptions ?? defaultOptions" />
+  <Bar :data="chartData" :options="options" />
 </template>

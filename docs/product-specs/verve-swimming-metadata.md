@@ -322,6 +322,8 @@ Activity metadata display is dispatched by `meta_data.target`. To add a new meta
 
 ## Frontend Display Rules
 
+The swimming widget uses the active app language for labels, supported stroke names, and number formatting. Metadata keys, stroke codes, and metric values stay in their contract formats.
+
 - The swimming widget is read-only and consumes backend core `meta_data`, rather than the portable file envelope.
 - Hide the widget for missing, unknown, malformed, or empty metadata. Ignore malformed set entries without crashing the activity view.
 - Show available Pool, Laps, Sets, Strokes, Avg SWOLF, and stroke-style information.

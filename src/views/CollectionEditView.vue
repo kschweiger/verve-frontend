@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import CollectionActivityPicker from '@/components/collections/CollectionActivityPicker.vue';
-import { fetchCollection, updateCollection, type CollectionDetail } from '@/services/collections';
+import { ApiResponseError } from '@/services/authHeaders';
+import { fetchCollection, updateCollection } from '@/services/collections';
 import type { Activity } from '@/stores/activity';
 
 const props = defineProps<{
@@ -10,14 +12,14 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
-const collection = ref<CollectionDetail | null>(null);
+const { t } = useI18n();
 const name = ref('');
 const description = ref('');
 const selectedActivities = ref<Activity[]>([]);
 const originalActivityIds = ref<string[]>([]);
 const isLoading = ref(true);
 const isSaving = ref(false);
-const error = ref<string | null>(null);
+const error = ref<{ key: 'load' | 'update'; detail?: string } | null>(null);
 
 const canSave = computed(() => name.value.trim().length > 0 && selectedActivities.value.length > 0 && !isSaving.value);
 
@@ -34,13 +36,12 @@ async function loadCollection() {
 
   try {
     const detail = await fetchCollection(props.id);
-    collection.value = detail;
     name.value = detail.name;
     description.value = detail.description ?? '';
     selectedActivities.value = detail.activities;
     originalActivityIds.value = detail.activities.map((activity) => activity.id);
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load collection.';
+    error.value = { key: 'load', detail: e instanceof ApiResponseError ? e.detail : undefined };
   } finally {
     isLoading.value = false;
   }
@@ -61,7 +62,7 @@ async function handleSubmit() {
     });
     router.push({ name: 'collection-detail', params: { id: props.id } });
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to update collection.';
+    error.value = { key: 'update', detail: e instanceof ApiResponseError ? e.detail : undefined };
   } finally {
     isSaving.value = false;
   }
@@ -73,16 +74,16 @@ onMounted(loadCollection);
 <template>
   <div class="min-h-[calc(100vh-64px)] bg-verve-light/30 p-4 sm:p-6 lg:p-8">
     <div v-if="isLoading" class="py-12 text-center text-verve-brown/60">
-      Loading collection...
+      {{ t('collections.loadingCollection') }}
     </div>
 
     <form v-else class="mx-auto max-w-7xl space-y-6" @submit.prevent="handleSubmit">
       <div class="rounded-xl border border-verve-medium/30 bg-white p-6 shadow-sm">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 class="text-3xl font-bold text-verve-brown">Edit Collection</h1>
+            <h1 class="text-3xl font-bold text-verve-brown">{{ t('collections.editCollection') }}</h1>
             <p class="mt-2 text-sm text-verve-brown/60">
-              Update metadata or append activities. Existing activities are locked in beta.
+              {{ t('collections.editIntro') }}
             </p>
           </div>
           <div class="flex gap-3">
@@ -90,32 +91,32 @@ onMounted(loadCollection);
               :to="{ name: 'collection-detail', params: { id } }"
               class="rounded-xl border border-verve-medium bg-white px-4 py-2 text-sm font-semibold text-verve-brown transition-colors hover:bg-verve-light"
             >
-              Cancel
+              {{ t('collections.cancel') }}
             </router-link>
             <button
               type="submit"
               :disabled="!canSave"
               class="rounded-xl bg-verve-brown px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-verve-brown/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {{ isSaving ? 'Saving...' : 'Save Changes' }}
+              {{ isSaving ? t('collections.saving') : t('collections.saveChanges') }}
             </button>
           </div>
         </div>
 
         <div class="mt-6 grid gap-4 md:grid-cols-2">
           <label class="block text-sm font-semibold text-verve-brown">
-            Name
+            {{ t('collections.name') }}
             <input v-model="name" type="text" class="mt-2 w-full px-3 py-2" required />
           </label>
 
           <label class="block text-sm font-semibold text-verve-brown">
-            Description
+            {{ t('collections.description') }}
             <textarea v-model="description" rows="3" class="mt-2 w-full px-3 py-2"></textarea>
           </label>
         </div>
 
-        <div v-if="error" class="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
-          {{ error }}
+        <div v-if="error" role="alert" class="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+          {{ t(`collections.errors.${error.key}`) }} {{ error.detail }}
         </div>
       </div>
 

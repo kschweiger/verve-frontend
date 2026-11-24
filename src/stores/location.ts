@@ -1,4 +1,4 @@
-import { responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
+import { ApiResponseError, responseError, getJsonAuthHeaders as getHeaders } from '../services/authHeaders';
 import { useLatestRequest } from '../composables/useLatestRequest';
 import { useAccountSession } from '../composables/useAccountSession';
 // src/stores/location.ts
@@ -60,13 +60,15 @@ export const useLocationStore = defineStore('location', () => {
   const error = ref<string | null>(null);
 
   const isDetailLoading = ref(false);
-  const detailError = ref<string | null>(null);
+  const detailError = ref<{ reason: 'detailsFailed'; detail?: string } | null>(null);
+  const creationError = ref<{ reason: 'createFailed'; detail?: string } | null>(null);
 
   // --- Actions ---
   const captureSession = useAccountSession(() => {
     locationsActivityId = null;
     isDetailLoading.value = false;
     detailError.value = null;
+    creationError.value = null;
     visibleLocations.value = [];
     availableLocations.value = [];
     selectedLocation.value = null;
@@ -199,7 +201,10 @@ export const useLocationStore = defineStore('location', () => {
       }
     } catch (e: unknown) {
       if (!isCurrent()) return;
-      detailError.value = e instanceof Error ? e.message : String(e);
+      detailError.value = {
+        reason: 'detailsFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
     } finally {
       if (isCurrent()) {
         isDetailLoading.value = false;
@@ -210,6 +215,7 @@ export const useLocationStore = defineStore('location', () => {
   async function createLocation(payload: LocationCreatePayload): Promise<boolean> {
     const isCurrent = captureSession();
     isLoading.value = true;
+    creationError.value = null;
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/location/`, {
         method: 'PUT',
@@ -222,7 +228,10 @@ export const useLocationStore = defineStore('location', () => {
       return true;
     } catch (e: unknown) {
       if (!isCurrent()) return false;
-      error.value = e instanceof Error ? e.message : String(e);
+      creationError.value = {
+        reason: 'createFailed',
+        detail: e instanceof ApiResponseError ? e.detail : undefined,
+      };
       return false;
     } finally {
       if (isCurrent()) {
@@ -401,6 +410,7 @@ export const useLocationStore = defineStore('location', () => {
   return {
     isDetailLoading,
     detailError,
+    creationError,
     visibleLocations,
     availableLocations,
     selectedLocation,

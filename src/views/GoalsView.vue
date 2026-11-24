@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useGoalStore, type Goal } from '@/stores/goals';
 import { useTypeStore } from '@/stores/types';
 import GoalCard from '@/components/GoalCard.vue';
 import GoalCreateForm from '@/components/forms/GoalCreateForm.vue';
 import GoalEditModal from '@/components/forms/GoalEditModal.vue';
 
+const { t, d, n } = useI18n();
 const goalStore = useGoalStore();
 const typeStore = useTypeStore();
 
@@ -24,8 +26,12 @@ const currentMonth = ref(now.getMonth() + 1);
 const currentWeek = ref(getISOWeek(now));
 
 const monthName = computed(() =>
-  new Date(currentYear.value, currentMonth.value - 1).toLocaleString('default', { month: 'long' })
+  d(new Date(currentYear.value, currentMonth.value - 1, 1), { month: 'long' })
 );
+
+const yearLabel = computed(() => n(currentYear.value, { useGrouping: false }));
+const weekNumber = computed(() => n(currentWeek.value));
+const weekLabel = computed(() => t('goals.weekLabel', { week: weekNumber.value }));
 
 // Modals
 const showCreateModal = ref(false);
@@ -42,7 +48,7 @@ onMounted(() => {
 watch([currentYear, currentMonth, currentWeek], refreshData);
 
 const handleDelete = async (goal: Goal) => {
-  if (!confirm(`Delete goal "${goal.name}"?`)) return;
+  if (!confirm(t('goals.deleteConfirm', { name: goal.name }))) return;
   await goalStore.deleteGoal(goal.id);
   refreshData();
 };
@@ -60,7 +66,7 @@ const successRate = computed(() => {
   ];
   if (all.length === 0) return 0;
   const reached = all.filter((g) => g.reached).length;
-  return Math.round((reached / all.length) * 100);
+  return reached / all.length;
 });
 </script>
 
@@ -71,19 +77,19 @@ const successRate = computed(() => {
       <div
         class="flex flex-col lg:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-verve-medium/30 gap-6">
         <div class="flex flex-col sm:flex-row items-center gap-6">
-          <h1 class="text-3xl font-bold text-verve-brown">Goals</h1>
+          <h1 class="text-3xl font-bold text-verve-brown">{{ t('goals.title') }}</h1>
 
           <div class="flex flex-wrap items-center justify-center gap-3">
             <!-- Year/Month Selector -->
             <div class="flex items-center gap-1 bg-verve-light rounded-xl p-1">
-              <button @click="currentMonth > 1 ? currentMonth-- : (currentMonth = 12, currentYear--)"
+              <button type="button" :aria-label="t('goals.previousMonth')" @click="currentMonth > 1 ? currentMonth-- : (currentMonth = 12, currentYear--)"
                 class="p-2 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors">
                 &lt;
               </button>
               <span class="font-bold text-verve-brown w-32 text-center text-sm">
-                {{ monthName }} <span class="font-normal text-verve-brown/60">{{ currentYear }}</span>
+                {{ monthName }} <span class="font-normal text-verve-brown/60">{{ yearLabel }}</span>
               </span>
-              <button @click="currentMonth < 12 ? currentMonth++ : (currentMonth = 1, currentYear++)"
+              <button type="button" :aria-label="t('goals.nextMonth')" @click="currentMonth < 12 ? currentMonth++ : (currentMonth = 1, currentYear++)"
                 class="p-2 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors">
                 &gt;
               </button>
@@ -91,12 +97,12 @@ const successRate = computed(() => {
 
             <!-- Week Selector -->
             <div class="flex items-center gap-1 bg-verve-light rounded-xl p-1">
-              <button @click="currentWeek > 1 ? currentWeek-- : (currentWeek = 53, currentYear--)"
+              <button type="button" :aria-label="t('goals.previousWeek')" @click="currentWeek > 1 ? currentWeek-- : (currentWeek = 53, currentYear--)"
                 class="p-2 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors">
                 &lt;
               </button>
-              <span class="font-bold text-verve-brown w-20 text-center text-sm">Week {{ currentWeek }}</span>
-              <button @click="currentWeek < 53 ? currentWeek++ : (currentWeek = 1, currentYear++)"
+              <span class="font-bold text-verve-brown w-20 text-center text-sm">{{ weekLabel }}</span>
+              <button type="button" :aria-label="t('goals.nextWeek')" @click="currentWeek < 53 ? currentWeek++ : (currentWeek = 1, currentYear++)"
                 class="p-2 hover:bg-white rounded-lg text-verve-brown/60 hover:text-verve-brown transition-colors">
                 &gt;
               </button>
@@ -107,13 +113,13 @@ const successRate = computed(() => {
         <div class="flex items-center gap-8">
           <div class="text-right">
             <div class="text-[10px] text-verve-brown/60 uppercase font-bold tracking-wider">
-              Success Rate
+              {{ t('goals.successRate') }}
             </div>
-            <div class="text-2xl font-bold text-verve-orange">{{ successRate }}%</div>
+            <div class="text-2xl font-bold text-verve-orange">{{ n(successRate, { style: 'percent' }) }}</div>
           </div>
-          <button @click="showCreateModal = true"
+          <button type="button" @click="showCreateModal = true"
             class="px-5 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 transition-all">
-            + New Goal
+            {{ t('goals.newGoal') }}
           </button>
         </div>
       </div>
@@ -123,9 +129,9 @@ const successRate = computed(() => {
         <!-- 1. Weekly Section -->
         <section>
           <div class="flex items-center mb-4">
-            <h2 class="text-xl font-bold text-verve-brown">Weekly Targets</h2>
+            <h2 class="text-xl font-bold text-verve-brown">{{ t('goals.weeklyTargets') }}</h2>
             <span class="ml-3 px-3 py-1 rounded-lg bg-verve-orange text-white text-xs font-bold shadow-sm">
-              Week {{ currentWeek }}
+              {{ weekLabel }}
             </span>
           </div>
 
@@ -135,14 +141,14 @@ const successRate = computed(() => {
           </div>
           <div v-else
             class="text-verve-brown/40 italic bg-white/50 border border-dashed border-verve-medium/30 p-8 rounded-xl text-center">
-            No weekly goals set for Week {{ currentWeek }}.
+            {{ t('goals.noWeekly', { week: weekNumber }) }}
           </div>
         </section>
 
         <!-- 2. Monthly Section -->
         <section>
           <div class="flex items-center mb-4">
-            <h2 class="text-xl font-bold text-verve-brown">Monthly Targets</h2>
+            <h2 class="text-xl font-bold text-verve-brown">{{ t('goals.monthlyTargets') }}</h2>
             <span
               class="ml-3 px-3 py-1 rounded-lg bg-verve-neon text-verve-brown text-xs font-bold shadow-sm border border-verve-dark/5">
               {{ monthName }}
@@ -155,17 +161,17 @@ const successRate = computed(() => {
           </div>
           <div v-else
             class="text-verve-brown/40 italic bg-white/50 border border-dashed border-verve-medium/30 p-8 rounded-xl text-center">
-            No monthly goals set for {{ monthName }}.
+            {{ t('goals.noMonthly', { month: monthName }) }}
           </div>
         </section>
 
         <!-- 3. Yearly Section -->
         <section>
           <div class="flex items-center mb-4">
-            <h2 class="text-xl font-bold text-verve-brown">Yearly Targets</h2>
+            <h2 class="text-xl font-bold text-verve-brown">{{ t('goals.yearlyTargets') }}</h2>
             <span
               class="ml-3 px-3 py-1 rounded-lg bg-verve-medium text-verve-brown text-xs font-bold shadow-sm border border-verve-dark/5">
-              {{ currentYear }}
+              {{ yearLabel }}
             </span>
           </div>
 
@@ -175,7 +181,7 @@ const successRate = computed(() => {
           </div>
           <div v-else
             class="text-verve-brown/40 italic bg-white/50 border border-dashed border-verve-medium/30 p-8 rounded-xl text-center">
-            No yearly goals set for {{ currentYear }}.
+            {{ t('goals.noYearly', { year: yearLabel }) }}
           </div>
         </section>
       </div>

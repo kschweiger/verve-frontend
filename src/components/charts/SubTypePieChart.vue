@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Pie } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -12,7 +14,7 @@ import {
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement);
 
-defineProps<{
+const props = defineProps<{
   chartData: ChartData<'pie'>;
   chartOptions?: ChartOptions<'pie'>;
 }>();
@@ -26,8 +28,13 @@ const defaultOptions: ChartOptions<'pie'> = {
     },
   },
 };
+const { locale } = useI18n();
+const options = computed(() => ({
+  ...(props.chartOptions ?? defaultOptions),
+  locale: props.chartOptions?.locale ?? locale.value,
+}));
 </script>
 
 <template>
-  <Pie :data="chartData" :options="chartOptions ?? defaultOptions" />
+  <Pie :data="chartData" :options="options" />
 </template>

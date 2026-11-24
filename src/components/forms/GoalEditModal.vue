@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import { useId } from 'vue';
 import { X } from '@lucide/vue';
 import type { Goal } from '@/stores/goals';
@@ -7,6 +8,7 @@ import { useGoalEditor } from '@/composables/useGoalEditor';
 const props = defineProps<{ goal: Goal }>();
 const emit = defineEmits<{ close: []; saved: [] }>();
 const id = useId();
+const { t } = useI18n();
 const { form, isSaving, error, save } = useGoalEditor(() => props.goal);
 async function handleSave() {
   if (await save()) emit('saved');
@@ -25,10 +27,10 @@ async function handleSave() {
       class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 border border-verve-medium/30"
     >
       <div class="flex justify-between items-center mb-4 border-b border-verve-medium/30 pb-3">
-        <h3 :id="`${id}-title`" class="text-xl font-bold text-verve-brown">Edit Goal</h3>
+        <h3 :id="`${id}-title`" class="text-xl font-bold text-verve-brown">{{ t('goals.edit') }}</h3>
         <button
           type="button"
-          aria-label="Close goal editor"
+          :aria-label="t('goals.closeEditor')"
           @click="emit('close')"
           class="text-verve-brown/60 hover:text-verve-brown focus-visible:outline-2 focus-visible:outline-verve-dark"
         >
@@ -40,7 +42,7 @@ async function handleSave() {
           <label
             :for="`${id}-name`"
             class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
-            >Name</label
+            >{{ t('goals.name') }}</label
           >
           <input
             :id="`${id}-name`"
@@ -54,7 +56,7 @@ async function handleSave() {
           <label
             :for="`${id}-description`"
             class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
-            >Description</label
+            >{{ t('goals.description') }}</label
           >
           <input
             :id="`${id}-description`"
@@ -67,7 +69,7 @@ async function handleSave() {
           <label
             :for="`${id}-target`"
             class="block text-xs font-bold text-verve-brown/60 uppercase mb-1"
-            >Target</label
+            >{{ t('goals.target') }}</label
           >
           <input
             :id="`${id}-target`"
@@ -80,7 +82,7 @@ async function handleSave() {
         </div>
       </fieldset>
       <p v-if="error" role="alert" class="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-        {{ error }}
+        {{ error.detail ?? t(`goals.errors.${error.reason}`) }}
       </p>
       <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-verve-medium/30">
         <button
@@ -88,14 +90,14 @@ async function handleSave() {
           @click="emit('close')"
           class="px-5 py-2.5 border border-verve-medium/50 rounded-xl text-verve-brown font-semibold hover:bg-verve-light focus-visible:outline-2 focus-visible:outline-verve-dark"
         >
-          Cancel
+          {{ t('goals.cancel') }}
         </button>
         <button
           type="submit"
           :disabled="isSaving"
           class="px-6 py-2.5 bg-verve-neon text-verve-brown font-bold rounded-xl shadow-sm hover:brightness-105 border border-verve-dark/5 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-verve-dark"
         >
-          {{ isSaving ? 'Saving…' : 'Save Changes' }}
+          {{ isSaving ? t('goals.saving') : t('goals.saveChanges') }}
         </button>
       </div>
     </form>

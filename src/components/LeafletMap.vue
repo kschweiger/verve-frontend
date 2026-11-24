@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useMapLabels } from '@/composables/useMapLabels';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { TrackPoint } from '@/services/api';
@@ -16,6 +18,8 @@ const emit = defineEmits<{
 }>();
 
 const mapContainer = ref<HTMLElement | null>(null);
+const { t } = useI18n();
+const localizeMap = useMapLabels();
 let map: L.Map | null = null;
 let hoverMarker: L.CircleMarker | null = null;
 let trackPolyline: L.Polyline | null = null;
@@ -95,11 +99,9 @@ const drawTrackOnMap = () => {
 onMounted(() => {
   if (mapContainer.value) {
     map = L.map(mapContainer.value).setView([47.37, 8.54], 13);
+    localizeMap(map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     map.on('mouseout', () => {
       if (props.hoveredIndex !== null) {
@@ -168,7 +170,12 @@ watch(
 </script>
 
 <template>
-  <div ref="mapContainer" class="h-96 w-full rounded-lg shadow-md z-0"></div>
+  <div
+    ref="mapContainer"
+    role="region"
+    :aria-label="t('manualEntry.map.title')"
+    class="h-96 w-full rounded-lg shadow-md z-0"
+  ></div>
 </template>
 
 <style>

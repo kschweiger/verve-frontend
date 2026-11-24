@@ -22,6 +22,13 @@ export type EquipmentSet = Backend.EquipmentSetPublic;
 export type EquipmentCreatePayload = Backend.EquipmentCreate;
 export type EquipmentUpdatePayload = Backend.EquipmentUpdate;
 
+export class EquipmentSetsRefreshError extends Error {
+  constructor() {
+    super('Equipment was deleted, but equipment sets could not be refreshed.');
+    this.name = 'EquipmentSetsRefreshError';
+  }
+}
+
 function mapEquipment(value: Backend.EquipmentPublic): Equipment {
   return {
     ...value,
@@ -152,7 +159,7 @@ export const useEquipmentStore = defineStore('equipment', () => {
       equipmentSets.value = setsData.data;
     } catch {
       if (!isCurrent() || !ownsSets()) return;
-      throw new Error('Equipment was deleted, but equipment sets could not be refreshed.');
+      throw new EquipmentSetsRefreshError();
     }
   }
 
